@@ -110,7 +110,7 @@ module.exports = async function (ctx) {
         log("等待传送完成");
         await sleep(15000);
     }
-    /** 传送到纳塔铁匠铺附近锚点 */
+    /** 传送到纳塔铁匠铺附近口袋锚点 */
     async function teleportToNatlan() {
         log("打开小地图");
         await tt(65, 52);
@@ -126,7 +126,7 @@ module.exports = async function (ctx) {
         await tt(302, 251);
         await sleep(3000);
 
-        await tt(432, 337);
+        await tt(409, 399);
         await sleep(3000);
 
         await tt(600, 444);
@@ -175,11 +175,14 @@ module.exports = async function (ctx) {
         await teleportToNatlan();
 
         log("前往铁匠铺-完成对话-进入锻造页面");
-        await hold(181, 343, 5500);
-        await sleep(3000);
+        // await drag(300, 200, 400, 200);
+        // await sleep(3000);
 
-        await hold(181, 343, 5500);
-        await sleep(3000);
+        // await hold(100, 320, 6500);
+        // await sleep(3000);
+
+        // await hold(151, 351, 250);
+        // await sleep(3000);
 
         await tt(400, 240);
         await sleep(7000);
@@ -280,7 +283,7 @@ module.exports = async function (ctx) {
     }
     async function main() {
         log("等待门出现");
-        await sleep(40000);
+        await sleep(50000);
         log("点击开始游戏，等待卡岩");
         await tt(300, 300);
         await sleep(40000);
