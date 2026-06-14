@@ -175,7 +175,9 @@ module.exports = async function (ctx) {
     }
 
     async function main() {
-        await sleep(120 * 1000);
+        log("同意用户协议");
+        await sleep(15 * 1000);
+        await tt(432, 281);
 
         log("点击开始游戏，等待读条");
         await tt(300, 300);
