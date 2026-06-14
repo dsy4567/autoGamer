@@ -1,5 +1,3 @@
-const readline = require("readline");
-
 /**
  * @param {{
  *   puppeteer: typeof import("puppeteer-core"),
@@ -12,65 +10,26 @@ const readline = require("readline");
 module.exports = async function (ctx) {
     const { puppeteer, browser, page, log, pageOpenTime } = ctx;
     const { createUtils } = require("../utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag } = createUtils(ctx);
-
-    // 实时测试 REPL
-    async function startRepl() {
-        log(
-            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)"
-        );
-        log("输入 exit 退出 REPL");
-
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-            prompt: "> ",
-        });
-        rl.prompt();
-        rl.on("line", async input => {
-            if (input.trim() === "exit") {
-                rl.close();
-                return;
-            }
-            if (input.trim() === "") {
-                log("网页已打开毫秒数:", Date.now() - pageOpenTime);
-                return;
-            }
-            try {
-                // 允许访问 browser, page, puppeteer, log 及别名
-                const result = await eval(
-                    `(async () => {try{${input}}catch(e){console.error(e)}})()`
-                );
-                log("执行结果:", result);
-            } catch (e) {
-                log("错误:", e);
-            }
-            rl.prompt();
-        }).on("close", async () => {
-            log("REPL结束，关闭浏览器...");
-            await browser.close();
-            process.exit(0);
-        });
-    }
+    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl } = createUtils(ctx, code => eval(code));
 
     /** 在云游戏平台悬浮球内完成签到、退出 (WIP, do not use) */
-    async function actionsInCloudGameAndExit() {
+    async function actionsInCloudGameBallAndExit() {
         log("开始签到");
         try {
             // 点击悬浮球元素
             await page.click(
-                "#app > div > div.pagebox > div:nth-child(4) > div"
+                "#app > div > div.pagebox > div:nth-child(4) > div",
             );
             await sleep(3000);
             // 点击福利标签
             await page.click(
-                "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare"
+                "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
             );
             await sleep(3000);
             try {
                 // first,scroll into view the sign button
                 await page.evaluate(
-                    'document.querySelector(".notSignInBtn").scrollIntoView()'
+                    'document.querySelector(".notSignInBtn").scrollIntoView()',
                 );
                 await sleep(1000);
                 tt(488, 424);
@@ -197,7 +156,7 @@ module.exports = async function (ctx) {
         await sleep(5000);
 
         log(
-            "选择魔晶矿-(点击锻造*4-点击锻造队列-点击领取-消除提示-点击配方)*3-点击关闭"
+            "选择魔晶矿-(点击锻造*4-点击锻造队列-点击领取-消除提示-点击配方)*3-点击关闭",
         );
 
         await tt(93, 181);
@@ -293,14 +252,14 @@ module.exports = async function (ctx) {
 
         await goAdventurerGuild();
 
-        await actionsInCloudGameAndExit();
+        await actionsInCloudGameBallAndExit();
     }
 
     log("游戏：原神");
     log("等待页面加载");
     // 原神启动
     await page.goto(
-        "https://www.migufun.com/miguplay/middleGame/gameplay/400007864?gameName=%E5%8E%9F%E7%A5%9E%C2%B7%E7%A9%BA%E6%9C%88%E4%B9%8B%E6%AD%8C"
+        "https://www.migufun.com/miguplay/middleGame/gameplay/400007864?gameName=%E5%8E%9F%E7%A5%9E%C2%B7%E7%A9%BA%E6%9C%88%E4%B9%8B%E6%AD%8C",
     );
     // 游戏已经启动，点击继续游戏
     setTimeout(async () => {

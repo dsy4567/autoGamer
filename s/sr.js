@@ -12,49 +12,10 @@ const readline = require("readline");
 module.exports = async function (ctx) {
     const { puppeteer, browser, page, log, pageOpenTime } = ctx;
     const { createUtils } = require("../utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag } = createUtils(ctx);
-
-    // 实时测试 REPL
-    async function startRepl() {
-        log(
-            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)"
-        );
-        log("输入 exit 退出 REPL");
-
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-            prompt: "> ",
-        });
-        rl.prompt();
-        rl.on("line", async input => {
-            if (input.trim() === "exit") {
-                rl.close();
-                return;
-            }
-            if (input.trim() === "") {
-                log("网页已打开毫秒数:", Date.now() - pageOpenTime);
-                return;
-            }
-            try {
-                // 允许访问 browser, page, puppeteer, log 及别名
-                const result = await eval(
-                    `(async () => {try{${input}}catch(e){console.error(e)}})()`
-                );
-                log("执行结果:", result);
-            } catch (e) {
-                log("错误:", e);
-            }
-            rl.prompt();
-        }).on("close", async () => {
-            log("REPL结束，关闭浏览器...");
-            await browser.close();
-            process.exit(0);
-        });
-    }
-
-    /** 在准备挑战页面，将挑战次数拉到 6 次-点击开始挑战-使用当前队伍挑战-挑战完成后再来一次-结束 */
-    function goChallenge() {}
+    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl } = createUtils(
+        ctx,
+        code => eval(code),
+    );
 
     /** 在云游戏平台悬浮球内完成签到、退出 (WIP, do not use) */
     async function actionsInCloudGameAndExit() {
