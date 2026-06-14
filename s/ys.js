@@ -10,7 +10,8 @@
 module.exports = async function (ctx) {
     const { puppeteer, browser, page, log, pageOpenTime } = ctx;
     const { createUtils } = require("../utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl } = createUtils(ctx, code => eval(code));
+    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl, setTaskTimeout } =
+        createUtils(ctx, code => eval(code));
 
     /** 在云游戏平台悬浮球内完成签到、退出 (WIP, do not use) */
     async function actionsInCloudGameBallAndExit() {
@@ -241,6 +242,8 @@ module.exports = async function (ctx) {
         }
     }
     async function main() {
+        setTaskTimeout();
+
         log("等待门出现");
         await sleep(50000);
         log("点击开始游戏，等待卡岩");

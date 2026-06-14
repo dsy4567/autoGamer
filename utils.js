@@ -89,7 +89,26 @@ function createUtils(ctx, _eval = eval) {
             process.exit(0);
         });
     }
-    return { ts, te, tm, tt, pc, hold, sleep, startRepl, drag };
+    let _taskTimer = null;
+    /** 设置任务超时，超时后自动关闭浏览器并退出进程 @param {number} [ms=1800000] 超时毫秒数，默认30分钟 @returns {() => void} 取消超时的函数 */
+    const setTaskTimeout = (ms = 30 * 60 * 1000) => {
+        if (_taskTimer) clearTimeout(_taskTimer);
+        _taskTimer = setTimeout(async () => {
+            log(`任务超时(${ms}ms)，正在关闭浏览器...`);
+            try {
+                await browser.close();
+            } catch (e) {
+                console.error(e);
+            }
+            process.exit(1);
+        }, ms);
+        return () => {
+            clearTimeout(_taskTimer);
+            _taskTimer = null;
+        };
+    };
+
+    return { ts, te, tm, tt, pc, hold, sleep, startRepl, drag, setTaskTimeout };
 }
 
 module.exports = { createUtils };

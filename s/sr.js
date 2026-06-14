@@ -15,7 +15,7 @@ const dungeonFightTime = 360;
 module.exports = async function (ctx) {
     const { puppeteer, browser, page, log, pageOpenTime } = ctx;
     const { createUtils } = require("../utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl } = createUtils(
+    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl, setTaskTimeout } = createUtils(
         ctx,
         code => eval(code),
     );
@@ -175,6 +175,8 @@ module.exports = async function (ctx) {
     }
 
     async function main() {
+        setTaskTimeout(15 * 60 * 1000);
+
         log("同意用户协议");
         await sleep(15 * 1000);
         await tt(432, 281);
