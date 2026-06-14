@@ -13,16 +13,23 @@ const readline = require("readline");
 function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, pageOpenTime } = ctx;
 
+    /** 触摸开始 - 在指定坐标触发 touchStart 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
     const ts = (x, y) => page.touchscreen.touchStart(x, y);
+    /** 触摸结束 - 触发 touchEnd 事件 */
     const te = () => page.touchscreen.touchEnd();
+    /** 触摸移动 - 在指定坐标触发 touchMove 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
     const tm = (x, y) => page.touchscreen.touchMove(x, y);
+    /** 触摸点击 - 在指定坐标触发 tap 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
     const tt = (x, y) => page.touchscreen.tap(x, y);
+    /** 页面点击 - 调用 page.click @param {...any} args 传递给 page.click 的参数 */
     const pc = (...args) => page.click(...args);
+    /** 长按 - 在指定坐标按下并保持一段时间后释放 @param {number} x 横坐标 @param {number} y 纵坐标 @param {number} [hold=100] 按住时长(毫秒) */
     const hold = async (x, y, hold = 100) => {
         await ts(x, y);
         await sleep(hold);
         await te();
     };
+    /** 拖拽 - 从起点拖拽到终点，分步模拟触摸移动 @param {number} fromX 起点横坐标 @param {number} fromY 起点纵坐标 @param {number} toX 终点横坐标 @param {number} toY 终点纵坐标 @param {number} [duration=500] 拖拽持续时间(毫秒) */
     const drag = async (fromX, fromY, toX, toY, duration = 500) => {
         const steps = 20;
         const stepDuration = duration / steps;
@@ -36,12 +43,18 @@ function createUtils(ctx, _eval = eval) {
         }
         await te();
     };
+    /** 延时等待 @param {number} ms 等待毫秒数 @returns {Promise<void>} */
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // 实时测试 REPL
+    /**
+     * 启动实时测试 REPL，可在终端输入并执行 puppeteer 代码
+     * 可用变量: browser, page, puppeteer, log 等
+     * 输入 "exit" 退出 REPL 并关闭浏览器
+     * @returns {Promise<void>}
+     */
     async function startRepl() {
         log(
-            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)"
+            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
         log("输入 exit 退出 REPL");
 
@@ -63,7 +76,7 @@ function createUtils(ctx, _eval = eval) {
             try {
                 // 允许访问 browser, page, puppeteer, log 及别名
                 const result = await _eval(
-                    `(async () => {try{${input}}catch(e){console.error(e)}})()`
+                    `(async () => {try{${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
