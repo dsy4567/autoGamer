@@ -108,6 +108,39 @@ async function main() {
         log,
         pageOpenTime,
     });
+
+    // 监听页面 postMessage 事件，自动模拟 tap/drag
+    await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
+        if (!msg || typeof msg !== "object" || !msg.type) return;
+        if (msg.type === "auto-gamer-mouse-to-tap") {
+            log("收到 tap 事件，位置:", msg.x, msg.y);
+            try {
+                await tt(msg.x, msg.y);
+            } catch (e) {
+                log("tap 执行失败:", e.message);
+            }
+        } else if (msg.type === "auto-gamer-mouse-to-drag") {
+            log("收到 drag 事件，从:", msg.from, "到:", msg.to);
+            try {
+                await drag(msg.from.x, msg.from.y, msg.to.x, msg.to.y);
+            } catch (e) {
+                log("drag 执行失败:", e.message);
+            }
+        }
+    });
+    await page.evaluateOnNewDocument(() => {
+        window.addEventListener("message", ev => {
+            if (
+                ev &&
+                ev.data &&
+                (ev.data.type === "auto-gamer-mouse-to-tap" ||
+                    ev.data.type === "auto-gamer-mouse-to-drag")
+            ) {
+                // 通过 puppeteer 暴露的函数转发到 Node 端
+                window.__autoGamerSimulateTouch(ev.data);
+            }
+        });
+    });
     // 实时测试 REPL
     async function startRepl() {
         log(
