@@ -12,20 +12,20 @@ function log(...args) {
 }
 
 // 默认本地 Chrome 浏览器路径（如需 Edge/Chromium 请修改此处）
-function getLocalChromePath() {
-    const platform = os.platform();
-    if (platform === "win32") {
-        // Windows
-        return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-    } else if (platform === "linux") {
-        // Linux
-        return "/usr/bin/google-chrome";
-    } else {
-        // 其他平台暂不支持
-        log("当前平台暂未配置默认浏览器路径，请手动指定");
-        return null;
-    }
-}
+// function getLocalChromePath() {
+//     const platform = os.platform();
+//     if (platform === "win32") {
+//         // Windows
+//         return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+//     } else if (platform === "linux") {
+//         // Linux
+//         return "/usr/bin/google-chrome";
+//     } else {
+//         // 其他平台暂不支持
+//         log("当前平台暂未配置默认浏览器路径，请手动指定");
+//         return null;
+//     }
+// }
 async function inject(/** @type {puppeteer.Page} */ page) {
     const injectPath = path.resolve(__dirname, "inject.js");
     if (fs.existsSync(injectPath)) {
@@ -53,12 +53,12 @@ async function main() {
     }
 
     // 获取本地浏览器路径
-    const executablePath = getLocalChromePath();
-    if (!executablePath || !fs.existsSync(executablePath)) {
-        log("未找到本地浏览器，请检查路径:", executablePath);
-        process.exit(1);
-    }
-    log("使用本地浏览器:", executablePath);
+    // const executablePath = getLocalChromePath();
+    // if (!executablePath || !fs.existsSync(executablePath)) {
+    //     log("未找到本地浏览器，请检查路径:", executablePath);
+    //     process.exit(1);
+    // }
+    // log("使用本地浏览器:", executablePath);
 
     // 启动 Puppeteer
     log("启动浏览器...");
@@ -66,7 +66,7 @@ async function main() {
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: null,
-        executablePath,
+        channel: "chrome",
         userDataDir,
         args: config.puppeteerArgs || [
             "--no-sandbox",
