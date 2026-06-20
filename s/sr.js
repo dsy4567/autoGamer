@@ -131,11 +131,11 @@ module.exports = async function (ctx) {
 
         log("关闭副本页");
         await tt(610, 29);
-        await sleep(3000);
+        await sleep(5000);
 
         log("重新进入每日实训");
         await tt(495, 20);
-        await sleep(3000);
+        await sleep(5000);
 
         log("领取战斗活跃度");
         await tt(110, 353);
