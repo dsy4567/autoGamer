@@ -135,7 +135,14 @@ async function main() {
     );
     const browser = await puppeteer.launch({
         headless: false,
-        defaultViewport: null,
+        defaultViewport: {
+            ...(config.viewport || {
+                width: 640,
+                height: 480,
+                hasTouch: true,
+                isLandscape: true,
+            }),
+        },
         channel: "chrome",
         userDataDir,
         args: config.puppeteerArgs || [
@@ -143,6 +150,9 @@ async function main() {
             "--disable-setuid-sandbox",
             "--mute-audio",
             "--disable-session-crashed-bubble",
+            "--disable-gpu",
+            "--use-gl=swiftshader",
+            "--disable-gpu-compositing",
         ],
     });
     browser.on("disconnected", () => {
@@ -150,14 +160,6 @@ async function main() {
         process.exit(0);
     });
     const [page] = await browser.pages();
-    await page.setViewport({
-        ...(config.viewport || {
-            width: 640,
-            height: 480,
-            hasTouch: true,
-            isLandscape: true,
-        }),
-    });
     await page.setUserAgent(config.mobileUA || MOBILE_UA);
     log("已设置移动端UA");
     const pageOpenTime = Date.now();

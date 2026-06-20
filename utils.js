@@ -180,7 +180,7 @@ function createUtils(ctx, _eval = eval) {
                         height: config.viewport?.height ?? 480,
                     },
                     captureBeyondViewport: false,
-                    // optimizeForSpeed: true,
+                    optimizeForSpeed: true,
                 }),
                 new Promise((resolve, reject) =>
                     setTimeout(

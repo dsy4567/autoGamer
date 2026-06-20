@@ -10,6 +10,9 @@ module.exports = {
         // "--window-size=640,480",
         "--mute-audio",
         "--disable-session-crashed-bubble",
+        "--disable-gpu",
+        "--use-gl=swiftshader",
+        "--disable-gpu-compositing",
     ],
     // 默认登录页
     defaultLoginUrl: "https://www.migufun.com/middleh5/",
