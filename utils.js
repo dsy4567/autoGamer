@@ -1,4 +1,15 @@
 const readline = require("readline");
+const fs = require("fs");
+const path = require("path");
+const config = require("./config.js");
+
+// 放在模块作用域，确保 createUtils 多次调用也只存在一个定时截图 timer
+let _autoScreenshotTimer = null;
+// 放在模块作用域，确保 createUtils 多次调用时节流和防并发状态全局共享
+let _lastScreenshotTime = 0;
+let _screenshotInProgress = false;
+// 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
+let _taskTimer = null;
 
 /**
  * @param {{
@@ -6,12 +17,14 @@ const readline = require("readline");
  *   browser: import("puppeteer-core").Browser,
  *   page: import("puppeteer-core").Page,
  *   log: (...args: any[]) => void,
- *   pageOpenTime: number
+ *   logRaw: (...args: any[]) => void,
+ *   pageOpenTime: number,
+ *   logDir: string
  * }} ctx
  * @param {globalThis} that
  */
 function createUtils(ctx, _eval = eval) {
-    const { puppeteer, browser, page, log, pageOpenTime } = ctx;
+    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
 
     /** 触摸开始 - 在指定坐标触发 touchStart 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
     const ts = (x, y) => page.touchscreen.touchStart(x, y);
@@ -30,8 +43,14 @@ function createUtils(ctx, _eval = eval) {
         await te();
     };
     /** 拖拽 - 从起点拖拽到终点，分步模拟触摸移动 @param {number} fromX 起点横坐标 @param {number} fromY 起点纵坐标 @param {number} toX 终点横坐标 @param {number} toY 终点纵坐标 @param {number} [duration=500] 拖拽持续时间(毫秒) */
-    const drag = async (fromX, fromY, toX, toY, duration = 500) => {
-        const steps = 20;
+    const drag = async (
+        fromX,
+        fromY,
+        toX,
+        toY,
+        duration = config.automation?.defaultDragDuration ?? 500,
+    ) => {
+        const steps = config.automation?.defaultDragSteps ?? 20;
         const stepDuration = duration / steps;
         const stepX = (toX - fromX) / steps;
         const stepY = (toY - fromY) / steps;
@@ -85,16 +104,24 @@ function createUtils(ctx, _eval = eval) {
             rl.prompt();
         }).on("close", async () => {
             log("REPL结束，关闭浏览器...");
+            await screenshot("退出前").catch(() => {});
             await browser.close();
             process.exit(0);
         });
     }
-    let _taskTimer = null;
-    /** 设置任务超时，超时后自动关闭浏览器并退出进程 @param {number} [ms=1800000] 超时毫秒数，默认30分钟 @returns {() => void} 取消超时的函数 */
-    const setTaskTimeout = (ms = 30 * 60 * 1000) => {
+    /** 根据游戏任务实际用时，设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时 @param {number} [ms=1800000] 超时毫秒数，<=0时取消超时，默认30分钟 @returns {() => void} 取消超时的函数 */
+    const setTaskTimeout = (
+        ms = config.automation?.defaultTaskTimeoutMs ?? 30 * 60 * 1000,
+    ) => {
+        if (ms <= 0) {
+            clearTimeout(_taskTimer);
+            _taskTimer = null;
+            return () => {};
+        }
         if (_taskTimer) clearTimeout(_taskTimer);
         _taskTimer = setTimeout(async () => {
             log(`任务超时(${ms}ms)，正在关闭浏览器...`);
+            await screenshot("退出前").catch(() => {});
             try {
                 await browser.close();
             } catch (e) {
@@ -108,7 +135,112 @@ function createUtils(ctx, _eval = eval) {
         };
     };
 
-    return { ts, te, tm, tt, pc, hold, sleep, startRepl, drag, setTaskTimeout };
+    /** 截图并保存到日志目录，1秒内限一张 @param {string} [label=""] 截图标签/日志内容 */
+    const screenshot = async (label = "") => {
+        const now = Date.now();
+        const throttleMs = config.screenshots?.screenshotThrottleMs ?? 2500;
+        let msg = "";
+        if (now - _lastScreenshotTime < throttleMs) msg = "截图失败: 触发节流";
+        if (_screenshotInProgress) msg = "截图失败: 上一张截图正在处理中";
+        if (msg) {
+            logRaw(msg);
+            throw new Error(msg);
+        }
+        let overlayWasVisible = false;
+        _lastScreenshotTime = now;
+        _screenshotInProgress = true;
+
+        try {
+            const timeStr = new Date().toISOString().replace(/[:.]/g, "-");
+            const safeLabel = String(label)
+                .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
+                .substring(0, 80);
+            const filename = safeLabel
+                ? `${timeStr}_${safeLabel}.png`
+                : `${timeStr}.png`;
+            const filePath = path.join(logDir, filename);
+
+            logRaw("准备截图");
+            overlayWasVisible = await page.evaluate(() => {
+                const el = document.getElementById("auto-gamer-overlay");
+                if (!el) return false;
+                const visible = el.style.getPropertyValue("display") !== "none";
+                el.style.setProperty("display", "none", "important");
+                return visible;
+            });
+
+            await Promise.race([
+                page.screenshot({
+                    path: filePath,
+                    fullPage: false,
+                    clip: {
+                        x: 0,
+                        y: 0,
+                        width: config.viewport?.width ?? 640,
+                        height: config.viewport?.height ?? 480,
+                    },
+                    captureBeyondViewport: false,
+                    // optimizeForSpeed: true,
+                }),
+                new Promise((resolve, reject) =>
+                    setTimeout(
+                        () => reject(new Error("截图超时")),
+                        config.screenshots?.screenshotThrottleMs ?? 2500,
+                    ),
+                ),
+            ]);
+            logRaw("截图已保存:", filename);
+        } catch (e) {
+            logRaw("截图失败:", e.message);
+            throw e;
+        } finally {
+            try {
+                await page.evaluate(wasVisible => {
+                    const el = document.getElementById("auto-gamer-overlay");
+                    if (el) {
+                        el.style.setProperty(
+                            "display",
+                            wasVisible ? "block" : "none",
+                            "important",
+                        );
+                    }
+                }, overlayWasVisible);
+            } catch (_) {}
+            _screenshotInProgress = false;
+        }
+    };
+
+    /** 启动每30秒自动截图 @param {number} [interval=30000] 间隔毫秒数 @returns {() => void} 停止定时器的函数 */
+    const startAutoScreenshot = (
+        interval = config.screenshots?.autoScreenshotInterval ?? 30000,
+    ) => {
+        if (_autoScreenshotTimer) clearInterval(_autoScreenshotTimer);
+        _autoScreenshotTimer = setInterval(() => {
+            screenshot("auto")
+                .then(() => logRaw("自动截图成功"))
+                .catch(() => {});
+        }, interval);
+        return () => {
+            clearInterval(_autoScreenshotTimer);
+            _autoScreenshotTimer = null;
+            screenshot("退出前").catch(() => {});
+        };
+    };
+
+    return {
+        ts,
+        te,
+        tm,
+        tt,
+        pc,
+        hold,
+        sleep,
+        startRepl,
+        drag,
+        setTaskTimeout,
+        screenshot,
+        startAutoScreenshot,
+    };
 }
 
 module.exports = { createUtils };

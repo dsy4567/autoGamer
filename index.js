@@ -5,11 +5,52 @@ const fs = require("fs");
 const os = require("os");
 const config = require("./config.js");
 
-// 日志工具
-function log(...args) {
+// 日志增强钩子，初始为空函数，后续赋值以启用写文件/截屏
+let _logWriteFile = () => {};
+let _logScreenshot = () => {};
+
+// 日志工具（只定义一次，通过钩子变量控制增强行为）
+const log = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
-}
+    _logWriteFile(now, args);
+    _logScreenshot(args);
+};
+// 原始日志，不触发截图钩子，供截图函数自身使用以避免递归
+const logRaw = (...args) => {
+    const now = new Date().toISOString();
+    console.log(`[${now}]`, ...args);
+    _logWriteFile(now, args);
+};
+
+// 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝
+let _errorLogFile = null;
+
+process.on("uncaughtException", err => {
+    log("未捕获的异常:", err);
+    if (_errorLogFile) {
+        try {
+            fs.appendFileSync(
+                _errorLogFile,
+                `[${new Date().toISOString()}] 未捕获的异常: ${err.stack || err}\n`,
+            );
+        } catch (e) {}
+    }
+    process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+    log("未处理的 Promise 拒绝:", reason);
+    if (_errorLogFile) {
+        try {
+            fs.appendFileSync(
+                _errorLogFile,
+                `[${new Date().toISOString()}] 未处理的 Promise 拒绝: ${reason?.stack || reason}\n`,
+            );
+        } catch (e) {}
+    }
+    process.exit(1);
+});
 
 // 默认本地 Chrome 浏览器路径（如需 Edge/Chromium 请修改此处）
 // function getLocalChromePath() {
@@ -47,10 +88,36 @@ async function main() {
     const arg = process.argv[2];
     if (!arg) {
         log(
-            "用法: node index.js login [登录URL] 或 node index.js test-page 或 node index.js <操作脚本.js>"
+            "用法: node index.js login [登录URL] 或 node index.js test-page 或 node index.js <操作脚本.js>",
         );
         process.exit(1);
     }
+
+    // 推导脚本名，用于日志目录
+    const scriptName = (() => {
+        if (!arg || arg === "login" || arg === "test-page") return "unknown";
+        const ext = path.extname(arg);
+        if (ext) return path.basename(arg, ext);
+        return "unknown";
+    })();
+    const startTimeStr = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .replace("T", "_");
+    const logDir = path.resolve(__dirname, "logs", scriptName, startTimeStr);
+    fs.mkdirSync(logDir, { recursive: true });
+    const logFilePath = path.join(logDir, "log.txt");
+
+    // 启用日志写入文件
+    _errorLogFile = logFilePath;
+    _logWriteFile = (now, args) => {
+        try {
+            fs.appendFileSync(
+                logFilePath,
+                `[${now}] ${args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")}\n`,
+            );
+        } catch (e) {}
+    };
 
     // 获取本地浏览器路径
     // const executablePath = getLocalChromePath();
@@ -62,7 +129,10 @@ async function main() {
 
     // 启动 Puppeteer
     log("启动浏览器...");
-    const userDataDir = path.resolve(__dirname, "user-data");
+    const userDataDir = path.resolve(
+        __dirname,
+        config.dirs?.userDataDirName || "user-data",
+    );
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: null,
@@ -72,13 +142,14 @@ async function main() {
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--mute-audio",
+            "--disable-session-crashed-bubble",
         ],
     });
     browser.on("disconnected", () => {
         log("所有浏览器窗口已关闭，程序退出");
         process.exit(0);
     });
-    const page = await browser.newPage();
+    const [page] = await browser.pages();
     await page.setViewport({
         ...(config.viewport || {
             width: 640,
@@ -96,18 +167,51 @@ async function main() {
             "网页完全加载，用时:",
             Date.now() - pageOpenTime,
             "毫秒",
-            page.url()
+            page.url(),
         );
     });
 
     const { createUtils } = require("./utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag } = createUtils({
+    const {
+        ts,
+        te,
+        tm,
+        tt,
+        pc,
+        hold,
+        sleep,
+        drag,
+        screenshot,
+        startAutoScreenshot,
+    } = createUtils({
         puppeteer,
         browser,
         page,
         log,
+        logRaw,
         pageOpenTime,
+        logDir,
     });
+
+    // 根据配置决定是否启动自动定时截图
+    if (config.screenshots?.autoScreenshotEnabled !== false) {
+        startAutoScreenshot();
+    }
+
+    // 根据配置决定是否启用日志事件截图
+    // 截图函数内部已使用 logRaw 避免递归，此处无需额外过滤
+    if (config.screenshots?.screenshotOnLog !== false) {
+        _logScreenshot = args => {
+            const label = args
+                .map(a =>
+                    typeof a === "object" ? JSON.stringify(a) : String(a),
+                )
+                .join(" ");
+            screenshot(label)
+                .then(() => logRaw("截图成功", label))
+                .catch(() => {});
+        };
+    }
 
     // 监听页面 postMessage 事件，自动模拟 tap/drag
     await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
@@ -144,7 +248,7 @@ async function main() {
     // 实时测试 REPL
     async function startRepl() {
         log(
-            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)"
+            "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
         log("输入 exit 退出 REPL");
 
@@ -179,7 +283,7 @@ async function main() {
 
                 // 允许访问 browser, page, puppeteer, log 及别名
                 const result = await eval(
-                    `(async () => {try{${input}}catch(e){console.error(e)}})()`
+                    `(async () => {try{${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
@@ -188,6 +292,7 @@ async function main() {
             rl.prompt();
         }).on("close", async () => {
             log("REPL结束，关闭浏览器...");
+            await screenshot("退出前").catch(() => {});
             await browser.close();
             process.exit(0);
         });
@@ -205,7 +310,7 @@ async function main() {
             log("未指定/无效的 URL，使用配置或默认登录页");
         }
         log(`打开登录页面: ${loginUrl}`);
-        await page.goto(loginUrl);
+        await page.goto(loginUrl, config.pageloadOptions);
         await inject(page);
         log("请在浏览器中完成登录操作，完成后关闭页面即可退出");
 
@@ -233,7 +338,15 @@ async function main() {
                 await inject(page);
             });
 
-            await script({ puppeteer, browser, page, log, pageOpenTime });
+            await script({
+                puppeteer,
+                browser,
+                page,
+                log,
+                logRaw,
+                pageOpenTime,
+                logDir,
+            });
         } catch (e) {
             log("脚本执行出错:", e);
         }

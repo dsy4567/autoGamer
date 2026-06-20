@@ -1,51 +1,35 @@
+const scriptConfig = require("./config/ys.config.js");
+const { actionsInCloudGameBallAndExit } = require("./share/migu.js");
+
 /**
  * @param {{
  *   puppeteer: typeof import("puppeteer-core"),
  *   browser: import("puppeteer-core").Browser,
  *   page: import("puppeteer-core").Page,
  *   log: (...args: any[]) => void,
- *   pageOpenTime: number
+ *   logRaw: (...args: any[]) => void,
+ *   pageOpenTime: number,
+ *   logDir: string
  * }} ctx
  */
 module.exports = async function (ctx) {
-    const { puppeteer, browser, page, log, pageOpenTime } = ctx;
+    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
     const { createUtils } = require("../utils.js");
-    const { ts, te, tm, tt, pc, hold, sleep, drag, startRepl, setTaskTimeout } =
-        createUtils(ctx, code => eval(code));
+    const {
+        ts,
+        te,
+        tm,
+        tt,
+        pc,
+        hold,
+        sleep,
+        drag,
+        screenshot,
+        startAutoScreenshot,
+        startRepl,
+        setTaskTimeout,
+    } = createUtils(ctx, code => eval(code));
 
-    /** 在云游戏平台悬浮球内完成签到、退出 (WIP, do not use) */
-    async function actionsInCloudGameBallAndExit() {
-        log("开始签到");
-        try {
-            // 点击悬浮球元素
-            await page.click(
-                "#app > div > div.pagebox > div:nth-child(4) > div",
-            );
-            await sleep(3000);
-            // 点击福利标签
-            await page.click(
-                "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
-            );
-            await sleep(3000);
-            try {
-                // first,scroll into view the sign button
-                await page.evaluate(
-                    'document.querySelector(".notSignInBtn").scrollIntoView()',
-                );
-                await sleep(1000);
-                tt(488, 424);
-            } catch (e) {
-                log("今日已签到");
-            }
-            await sleep(7000);
-
-            // exit
-            await browser.close();
-            process.exit(0);
-        } catch (e) {
-            log("签到失败", e);
-        }
-    }
     /** 重置角色位置到枫丹一个常用锚点 */
     async function resetPosition() {
         log("打开小地图");
@@ -242,28 +226,30 @@ module.exports = async function (ctx) {
         }
     }
     async function main() {
-        setTaskTimeout();
+        if (scriptConfig.taskTimeoutMs > 0) {
+            setTaskTimeout(scriptConfig.taskTimeoutMs);
+        } else {
+            setTaskTimeout();
+        }
 
         log("等待门出现");
-        await sleep(50000);
+        await sleep(scriptConfig.startupWaitMs);
         log("点击开始游戏，等待卡岩");
         await tt(300, 300);
-        await sleep(40000);
+        await sleep(scriptConfig.afterStartGameWaitMs);
 
         // await goCraftingTable();
         await goBlacksmith();
 
         await goAdventurerGuild();
 
-        await actionsInCloudGameBallAndExit();
+        await actionsInCloudGameBallAndExit({ page, browser, log, sleep, tt });
     }
 
     log("游戏：原神");
     log("等待页面加载");
     // 原神启动
-    await page.goto(
-        "https://www.migufun.com/miguplay/middleGame/gameplay/400007864?gameName=%E5%8E%9F%E7%A5%9E%C2%B7%E7%A9%BA%E6%9C%88%E4%B9%8B%E6%AD%8C",
-    );
+    await page.goto(scriptConfig.gameUrl);
     // 游戏已经启动，点击继续游戏
     setTimeout(async () => {
         try {
