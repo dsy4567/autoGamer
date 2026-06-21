@@ -197,26 +197,6 @@ async function main() {
         logDir,
     });
 
-    // 根据配置决定是否启动自动定时截图
-    if (config.screenshots?.autoScreenshotEnabled !== false) {
-        startAutoScreenshot();
-    }
-
-    // 根据配置决定是否启用日志事件截图
-    // 截图函数内部已使用 logRaw 避免递归，此处无需额外过滤
-    if (config.screenshots?.screenshotOnLog !== false) {
-        _logScreenshot = args => {
-            const label = args
-                .map(a =>
-                    typeof a === "object" ? JSON.stringify(a) : String(a),
-                )
-                .join(" ");
-            screenshot(label)
-                .then(() => logRaw("截图成功", label))
-                .catch(() => {});
-        };
-    }
-
     // 监听页面 postMessage 事件，自动模拟 tap/drag
     await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
         if (!msg || typeof msg !== "object" || !msg.type) return;

@@ -1,5 +1,9 @@
 const scriptConfig = require("./config/ys.config.js");
-const { actionsInCloudGameBallAndExit } = require("./share/migu.js");
+const {
+    actionsInCloudGameBallAndExit,
+    clickContinueGame,
+} = require("./share/migu.js");
+const config = require("../config.js");
 
 /**
  * @param {{
@@ -226,12 +230,6 @@ module.exports = async function (ctx) {
         }
     }
     async function main() {
-        if (scriptConfig.taskTimeoutMs > 0) {
-            setTaskTimeout(scriptConfig.taskTimeoutMs);
-        } else {
-            setTaskTimeout();
-        }
-
         log("等待门出现");
         await sleep(scriptConfig.startupWaitMs);
         log("点击开始游戏，等待卡岩");
@@ -248,16 +246,23 @@ module.exports = async function (ctx) {
 
     log("游戏：原神");
     log("等待页面加载");
-    // 原神启动
     await page.goto(scriptConfig.gameUrl);
-    // 游戏已经启动，点击继续游戏
-    setTimeout(async () => {
-        try {
-            await page.click("b.button.continueGame");
-        } catch (e) {}
-    }, 5000);
 
-    await main();
+    // 根据配置决定是否启动自动定时截图
+    if (config.screenshots?.autoScreenshotEnabled !== false) {
+        startAutoScreenshot();
+    }
+    // 游戏已经启动，点击继续游戏
+    clickContinueGame(page);
+
+    if (!config.isDev) {
+        setTaskTimeout(
+            scriptConfig.taskTimeoutMs > 0
+                ? scriptConfig.taskTimeoutMs
+                : undefined,
+        );
+        await main();
+    }
 
     // 自动化完成后即可进入 REPL
     startRepl();

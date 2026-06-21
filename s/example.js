@@ -1,4 +1,9 @@
 const scriptConfig = require("./config/example.config.js");
+const {
+    clickContinueGame,
+    actionsInCloudGameBallAndExit,
+} = require("./share/migu.js");
+const config = require("../config.js");
 
 /**
  * @param {{
@@ -29,16 +34,32 @@ module.exports = async function (ctx) {
         setTaskTimeout,
     } = createUtils(ctx, code => eval(code));
 
+    async function main() {
+        // 你的自动化逻辑...
+
+        // 不要忘了签到领取云豆
+        await actionsInCloudGameBallAndExit({ page, browser, log, sleep, tt });
+    }
+
     log("开始自动化操作");
     // 原神启动
     await page.goto(scriptConfig.gameUrl);
-    if (scriptConfig.taskTimeoutMs > 0) {
-        setTaskTimeout(scriptConfig.taskTimeoutMs);
-    } else {
-        setTaskTimeout();
-    }
 
-    // 你的自动化逻辑...
+    // 根据配置决定是否启动自动定时截图
+    if (config.screenshots?.autoScreenshotEnabled !== false) {
+        startAutoScreenshot();
+    }
+    // 游戏已经启动，点击继续游戏
+    clickContinueGame(page);
+
+    if (!config.isDev) {
+        setTaskTimeout(
+            scriptConfig.taskTimeoutMs > 0
+                ? scriptConfig.taskTimeoutMs
+                : undefined,
+        );
+        await main();
+    }
 
     // 自动化完成后即可进入 REPL
     startRepl();

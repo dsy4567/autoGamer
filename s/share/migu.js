@@ -64,4 +64,16 @@ async function actionsInCloudGameBallAndExit(ctx) {
     }
 }
 
-module.exports = { actionsInCloudGameBallAndExit };
+/**
+ * 游戏已启动时，点击继续游戏按钮
+ * @param {import("puppeteer-core").Page} page
+ */
+function clickContinueGame(page) {
+    setTimeout(async () => {
+        try {
+            await page.click("b.button.continueGame");
+        } catch (e) {}
+    }, 5000);
+}
+
+module.exports = { actionsInCloudGameBallAndExit, clickContinueGame };
