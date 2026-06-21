@@ -76,7 +76,7 @@ function createUtils(ctx, _eval = eval) {
         log(
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
-        log("输入 exit 退出 REPL");
+        log("输入 exit 退出 REPL，使用 return 语句获取执行结果");
 
         const rl = readline.createInterface({
             input: process.stdin,
