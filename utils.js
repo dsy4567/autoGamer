@@ -187,7 +187,8 @@ function createUtils(ctx, _eval = eval) {
                 new Promise((resolve, reject) =>
                     setTimeout(
                         () => reject(new Error("截图超时")),
-                        config.screenshots?.screenshotThrottleMs ?? 2500,
+                        (config.screenshots?.screenshotThrottleMs ?? 2500) -
+                            100,
                     ),
                 ),
             ]);
