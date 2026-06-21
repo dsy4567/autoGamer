@@ -36,6 +36,7 @@ module.exports = async function (ctx) {
 
     // 领取简单奖励
     async function receiveSimpleRewards() {
+        log("-----领取简单奖励-----");
         log("进入每日实训");
         await tt(495, 20);
         await sleep(3000);
@@ -77,6 +78,7 @@ module.exports = async function (ctx) {
 
     // 刷本
     async function dungeonFight() {
+        log("-----刷本-----");
         log("进入每日实训");
         await tt(495, 20);
         await sleep(3000);
@@ -85,27 +87,37 @@ module.exports = async function (ctx) {
         await tt(133, 119);
         await sleep(3000);
 
-        log("进入拟什么金");
-        await tt(121, 261);
-        await sleep(3000);
-
         {
-            switch (scriptConfig.dungeonType) {
-                case 1:
-                    log("进入经验书副本");
-                    await tt(539, 193);
-                    await sleep(3000);
-                    break;
-                case 2:
-                    log("进入武器矿副本");
-                    await tt(540, 242);
-                    await sleep(3000);
-                    break;
-                case 3:
-                    log("进入钞票副本");
-                    await tt(541, 295);
-                    await sleep(3000);
-                    break;
+            if (scriptConfig.dungeonType === 4) {
+                log("进入培养目标首个副本");
+                await tt(533, 211);
+                await sleep(3000);
+            } else {
+                log("进入拟什么金");
+                await tt(121, 261);
+                await sleep(3000);
+                switch (scriptConfig.dungeonType) {
+                    case 1:
+                        log("进入经验书副本");
+                        await tt(539, 193);
+                        await sleep(3000);
+                        break;
+                    case 2:
+                        log("进入武器矿副本");
+                        await tt(540, 242);
+                        await sleep(3000);
+                        break;
+                    case 3:
+                        log("进入钞票副本");
+                        await tt(541, 295);
+                        await sleep(3000);
+                        break;
+                    default:
+                        log("WARNING: 未知副本类型，即将关闭指南页面");
+                        await tt(612, 28);
+                        await sleep(3000);
+                        return;
+                }
             }
 
             log("拉满挑战次数至24次");
