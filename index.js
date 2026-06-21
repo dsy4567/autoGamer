@@ -330,7 +330,7 @@ async function main() {
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {
             await inject(page);
-            setupLogScreenshot(screenshot);
+            // setupLogScreenshot(screenshot);
         });
         await startRepl();
     } else {
