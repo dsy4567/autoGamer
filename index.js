@@ -27,12 +27,13 @@ const logRaw = (...args) => {
 let _errorLogFile = null;
 
 process.on("uncaughtException", err => {
-    log("未捕获的异常:", err);
+    // 例外：允许使用 console.error 而不是 log/logRaw
+    console.error("ERROR: 未捕获的异常:", err);
     if (_errorLogFile) {
         try {
             fs.appendFileSync(
                 _errorLogFile,
-                `[${new Date().toISOString()}] 未捕获的异常: ${err.stack || err}\n`,
+                `[${new Date().toISOString()}] ERROR: 未捕获的异常: ${err.stack || err}\n`,
             );
         } catch (e) {}
     }
@@ -40,12 +41,13 @@ process.on("uncaughtException", err => {
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-    log("未处理的 Promise 拒绝:", reason);
+    // 例外：允许使用 console.error 而不是 log/logRaw
+    console.error("ERROR: 未处理的 Promise 拒绝:", reason);
     if (_errorLogFile) {
         try {
             fs.appendFileSync(
                 _errorLogFile,
-                `[${new Date().toISOString()}] 未处理的 Promise 拒绝: ${reason?.stack || reason}\n`,
+                `[${new Date().toISOString()}] ERROR: 未处理的 Promise 拒绝: ${reason?.stack || reason}\n`,
             );
         } catch (e) {}
     }
@@ -74,10 +76,10 @@ async function inject(/** @type {puppeteer.Page} */ page) {
             await page.mainFrame().addScriptTag({ path: injectPath });
             log("已注入 inject.js");
         } catch (e) {
-            log("inject.js 注入失败:", e.message);
+            log("ERROR: inject.js 注入失败:", e.message);
         }
     } else {
-        log("inject.js 文件不存在，未注入");
+        log("ERROR: inject.js 文件不存在，未注入");
     }
 }
 
@@ -223,14 +225,14 @@ async function main() {
             try {
                 await tt(msg.x, msg.y);
             } catch (e) {
-                log("tap 执行失败:", e.message);
+                log("ERROR: tap 执行失败:", e.message);
             }
         } else if (msg.type === "auto-gamer-mouse-to-drag") {
             log("收到 drag 事件，从:", msg.from, "到:", msg.to);
             try {
                 await drag(msg.from.x, msg.from.y, msg.to.x, msg.to.y);
             } catch (e) {
-                log("drag 执行失败:", e.message);
+                log("ERROR: drag 执行失败:", e.message);
             }
         }
     });
@@ -284,12 +286,13 @@ async function main() {
                 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
                 // 允许访问 browser, page, puppeteer, log 及别名
+                // 例外：允许使用 console.error 而不是 log/logRaw
                 const result = await eval(
                     `(async () => {try{${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
-                log("错误:", e);
+                log("ERROR:", e);
             }
             rl.prompt();
         }).on("close", async () => {
@@ -309,7 +312,7 @@ async function main() {
         try {
             loginUrl = new URL(url).toString();
         } catch (e) {
-            log("未指定/无效的 URL，使用配置或默认登录页");
+            log("WARNING: 未指定/无效的 URL，使用配置或默认登录页");
         }
         log(`打开登录页面: ${loginUrl}`);
         await page.goto(loginUrl, config.pageloadOptions);
@@ -325,14 +328,14 @@ async function main() {
         // 执行操作脚本
         let scriptPath = path.resolve(arg);
         if (!fs.existsSync(scriptPath)) {
-            log("找不到操作脚本:", scriptPath);
+            log("ERROR: 找不到操作脚本:", scriptPath);
             process.exit(1);
         }
         log("加载操作脚本:", scriptPath);
         // 传递 puppeteer, browser, page, log 给脚本
         const script = require(scriptPath);
         if (typeof script !== "function") {
-            log("脚本文件需导出一个 async function");
+            log("ERROR: 脚本文件需导出一个 async function");
             process.exit(1);
         }
         try {
@@ -350,7 +353,7 @@ async function main() {
                 logDir,
             });
         } catch (e) {
-            log("脚本执行出错:", e);
+            log("ERROR: 脚本执行出错:", e);
         }
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {

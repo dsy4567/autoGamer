@@ -60,7 +60,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
         await browser.close();
         process.exit(0);
     } catch (e) {
-        log("签到失败", e);
+        log("ERROR: 签到失败", e);
     }
 }
 

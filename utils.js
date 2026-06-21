@@ -94,12 +94,13 @@ function createUtils(ctx, _eval = eval) {
             }
             try {
                 // 允许访问 browser, page, puppeteer, log 及别名
+                // 例外：允许使用 console.error 而不是 log/logRaw
                 const result = await _eval(
                     `(async () => {try{${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
-                log("错误:", e);
+                log("ERROR:", e);
             }
             rl.prompt();
         }).on("close", async () => {
@@ -120,12 +121,12 @@ function createUtils(ctx, _eval = eval) {
         }
         if (_taskTimer) clearTimeout(_taskTimer);
         _taskTimer = setTimeout(async () => {
-            log(`任务超时(${ms}ms)，正在关闭浏览器...`);
+            log(`WARNING: 任务超时(${ms}ms)，正在关闭浏览器...`);
             await screenshot("退出前").catch(() => {});
             try {
                 await browser.close();
             } catch (e) {
-                console.error(e);
+                logRaw("ERROR: 关闭浏览器失败:", e);
             }
             process.exit(1);
         }, ms);
