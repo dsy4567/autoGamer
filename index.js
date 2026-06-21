@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const config = require("./config.js");
+const { createUtils } = require("./utils.js");
 
 // 日志增强钩子，初始为空函数，后续赋值以启用写文件/截屏
 let _logWriteFile = () => {};
@@ -53,7 +54,26 @@ process.on("unhandledRejection", (reason, promise) => {
     }
     process.exit(1);
 });
-
+/**
+ * 设置日志截图钩子
+ * @param {(label: string) => Promise<void>} screenshot 截图函数，参数为截图标签
+ */
+function setupLogScreenshot(screenshot) {
+    // 根据配置决定是否启用日志事件截图
+    // 截图函数内部已使用 logRaw 避免递归，此处无需额外过滤
+    if (config.screenshots?.screenshotOnLog !== false) {
+        _logScreenshot = args => {
+            const label = args
+                .map(a =>
+                    typeof a === "object" ? JSON.stringify(a) : String(a),
+                )
+                .join(" ");
+            screenshot(label)
+                .then(() => logRaw("截图成功", label))
+                .catch(() => {});
+        };
+    }
+}
 // 默认本地 Chrome 浏览器路径（如需 Edge/Chromium 请修改此处）
 // function getLocalChromePath() {
 //     const platform = os.platform();
@@ -106,20 +126,24 @@ async function main() {
         .toISOString()
         .replace(/[:.]/g, "-")
         .replace("T", "_");
-    const logDir = path.resolve(__dirname, "logs", scriptName, startTimeStr);
-    fs.mkdirSync(logDir, { recursive: true });
-    const logFilePath = path.join(logDir, "log.txt");
+    const logDir = config.isDev
+        ? ""
+        : path.resolve(__dirname, "logs", scriptName, startTimeStr);
+    if (!config.isDev) {
+        fs.mkdirSync(logDir, { recursive: true });
+        const logFilePath = path.join(logDir, "log.txt");
 
-    // 启用日志写入文件
-    _errorLogFile = logFilePath;
-    _logWriteFile = (now, args) => {
-        try {
-            fs.appendFileSync(
-                logFilePath,
-                `[${now}] ${args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")}\n`,
-            );
-        } catch (e) {}
-    };
+        // 启用日志写入文件
+        _errorLogFile = logFilePath;
+        _logWriteFile = (now, args) => {
+            try {
+                fs.appendFileSync(
+                    logFilePath,
+                    `[${now}] ${args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")}\n`,
+                );
+            } catch (e) {}
+        };
+    }
 
     // 获取本地浏览器路径
     // const executablePath = getLocalChromePath();
@@ -175,7 +199,6 @@ async function main() {
         );
     });
 
-    const { createUtils } = require("./utils.js");
     const {
         ts,
         te,
@@ -302,6 +325,7 @@ async function main() {
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {
             await inject(page);
+            setupLogScreenshot(screenshot);
         });
         await startRepl();
     } else {
@@ -321,6 +345,7 @@ async function main() {
         try {
             page.on("load", async () => {
                 await inject(page);
+                setupLogScreenshot(screenshot);
             });
 
             await script({
@@ -338,6 +363,7 @@ async function main() {
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {
             await inject(page);
+            setupLogScreenshot(screenshot);
         });
     }
 }
