@@ -58,7 +58,7 @@ module.exports = {
     // 自动化行为配置
     automation: {
         // 默认任务超时时间（毫秒），默认 30 分钟
-        defaultTaskTimeoutMs: 1800000,
+        defaultTaskTimeoutMs: 30 * 60 * 1000,
         // 默认拖拽模拟步数
         defaultDragSteps: 20,
         // 默认拖拽持续时间（毫秒）
