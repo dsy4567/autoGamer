@@ -93,6 +93,10 @@ async function inject(/** @type {puppeteer.Page} */ page) {
     const injectPath = path.resolve(__dirname, "inject.js");
     if (fs.existsSync(injectPath)) {
         try {
+            // 将全局配置注入页面，供 inject.js 读取
+            await page.evaluate(alwaysHideOverlay => {
+                window.__autoGamerConfig = { alwaysHideOverlay };
+            }, config.alwaysHideOverlay ?? false);
             await page.mainFrame().addScriptTag({ path: injectPath });
             log("已注入 inject.js");
         } catch (e) {

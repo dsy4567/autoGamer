@@ -2,6 +2,8 @@
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     let devMode = false;
+    const autoGamerConfig = window.__autoGamerConfig || {};
+    const alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
     // 创建透明度为 0.01 的全屏遮罩
     const overlay = document.createElement("div");
@@ -14,6 +16,9 @@
     overlay.style.setProperty("background", "rgba(0,0,0,0.99)", "important");
     overlay.style.setProperty("z-index", "1000001", "important");
     overlay.style.setProperty("pointer-events", "none", "important");
+    if (alwaysHideOverlay) {
+        overlay.style.setProperty("display", "none", "important");
+    }
     document.body.appendChild(overlay);
 
     // 鼠标移入遮罩时隐藏它
@@ -23,7 +28,7 @@
 
     // 鼠标离开遮罩时重新显示
     document.documentElement.addEventListener("mouseleave", function () {
-        if (devMode) return;
+        if (devMode || alwaysHideOverlay) return;
         overlay.style.setProperty("display", "block", "important");
     });
 
