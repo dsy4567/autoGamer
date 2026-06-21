@@ -38,7 +38,7 @@ module.exports = async function (ctx) {
         // 你的自动化逻辑...
 
         // 不要忘了签到领取云豆
-        await actionsInCloudGameBallAndExit({ page, browser, log, sleep, tt });
+        await actionsInCloudGameBallAndExit(ctx);
     }
 
     log("开始自动化操作");

@@ -180,7 +180,7 @@ module.exports = async function (ctx) {
         await receiveSimpleRewards();
         await dungeonFight();
 
-        await actionsInCloudGameBallAndExit({ page, browser, log, sleep, tt });
+        await actionsInCloudGameBallAndExit(ctx);
     }
 
     log("游戏：崩坏：星穹铁道");

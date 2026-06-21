@@ -241,7 +241,7 @@ module.exports = async function (ctx) {
 
         await goAdventurerGuild();
 
-        await actionsInCloudGameBallAndExit({ page, browser, log, sleep, tt });
+        await actionsInCloudGameBallAndExit(ctx);
     }
 
     log("游戏：原神");
