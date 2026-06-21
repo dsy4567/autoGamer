@@ -254,6 +254,7 @@ async function main() {
     });
     // 实时测试 REPL
     async function startRepl() {
+        await sleep(1000);
         log(
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
