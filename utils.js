@@ -121,6 +121,7 @@ function createUtils(ctx, _eval = eval) {
             return () => {};
         }
         if (_taskTimer) clearTimeout(_taskTimer);
+        log(`设置任务超时: ${ms}ms`);
         _taskTimer = setTimeout(async () => {
             log(`WARNING: 任务超时(${ms}ms)，正在关闭浏览器...`);
             await screenshot("退出前").catch(() => {});
