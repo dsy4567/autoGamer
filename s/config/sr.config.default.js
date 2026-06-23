@@ -1,8 +1,9 @@
-// sr.config.js
-// 崩坏：星穹铁道（Star Rail）脚本专用配置
-// 脚本路径: s/sr.js
+// 警告：不建议直接修改此文件，请通过同目录下的 sr.config.user.js 进行自定义配置。
+const loadUserConfig = require("../../loadUserConfig");
 
-module.exports = {
+const userConfig = loadUserConfig(__filename);
+
+const defaultConfig = {
     // 游戏启动 URL（咪咕快游平台）
     gameUrl:
         "https://www.migufun.com/miguplay/middleGame/gameplay/400803874?gameName=%E5%B4%A9%E5%9D%8F%EF%BC%9A%E6%98%9F%E7%A9%B9%E9%93%81%E9%81%93",
@@ -22,3 +23,5 @@ module.exports = {
         afterStartGame: 30 * 1000,
     },
 };
+
+module.exports = { ...defaultConfig, ...userConfig };

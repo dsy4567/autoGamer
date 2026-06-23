@@ -1,8 +1,9 @@
-// ys.config.js
-// 原神（Genshin Impact）脚本专用配置
-// 脚本路径: s/ys.js
+// 警告：不建议直接修改此文件，请通过同目录下的 ys.config.user.js 进行自定义配置。
+const loadUserConfig = require("../../loadUserConfig");
 
-module.exports = {
+const userConfig = loadUserConfig(__filename);
+
+const defaultConfig = {
     // 游戏启动 URL（咪咕快游平台）
     gameUrl:
         "https://www.migufun.com/miguplay/middleGame/gameplay/400007864?gameName=%E5%8E%9F%E7%A5%9E%C2%B7%E7%A9%BA%E6%9C%88%E4%B9%8B%E6%AD%8C",
@@ -13,3 +14,5 @@ module.exports = {
     // 点击开始游戏后等待卡岩的时间（毫秒）
     afterStartGameWaitMs: 40000,
 };
+
+module.exports = { ...defaultConfig, ...userConfig };

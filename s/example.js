@@ -1,9 +1,9 @@
-const scriptConfig = require("./config/example.config.js");
+const scriptConfig = require("./config/example.config.default.js");
 const {
     clickContinueGame,
     actionsInCloudGameBallAndExit,
 } = require("./share/migu.js");
-const config = require("../config.js");
+const config = require("../config.default.js");
 
 /**
  * @param {{

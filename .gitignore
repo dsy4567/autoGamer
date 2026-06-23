@@ -1,3 +1,4 @@
 /node_modules
 /user-data
 /logs
+*.config.user.js

@@ -3,7 +3,7 @@ const readline = require("readline");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
-const config = require("./config.js");
+const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
 
 // 日志增强钩子，初始为空函数，后续赋值以启用写文件/截屏
@@ -161,12 +161,12 @@ async function main() {
     log("启动浏览器...");
     const userDataDir = path.resolve(
         __dirname,
-        config.dirs?.userDataDirName || "user-data",
+        config.dirs?.userDataDirName ?? "user-data",
     );
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: {
-            ...(config.viewport || {
+            ...(config.viewport ?? {
                 width: 640,
                 height: 480,
                 hasTouch: true,
@@ -175,7 +175,7 @@ async function main() {
         },
         channel: "chrome",
         userDataDir,
-        args: config.puppeteerArgs || [
+        args: config.puppeteerArgs ?? [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--mute-audio",
@@ -190,7 +190,7 @@ async function main() {
         process.exit(0);
     });
     const [page] = await browser.pages();
-    await page.setUserAgent(config.mobileUA || MOBILE_UA);
+    await page.setUserAgent(config.mobileUA ?? MOBILE_UA);
     log("已设置移动端UA");
     const pageOpenTime = Date.now();
 
@@ -314,7 +314,7 @@ async function main() {
     if (arg === "login") {
         // 支持 node index.js login [url]
         let loginUrl =
-            config.defaultLoginUrl || "https://www.migufun.com/middleh5/";
+            config.defaultLoginUrl ?? "https://www.migufun.com/middleh5/";
         // 允许 node index.js login https://xxx
         const url = process.argv.at(-1);
         try {

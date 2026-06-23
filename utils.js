@@ -1,7 +1,7 @@
 const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
-const config = require("./config.js");
+const config = require("./config.default.js");
 
 // 放在模块作用域，确保 createUtils 多次调用也只存在一个定时截图 timer
 let _autoScreenshotTimer = null;
