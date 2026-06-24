@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
+/** @returns {object} 用户自定义配置项 */
 function loadUserConfig(defaultFile, description = "用户自定义配置") {
     const dir = path.dirname(defaultFile);
     const basename = path.basename(defaultFile);
