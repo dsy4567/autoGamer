@@ -71,8 +71,15 @@ async function actionsInCloudGameBallAndExit(ctx) {
 function clickContinueGame(page) {
     setTimeout(async () => {
         try {
-            await page.click("b.button.continueGame");
-        } catch (e) {}
+            await Promise.any([
+                page.click("b.button.continueGame"),
+                page.click("b.button.continueOpen"),
+            ]);
+            // TODO: ~~console.log是不符合规范的写法，等待重构后改正~~ 一段时间后删除注释
+            // console.log("点击继续游戏按钮成功");
+        } catch (e) {
+            // console.log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
+        }
     }, 5000);
 }
 
