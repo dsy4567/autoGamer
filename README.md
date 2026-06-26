@@ -53,6 +53,6 @@ node index.js s/example.js
 
 ## 📄 许可证
 
-Copyright (c) 2025 dsy4567
+Copyright (c) 2025~2026 dsy4567
 
 MIT License, 见 LICENSE 文件。
