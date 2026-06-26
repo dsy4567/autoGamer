@@ -3,6 +3,7 @@
 // 提供悬浮球签到、退出等跨脚本复用的功能
 
 const { createUtils } = require("../../utils.js");
+const config = require("../../config.default.js");
 
 /**
  * @param {{
@@ -65,11 +66,23 @@ async function actionsInCloudGameBallAndExit(ctx) {
 }
 
 /**
- * 游戏已启动时，点击继续游戏按钮
+ * 游戏已启动时，点击继续游戏按钮；检查是否有维护等公告
  * @param {import("puppeteer-core").Page} page
  */
 function clickContinueGame(page) {
     setTimeout(async () => {
+        if (!config.isDev) {
+            const errBtn =
+                (await page.$("div.dialogBox b.iknowGoback")) ||
+                (await page.$("div.dialogBox b.quitToHome"));
+            if (errBtn) {
+                const msg = await page.$eval(
+                    "div.dialogBox div.dialogMsg",
+                    el => el?.textContent.trim() || "",
+                );
+                throw new Error("检测到维护或其他公告，无法进入游戏：" + msg);
+            }
+        }
         try {
             await Promise.any([
                 page.click("b.button.continueGame"),
