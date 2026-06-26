@@ -112,11 +112,38 @@ const MOBILE_UA =
 
 async function main() {
     const arg = process.argv[2];
-    if (!arg) {
-        log(
-            "用法: node index.js login [登录URL] 或 node index.js test-page 或 node index.js <操作脚本.js>",
+    if (!arg || arg === "-h" || arg === "--help") {
+        // 例外：允许使用 console.log 而不是 log/logRaw
+        console.log("基于 Puppeteer 的自动化游戏工具");
+        console.log("Copyright (c) 2025~2026 dsy4567, MIT License");
+        console.log("版本 1.0.0");
+        console.log("");
+        console.log("用法: node index.js [选项] <命令/脚本>");
+        console.log("");
+        console.log("命令:");
+        console.log("  login [URL]           打开登录页面（默认 URL 可配置）");
+        console.log("  <操作脚本.js>         执行指定的自动化脚本");
+        console.log("");
+        console.log("选项:");
+        console.log("  -h, --help            显示此帮助信息");
+        console.log(
+            "  --start-at <描述链>   按描述链定位，从锚点开始执行 action",
         );
-        process.exit(1);
+        console.log(
+            "  --end-at <描述链>     按描述链定位，到锚点停止执行 action",
+        );
+        console.log("");
+        console.log("描述链格式: 描述A#描述B#描述C，以半角 # 分隔");
+        console.log("");
+        console.log("示例:");
+        console.log("  node index.js s/sr.js");
+        console.log('  node index.js s/zzz.js --start-at "进入咖啡店"');
+        console.log('  node index.js s/sr.js --end-at "进入生存索引"');
+        console.log(
+            '  node index.js s/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"',
+        );
+        console.log("  node index.js login");
+        process.exit(arg ? 0 : 1);
     }
 
     // 推导脚本名，用于日志目录
