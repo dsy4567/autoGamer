@@ -55,7 +55,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
             log("今日已签到");
         }
         await sleep(3000);
-        await screenshot("签到完成");
+        if (config.isDev) await screenshot("签到完成");
         await sleep(4000);
 
         await browser.close();

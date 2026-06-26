@@ -8,6 +8,8 @@ let _autoScreenshotTimer = null;
 // 放在模块作用域，确保 createUtils 多次调用时节流和防并发状态全局共享
 let _lastScreenshotTime = 0;
 let _screenshotInProgress = false;
+// 放在模块作用域，确保开发模式截图警告只输出一次
+let _devScreenshotWarned = false;
 // 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
 let _taskTimer = null;
 
@@ -140,6 +142,10 @@ function createUtils(ctx, _eval = eval) {
 
     /** 截图并保存到日志目录，1秒内限一张 @param {string} [label=""] 截图标签/日志内容 */
     const screenshot = async (label = "") => {
+        if (config.isDev && !_devScreenshotWarned) {
+            _devScreenshotWarned = true;
+            logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
+        }
         const now = Date.now();
         const throttleMs = config.screenshots?.screenshotThrottleMs ?? 2500;
         let msg = "";

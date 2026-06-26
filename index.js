@@ -121,7 +121,8 @@ async function main() {
 
     // 推导脚本名，用于日志目录
     const scriptName = (() => {
-        if (!arg || arg === "login" || arg === "test-page") return "unknown";
+        if (!arg) return "unknown";
+        if (arg === "login") return "_login";
         const ext = path.extname(arg);
         if (ext) return path.basename(arg, ext);
         return "unknown";
@@ -131,10 +132,10 @@ async function main() {
         .replace(/[:.]/g, "-")
         .replace("T", "_");
     const logDir = config.isDev
-        ? ""
+        ? path.resolve(__dirname, "logs", "devTemp")
         : path.resolve(__dirname, "logs", scriptName, startTimeStr);
+    fs.mkdirSync(logDir, { recursive: true });
     if (!config.isDev) {
-        fs.mkdirSync(logDir, { recursive: true });
         const logFilePath = path.join(logDir, "log.txt");
 
         // 启用日志写入文件
