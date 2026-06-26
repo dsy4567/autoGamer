@@ -1,5 +1,17 @@
 {
-	"dependencies": {
-		"puppeteer-core": "^24.20.0"
-	}
+    "name": "autogamer",
+    "version": "1.0.0",
+    "description": "专为第三方云游戏平台而生的自动化游戏工具，基于 Puppeteer",
+    "main": "index.js",
+    "author": "dsy4567",
+    "license": "MIT",
+    "scripts": {
+        "login": "node index.js login"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "dependencies": {
+        "puppeteer-core": "^24.20.0"
+    }
 }
