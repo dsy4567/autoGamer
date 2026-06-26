@@ -227,9 +227,7 @@
                         },
                         "*",
                     );
-                    cmd = `await drag(${dragStart.x}, ${dragStart.y}, ${e.clientX}, ${e.clientY}, ${duration});
-await sleep(3000)
-`;
+                    cmd = `await action("", [["drag", ${dragStart.x}, ${dragStart.y}, ${e.clientX}, ${e.clientY}, ${duration}], ["sleep", 3000]]);`;
                 } else if (duration >= 300) {
                     // 未移动且持续时间 >= 300ms，触发 hold
                     window.postMessage(
@@ -241,9 +239,7 @@ await sleep(3000)
                         },
                         "*",
                     );
-                    cmd = `await hold(${e.clientX}, ${e.clientY}, ${duration});
-await sleep(3000)
-`;
+                    cmd = `await action("", [["hold", ${e.clientX}, ${e.clientY}, ${duration}], ["sleep", 3000]]);`;
                 } else {
                     // 未移动且持续时间 < 300ms，触发 tap
                     window.postMessage(
@@ -254,9 +250,7 @@ await sleep(3000)
                         },
                         "*",
                     );
-                    cmd = `await tt(${e.clientX}, ${e.clientY});
-await sleep(3000)
-`;
+                    cmd = `await action("", [["tt", ${e.clientX}, ${e.clientY}], ["sleep", 3000]]);`;
                 }
 
                 navigator.clipboard.writeText(cmd).catch(() => {});

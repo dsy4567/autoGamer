@@ -13,6 +13,28 @@ let _devScreenshotWarned = false;
 // 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
 let _taskTimer = null;
 
+// 放在模块作用域，确保 createUtils 多次调用时 action 的 start-at/end-at 状态全局共享
+/** --start-at 解析后的描述链（null 表示未指定） @type {string[] | null} */
+let _actionStartAtChain = null;
+/** 当前已匹配到 start-at 链的第几个索引 */
+let _actionStartAtIndex = 0;
+/** 是否已到达 start-at 锚点 */
+let _actionStartAtReached = false;
+/** --end-at 解析后的描述链（null 表示未指定） @type {string[] | null} */
+let _actionEndAtChain = null;
+/** 当前已匹配到 end-at 链的第几个索引 */
+let _actionEndAtIndex = 0;
+/** 是否已到达 end-at 锚点 */
+let _actionEndAtReached = false;
+/** 是否已执行完 end-at 锚点 action，后续应全部跳过 */
+let _actionEndAtPassed = false;
+/** action 状态是否已完成初始化（仅从 process.argv 解析一次） */
+let _actionStateInitialized = false;
+/** action 调试模式是否开启 */
+let _actionDbgEnabled = false;
+/** 调试模式下挂起的 action 任务队列 @type {Array<{resolve: () => void, reject: (e: Error) => void, task: () => Promise<void>, description: string}>} */
+let _actionDbgQueue = [];
+
 /**
  * @param {{
  *   puppeteer: typeof import("puppeteer-core"),
@@ -68,6 +90,208 @@ function createUtils(ctx, _eval = eval) {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /**
+     * 执行一组自动化操作，自动处理日志、截图和流程控制（支持 --start-at / --end-at）
+     * 特殊指令（不执行实际操作）：
+     *   action('startAt', '描述#描述') / action('startAt', ['描述','描述']) — 覆盖 start-at 锚点
+     *   action('endAt', '描述#描述')   / action('endAt', ['描述','描述'])   — 覆盖 end-at 锚点
+     *   action('toggleDbg') — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
+     *   action('next') — 调试模式下兑现下一个挂起的 action
+     * @param {string} description 操作的简要描述，或特殊指令名
+     * @param {Array<[string, ...any]> | string | string[]} [operations] 要依次执行的操作数组，或特殊指令参数
+     * @returns {Promise<void>}
+     */
+    const action = async (description, operations) => {
+        if (!_actionStateInitialized) {
+            _actionStateInitialized = true;
+            const parseFlag = flag => {
+                const idx = process.argv.indexOf(flag);
+                if (idx !== -1 && process.argv[idx + 1]) {
+                    return process.argv[idx + 1].split("#");
+                }
+                return null;
+            };
+            _actionStartAtChain = parseFlag("--start-at");
+            _actionEndAtChain = parseFlag("--end-at");
+        }
+
+        // 特殊指令：覆盖 start-at
+        if (description === "startAt") {
+            const chain =
+                typeof operations === "string"
+                    ? operations.split("#")
+                    : Array.isArray(operations)
+                      ? operations
+                      : null;
+            if (!chain) {
+                log(
+                    "WARNING: action startAt 参数无效，应为 string 或 string[]",
+                );
+                return;
+            }
+            _actionStartAtChain = chain;
+            _actionStartAtIndex = 0;
+            _actionStartAtReached = false;
+            log(`action startAt 已覆盖: ${chain.join("#")}`);
+            return;
+        }
+
+        // 特殊指令：覆盖 end-at
+        if (description === "endAt") {
+            const chain =
+                typeof operations === "string"
+                    ? operations.split("#")
+                    : Array.isArray(operations)
+                      ? operations
+                      : null;
+            if (!chain) {
+                log("WARNING: action endAt 参数无效，应为 string 或 string[]");
+                return;
+            }
+            _actionEndAtChain = chain;
+            _actionEndAtIndex = 0;
+            _actionEndAtReached = false;
+            _actionEndAtPassed = false;
+            log(`action endAt 已覆盖: ${chain.join("#")}`);
+            return;
+        }
+
+        // 特殊指令：切换调试模式
+        if (description === "toggleDbg") {
+            _actionDbgEnabled = !_actionDbgEnabled;
+            log(`action 调试模式: ${_actionDbgEnabled ? "开启" : "关闭"}`);
+            if (!_actionDbgEnabled && _actionDbgQueue.length > 0) {
+                log(
+                    `action 调试模式关闭，自动兑现 ${_actionDbgQueue.length} 个挂起任务`,
+                );
+                const queue = _actionDbgQueue.splice(0, _actionDbgQueue.length);
+                for (const {
+                    resolve,
+                    reject,
+                    task,
+                    description: taskDesc,
+                } of queue) {
+                    log(`action 调试兑现: ${taskDesc}`);
+                    try {
+                        await task();
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }
+            }
+            return;
+        }
+
+        // 特殊指令：调试模式下执行下一个挂起的 action
+        if (description === "next") {
+            if (_actionDbgQueue.length === 0) {
+                log("WARNING: action next 无挂起的调试任务");
+                return;
+            }
+            const {
+                resolve,
+                reject,
+                task,
+                description: taskDesc,
+            } = _actionDbgQueue.shift();
+            log(`action next 执行: ${taskDesc}`);
+            try {
+                await task();
+                resolve();
+            } catch (e) {
+                reject(e);
+            }
+            return;
+        }
+
+        // 特殊指令：调试模式下跳过下一个挂起的 action（直接 resolve，不执行操作）
+        if (description === "skip") {
+            if (_actionDbgQueue.length === 0) {
+                log("WARNING: action skip 无挂起的调试任务");
+                return;
+            }
+            const { resolve, description: taskDesc } = _actionDbgQueue.shift();
+            log(`action skip 跳过: ${taskDesc}`);
+            resolve();
+            return;
+        }
+
+        if (description.includes("#")) {
+            log(
+                "WARNING: action 简要描述包含半角 # 字符，可能影响 --start-at / --end-at 的匹配结果",
+            );
+        }
+
+        // --start-at：未到达锚点前跳过
+        if (_actionStartAtChain && !_actionStartAtReached) {
+            if (description === _actionStartAtChain[_actionStartAtIndex]) {
+                _actionStartAtIndex++;
+                if (_actionStartAtIndex === _actionStartAtChain.length) {
+                    _actionStartAtReached = true;
+                }
+            }
+            if (!_actionStartAtReached) {
+                return;
+            }
+        }
+
+        // --end-at：已越过锚点后跳过
+        if (_actionEndAtPassed) {
+            return;
+        }
+
+        // --end-at：推进匹配进度，若当前 action 恰好是锚点，执行完后标记越过
+        let shouldPassAfterThis = false;
+        if (_actionEndAtChain && !_actionEndAtReached) {
+            if (description === _actionEndAtChain[_actionEndAtIndex]) {
+                _actionEndAtIndex++;
+                if (_actionEndAtIndex === _actionEndAtChain.length) {
+                    _actionEndAtReached = true;
+                    shouldPassAfterThis = true;
+                }
+            }
+        }
+
+        /** action 核心执行逻辑 */
+        const _runActionCore = async () => {
+            log(description);
+
+            // 自动截图（迁移自 index.js 的 _logScreenshot 逻辑）
+            if (config.screenshots?.screenshotOnLog !== false) {
+                screenshot(description).catch(() => {});
+            }
+
+            for (const op of operations) {
+                const [fnName, ...args] = op;
+                const fn = { ts, te, tm, tt, pc, hold, sleep, drag }[fnName];
+                if (!fn) {
+                    log(`WARNING: action 中存在未知操作 "${fnName}"，已跳过`);
+                    continue;
+                }
+                await fn(...args);
+            }
+
+            if (shouldPassAfterThis) {
+                _actionEndAtPassed = true;
+            }
+        };
+
+        if (_actionDbgEnabled) {
+            log(`action 调试挂起: ${description}`);
+            return new Promise((resolve, reject) => {
+                _actionDbgQueue.push({
+                    resolve,
+                    reject,
+                    task: _runActionCore,
+                    description,
+                });
+            });
+        }
+
+        await _runActionCore();
+    };
+
+    /**
      * 启动实时测试 REPL，可在终端输入并执行 puppeteer 代码
      * 可用变量: browser, page, puppeteer, log 等
      * 输入 "exit" 退出 REPL 并关闭浏览器
@@ -78,7 +302,9 @@ function createUtils(ctx, _eval = eval) {
         log(
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
-        log("输入 exit 退出 REPL，使用 return 语句获取执行结果");
+        log(
+            "\n输入 exit 退出 REPL，使用 return 语句获取执行结果\n快捷命令: next / skip / tdbg\n确保网页获得焦点后可按住 alt+鼠标左键，发送 touch tap/drag/hold 事件",
+        );
 
         const rl = readline.createInterface({
             input: process.stdin,
@@ -87,12 +313,28 @@ function createUtils(ctx, _eval = eval) {
         });
         rl.prompt();
         rl.on("line", async input => {
-            if (input.trim() === "exit") {
+            const trimmed = input.trim();
+            if (trimmed === "exit") {
                 rl.close();
                 return;
             }
-            if (input.trim() === "") {
+            if (trimmed === "") {
                 log("网页已打开毫秒数:", Date.now() - pageOpenTime);
+                return;
+            }
+            if (trimmed === "next") {
+                await action("next");
+                rl.prompt();
+                return;
+            }
+            if (trimmed === "skip") {
+                await action("skip");
+                rl.prompt();
+                return;
+            }
+            if (trimmed === "tdbg") {
+                await action("toggleDbg");
+                rl.prompt();
                 return;
             }
             try {
@@ -250,6 +492,7 @@ function createUtils(ctx, _eval = eval) {
         setTaskTimeout,
         screenshot,
         startAutoScreenshot,
+        action,
     };
 }
 

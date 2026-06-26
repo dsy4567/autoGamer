@@ -6,16 +6,14 @@ const os = require("os");
 const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
 
-// 日志增强钩子，初始为空函数，后续赋值以启用写文件/截屏
+// 日志增强钩子，初始为空函数，后续赋值以启用写文件
 let _logWriteFile = () => {};
-let _logScreenshot = () => {};
 
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
 const log = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
     _logWriteFile(now, args);
-    _logScreenshot(args);
 };
 // 原始日志，不触发截图钩子，供截图函数自身使用以避免递归
 const logRaw = (...args) => {
@@ -54,26 +52,7 @@ process.on("unhandledRejection", (reason, promise) => {
     }
     process.exit(1);
 });
-/**
- * 设置日志截图钩子
- * @param {(label: string) => Promise<void>} screenshot 截图函数，参数为截图标签
- */
-function setupLogScreenshot(screenshot) {
-    // 根据配置决定是否启用日志事件截图
-    // 截图函数内部已使用 logRaw 避免递归，此处无需额外过滤
-    if (config.screenshots?.screenshotOnLog !== false) {
-        _logScreenshot = args => {
-            const label = args
-                .map(a =>
-                    typeof a === "object" ? JSON.stringify(a) : String(a),
-                )
-                .join(" ");
-            screenshot(label)
-                .then(() => logRaw("截图成功", label))
-                .catch(() => {});
-        };
-    }
-}
+
 // 默认本地 Chrome 浏览器路径（如需 Edge/Chromium 请修改此处）
 // function getLocalChromePath() {
 //     const platform = os.platform();
@@ -336,7 +315,6 @@ async function main() {
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {
             await inject(page);
-            // setupLogScreenshot(screenshot);
         });
         await startRepl();
     } else {
@@ -356,7 +334,6 @@ async function main() {
         try {
             page.on("load", async () => {
                 await inject(page);
-                setupLogScreenshot(screenshot);
             });
 
             await script({
@@ -374,7 +351,6 @@ async function main() {
         // 每次跳转后自动注入
         page.on("framenavigated", async () => {
             await inject(page);
-            setupLogScreenshot(screenshot);
         });
     }
 }
