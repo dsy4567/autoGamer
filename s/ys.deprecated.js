@@ -1,3 +1,5 @@
+// 已废弃的脚本，不允许编辑和使用。
+
 const scriptConfig = require("./config/ys.config.default.js");
 const {
     actionsInCloudGameBallAndExit,
