@@ -224,7 +224,7 @@ async function main() {
         logDir,
     });
 
-    // 监听页面 postMessage 事件，自动模拟 tap/drag
+    // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
     await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
         if (!msg || typeof msg !== "object" || !msg.type) return;
         if (msg.type === "auto-gamer-mouse-to-tap") {
@@ -235,11 +235,37 @@ async function main() {
                 log("ERROR: tap 执行失败:", e.message);
             }
         } else if (msg.type === "auto-gamer-mouse-to-drag") {
-            log("收到 drag 事件，从:", msg.from, "到:", msg.to);
+            log(
+                "收到 drag 事件，从:",
+                msg.from,
+                "到:",
+                msg.to,
+                "持续时间:",
+                msg.duration,
+            );
             try {
-                await drag(msg.from.x, msg.from.y, msg.to.x, msg.to.y);
+                await drag(
+                    msg.from.x,
+                    msg.from.y,
+                    msg.to.x,
+                    msg.to.y,
+                    msg.duration,
+                );
             } catch (e) {
                 log("ERROR: drag 执行失败:", e.message);
+            }
+        } else if (msg.type === "auto-gamer-mouse-to-hold") {
+            log(
+                "收到 hold 事件，位置:",
+                msg.x,
+                msg.y,
+                "持续时间:",
+                msg.duration,
+            );
+            try {
+                await hold(msg.x, msg.y, msg.duration);
+            } catch (e) {
+                log("ERROR: hold 执行失败:", e.message);
             }
         }
     });
@@ -249,7 +275,8 @@ async function main() {
                 ev &&
                 ev.data &&
                 (ev.data.type === "auto-gamer-mouse-to-tap" ||
-                    ev.data.type === "auto-gamer-mouse-to-drag")
+                    ev.data.type === "auto-gamer-mouse-to-drag" ||
+                    ev.data.type === "auto-gamer-mouse-to-hold")
             ) {
                 // 通过 puppeteer 暴露的函数转发到 Node 端
                 window.__autoGamerSimulateTouch(ev.data);

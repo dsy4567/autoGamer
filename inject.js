@@ -97,95 +97,173 @@
     // 鼠标移动时更新坐标
     document.addEventListener("mousemove", function (e) {
         indicator.textContent = `X: ${e.clientX}, Y: ${e.clientY}${
-            shiftPressed ? " [Shift模式]" : ""
+            altPressed ? " [Alt模式]" : ""
         }`;
     });
     document.addEventListener("touchmove", function (e) {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
             indicator.textContent = `X: ${touch.clientX}, Y: ${touch.clientY}${
-                shiftPressed ? " [Shift模式]" : ""
+                altPressed ? " [Alt模式]" : ""
             }`;
         }
     });
 
-    // Shift+鼠标事件转发为 puppeteer 触摸事件
-    let shiftPressed = false;
+    // Alt+鼠标事件转发为 puppeteer 触摸事件
+    let altPressed = false;
+    let mouseLeftPressed = false;
     let dragStart = null;
-    let dragOngoing = false;
+    let dragConfirmed = false;
+    let mousedownTime = 0;
     window.addEventListener("keydown", e => {
-        if (e.key === "Shift") {
-            shiftPressed = true;
+        if (e.key === "Alt") {
+            altPressed = true;
             indicator.style.setProperty(
                 "background",
                 "rgba(255,100,0,0.7)",
-                "important"
+                "important",
             );
             devMode = true;
         }
     });
     window.addEventListener("keyup", e => {
-        if (e.key === "Shift") {
-            shiftPressed = false;
+        if (e.key === "Alt") {
+            altPressed = false;
+            mouseLeftPressed = false;
+            dragStart = null;
+            dragConfirmed = false;
+            mousedownTime = 0;
             indicator.style.setProperty(
                 "background",
                 "rgba(0,0,0,0.7)",
-                "important"
+                "important",
             );
         }
     });
 
-    // click/tap
+    window.addEventListener(
+        "touchstart",
+        e => {
+            if (altPressed) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        },
+        {
+            passive: false,
+        },
+    );
+    window.addEventListener(
+        "touchmove",
+        e => {
+            if (altPressed) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        },
+        {
+            passive: false,
+        },
+    );
+    window.addEventListener(
+        "touchend",
+        e => {
+            if (altPressed) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        },
+        {
+            passive: false,
+        },
+    );
     window.addEventListener(
         "mousedown",
         e => {
-            if (shiftPressed && e.button === 0) {
+            console.log("mousedown", e);
+            if (altPressed && e.button === 0) {
+                e.preventDefault();
+                mouseLeftPressed = true;
                 dragStart = { x: e.clientX, y: e.clientY };
-                dragOngoing = true;
+                mousedownTime = Date.now();
+                dragConfirmed = false;
             }
         },
-        true
+        true,
+    );
+    window.addEventListener(
+        "mousemove",
+        e => {
+            if (altPressed && mouseLeftPressed) {
+                const dx = Math.abs(e.clientX - dragStart.x);
+                const dy = Math.abs(e.clientY - dragStart.y);
+                if (dx >= 5 || dy >= 5) {
+                    dragConfirmed = true;
+                }
+            }
+        },
+        true,
     );
     window.addEventListener(
         "mouseup",
         e => {
-            if (shiftPressed && e.button === 0 && dragOngoing) {
-                dragOngoing = false;
-                // 判断是否为 click
-                const dx = Math.abs(e.clientX - dragStart.x);
-                const dy = Math.abs(e.clientY - dragStart.y);
+            console.log(mouseLeftPressed, e);
+            if (!mouseLeftPressed) return;
+            mouseLeftPressed = false;
+
+            if (altPressed && e.button === 0) {
+                e.preventDefault();
+                const duration = Date.now() - mousedownTime;
                 let cmd = "";
-                if (dx < 5 && dy < 5) {
-                    // click->tap
+
+                if (dragConfirmed) {
+                    // 移动距离超阈值，无论如何都触发 drag
+                    window.postMessage(
+                        {
+                            type: "auto-gamer-mouse-to-drag",
+                            from: { x: dragStart.x, y: dragStart.y },
+                            to: { x: e.clientX, y: e.clientY },
+                            duration,
+                        },
+                        "*",
+                    );
+                    cmd = `await drag(${dragStart.x}, ${dragStart.y}, ${e.clientX}, ${e.clientY}, ${duration});
+await sleep(3000)
+`;
+                } else if (duration >= 300) {
+                    // 未移动且持续时间 >= 300ms，触发 hold
+                    window.postMessage(
+                        {
+                            type: "auto-gamer-mouse-to-hold",
+                            x: e.clientX,
+                            y: e.clientY,
+                            duration,
+                        },
+                        "*",
+                    );
+                    cmd = `await hold(${e.clientX}, ${e.clientY}, ${duration});
+await sleep(3000)
+`;
+                } else {
+                    // 未移动且持续时间 < 300ms，触发 tap
                     window.postMessage(
                         {
                             type: "auto-gamer-mouse-to-tap",
                             x: e.clientX,
                             y: e.clientY,
                         },
-                        "*"
+                        "*",
                     );
                     cmd = `await tt(${e.clientX}, ${e.clientY});
 await sleep(3000)
 `;
-                } else {
-                    // drag->drag
-                    window.postMessage(
-                        {
-                            type: "auto-gamer-mouse-to-drag",
-                            from: dragStart,
-                            to: { x: e.clientX, y: e.clientY },
-                        },
-                        "*"
-                    );
-                    cmd = `await drag(${dragStart.x}, ${dragStart.y}, ${e.clientX}, ${e.clientY});
-await sleep(3000)
-`;
                 }
-                navigator.clipboard.writeText(cmd);
+
+                navigator.clipboard.writeText(cmd).catch(() => {});
+                dragStart = null;
             }
         },
-        true
+        true,
     );
 
     // 透明 1x1 像素 GIF 的 Data URL，用于"清空"图标
