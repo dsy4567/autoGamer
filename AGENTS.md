@@ -1,8 +1,18 @@
+> Warning: 除了避坑指南，此文件其他部分未经授权不得修改。
+
 ## 项目描述
 
-> Warning: 此部分未经授权不得修改。
-
 autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟触摸事件（tap/drag/hold等）驱动游戏操作，支持脚本化执行日常任务、自动截图和日志记录。
+
+### 📁 目录结构
+- `index.js`             主入口
+- `inject.js`            注入脚本
+- `utils.js`             工具函数
+- `s/*.js`               自动化脚本
+- `s/config/*.js`        脚本配置
+- `s/share/*.js`         共享函数
+- `**/*.config.default.js`  全局配置
+- `**/*.config.user.js`     用户配置
 
 ---
 

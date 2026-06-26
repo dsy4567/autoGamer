@@ -24,12 +24,16 @@
    编辑 `*.config.user.js` 可自定义浏览器路径、UA、登录页等。
    首次运行时，若同级目录不存在 `*.config.user.js`，会自动创建空配置供用户按需覆盖。
 
+
 ## 📁 目录结构
 - `index.js`             主入口
 - `inject.js`            注入脚本
-- `s/example.js`         示例自动化脚本
-- `*.config.default.js`  全局配置
 - `utils.js`             工具函数
+- `s/*.js`               自动化脚本
+- `s/config/*.js`        脚本配置
+- `s/share/*.js`         共享函数
+- `**/*.config.default.js`  全局配置
+- `**/*.config.user.js`     用户配置
 
 ## 🛠️ 开发指引
 
