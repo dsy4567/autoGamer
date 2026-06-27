@@ -74,7 +74,7 @@ function createUtils(ctx, _eval = eval) {
         toY,
         duration = config.automation?.defaultDragDuration ?? 500,
     ) => {
-        const steps = config.automation?.defaultDragSteps ?? 20;
+        const steps = duration / 22; // 45 fps
         const stepDuration = duration / steps;
         const stepX = (toX - fromX) / steps;
         const stepY = (toY - fromY) / steps;
