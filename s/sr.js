@@ -32,150 +32,180 @@ module.exports = async function (ctx) {
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
+        action,
     } = createUtils(ctx, code => eval(code));
 
     // 领取简单奖励
     async function receiveSimpleRewards() {
         log("-----领取简单奖励-----");
-        log("进入每日实训");
-        await tt(495, 20);
-        await sleep(3000);
+        await action("进入每日实训", [
+            ["tt", 495, 20],
+            ["sleep", 3000],
+        ]);
 
-        log("领取登录游戏活跃度");
-        await tt(108, 344);
-        await sleep(3000);
+        await action("领取登录游戏活跃度", [
+            ["tt", 108, 344],
+            ["sleep", 3000],
+        ]);
 
-        log("进入派遣页面");
-        await tt(127, 351);
-        await sleep(3000);
+        await action("进入派遣页面", [
+            ["tt", 127, 351],
+            ["sleep", 3000],
+        ]);
 
-        log("点击一键领取");
-        await tt(508, 378);
-        await sleep(3000);
+        await action("点击一键领取", [
+            ["tt", 508, 378],
+            ["sleep", 3000],
+        ]);
 
-        log("点击空白处");
-        await tt(320, 342);
-        await sleep(3000);
+        await action("点击空白处", [
+            ["tt", 320, 342],
+            ["sleep", 3000],
+        ]);
 
-        log("关闭派遣页面");
-        await tt(609, 16);
-        await sleep(3000);
+        await action("关闭派遣页面", [
+            ["tt", 609, 16],
+            ["sleep", 3000],
+        ]);
 
-        log("领取派遣活跃度");
-        await tt(110, 353);
-        await sleep(3000);
+        await action("领取派遣活跃度", [
+            ["tt", 110, 353],
+            ["sleep", 3000],
+        ]);
 
-        log("活跃度兑换奖励");
-        await tt(196, 155);
-        await sleep(3000);
-        await tt(196, 155);
-        await sleep(3000);
+        await action("活跃度兑换奖励", [
+            ["tt", 196, 155],
+            ["sleep", 3000],
+            ["tt", 196, 155],
+            ["sleep", 3000],
+        ]);
 
-        log("关闭每日实训页面");
-        await tt(612, 27);
-        await sleep(3000);
+        await action("关闭每日实训页面", [
+            ["tt", 612, 27],
+            ["sleep", 3000],
+        ]);
     }
 
     // 刷本
     async function dungeonFight() {
         log("-----刷本-----");
-        log("进入每日实训");
-        await tt(495, 20);
-        await sleep(3000);
+        await action("进入每日实训", [
+            ["tt", 495, 20],
+            ["sleep", 3000],
+        ]);
 
-        log("进入生存索引");
-        await tt(133, 119);
-        await sleep(3000);
+        await action("进入生存索引", [
+            ["tt", 133, 119],
+            ["sleep", 3000],
+        ]);
 
         {
             if (scriptConfig.dungeonType === 4) {
-                log("进入培养目标首个副本");
-                await tt(533, 211);
-                await sleep(3000);
+                await action("进入培养目标首个副本", [
+                    ["tt", 533, 211],
+                    ["sleep", 3000],
+                ]);
             } else {
-                log("进入拟什么金");
-                await tt(121, 261);
-                await sleep(3000);
+                await action("进入拟什么金", [
+                    ["tt", 121, 261],
+                    ["sleep", 3000],
+                ]);
                 switch (scriptConfig.dungeonType) {
                     case 1:
-                        log("进入经验书副本");
-                        await tt(539, 193);
-                        await sleep(3000);
+                        await action("进入经验书副本", [
+                            ["tt", 539, 193],
+                            ["sleep", 3000],
+                        ]);
                         break;
                     case 2:
-                        log("进入武器矿副本");
-                        await tt(540, 242);
-                        await sleep(3000);
+                        await action("进入武器矿副本", [
+                            ["tt", 540, 242],
+                            ["sleep", 3000],
+                        ]);
                         break;
                     case 3:
-                        log("进入钞票副本");
-                        await tt(541, 295);
-                        await sleep(3000);
+                        await action("进入钞票副本", [
+                            ["tt", 541, 295],
+                            ["sleep", 3000],
+                        ]);
                         break;
                     default:
                         log("WARNING: 未知副本类型，即将关闭指南页面");
-                        await tt(612, 28);
-                        await sleep(3000);
+                        await action("关闭指南页面", [
+                            ["tt", 612, 28],
+                            ["sleep", 3000],
+                        ]);
                         return;
                 }
             }
 
-            log("拉满挑战次数至24次");
-            await tt(563, 398);
-            await sleep(3000);
+            await action("拉满挑战次数至24次", [
+                ["tt", 563, 398],
+                ["sleep", 3000],
+            ]);
 
-            log("点击挑战按钮");
-            await tt(498, 436);
-            await sleep(3000);
+            await action("点击挑战按钮", [
+                ["tt", 498, 436],
+                ["sleep", 3000],
+            ]);
 
-            log("选择1号队伍");
-            await drag(196, 31, 492, 31);
-            await sleep(3000);
-            await drag(196, 31, 492, 31);
-            await sleep(3000);
-            await tt(198, 29);
-            await sleep(3000);
+            await action("选择1号队伍", [
+                ["drag", 196, 31, 492, 31],
+                ["sleep", 3000],
+                ["drag", 196, 31, 492, 31],
+                ["sleep", 3000],
+                ["tt", 198, 29],
+                ["sleep", 3000],
+            ]);
 
-            log("开始挑战");
-            await tt(524, 435);
-            await sleep(scriptConfig.dungeonFightTime * 1000);
+            await action("开始挑战", [
+                ["tt", 524, 435],
+                ["sleep", scriptConfig.dungeonFightTime * 1000],
+            ]);
         }
 
-        log("退出关卡");
-        await tt(215, 435);
-        await sleep(10000);
+        await action("退出关卡", [
+            ["tt", 215, 435],
+            ["sleep", 10000],
+        ]);
 
-        log("关闭副本页");
-        await tt(610, 29);
-        await sleep(5000);
+        await action("关闭副本页", [
+            ["tt", 610, 29],
+            ["sleep", 5000],
+        ]);
 
-        log("重新进入每日实训");
-        await tt(495, 20);
-        await sleep(5000);
+        await action("重新进入每日实训", [
+            ["tt", 495, 20],
+            ["sleep", 5000],
+        ]);
 
-        log("领取战斗活跃度");
-        await tt(110, 353);
-        await sleep(3000);
-        await tt(110, 353);
-        await sleep(3000);
+        await action("领取战斗活跃度", [
+            ["tt", 110, 353],
+            ["sleep", 3000],
+            ["tt", 110, 353],
+            ["sleep", 3000],
+        ]);
 
-        log("活跃度兑换奖励");
-        await tt(377, 154);
-        await sleep(3000);
-        await tt(377, 154);
-        await sleep(3000);
+        await action("活跃度兑换奖励", [
+            ["tt", 377, 154],
+            ["sleep", 3000],
+            ["tt", 377, 154],
+            ["sleep", 3000],
+        ]);
     }
 
     async function main() {
         await sleep(scriptConfig.startupDelays.initialWait);
 
-        log("同意用户协议/点击开始游戏");
-        await tt(432, 281);
-        await sleep(scriptConfig.startupDelays.afterAgreement);
+        await action("同意用户协议/点击开始游戏", [
+            ["tt", 432, 281],
+            ["sleep", scriptConfig.startupDelays.afterAgreement],
+        ]);
 
-        log("点击开始游戏，等待读条");
-        await tt(300, 300);
-        await sleep(scriptConfig.startupDelays.afterStartGame);
+        await action("点击开始游戏，等待读条", [
+            ["tt", 300, 300],
+            ["sleep", scriptConfig.startupDelays.afterStartGame],
+        ]);
 
         await receiveSimpleRewards();
         await dungeonFight();
