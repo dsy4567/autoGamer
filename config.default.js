@@ -17,17 +17,31 @@ const alwaysHideOverlay = true;
 
 const defaultConfig = {
     isDev,
-    // chromePath: "", // （弃用）浏览器路径，优先使用此配置，为空则自动匹配平台
-    // Puppeteer launch 参数
     puppeteerArgs: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        // "--window-size=640,480",
-        "--mute-audio",
-        "--disable-session-crashed-bubble",
+
         "--disable-gpu",
         "--use-gl=swiftshader",
         "--disable-gpu-compositing",
+
+        "--mute-audio",
+        "--password-store=basic",
+
+        "--deny-permission-prompts", // 自动拒绝权限请求，不弹出确认框
+        "--hide-crash-restore-bubble", // 隐藏崩溃恢复气泡
+        "--disable-background-timer-throttling", // 禁用后台标签页计时器节流，保证setTimeout/setInterval在后台正常运行
+        "--disable-backgrounding-occluded-windows", // 禁用窗口被遮挡时降低优先级，保持页面活跃
+        "--disable-breakpad", // 禁用崩溃报告系统，减少额外进程和上报
+        "--disable-component-update", // 禁用组件自动更新，避免后台下载和重启
+        "--disable-default-apps", // 禁用默认应用
+        "--disable-extensions", // 禁用所有扩展，防止扩展干扰和占用资源
+        "--disable-external-intent-requests", // 禁止外部意图请求，避免跳转其他应用
+        "--disable-features=TranslateUI,InterestFeedContentSuggestions,CalculateNativeWinOcclusion,GlobalMediaControls", // 禁用翻译UI、内容推荐、窗口遮挡计算、全局媒体控制
+        "--disable-hang-monitor", // 禁用无响应监控，防止长时间脚本被终止
+        "--disable-plugins", // 禁用NPAPI插件
+        "--disable-renderer-backgrounding", // 禁用渲染器后台化
+        "--disable-sync", // 禁用Chrome同步功能
     ],
     // 默认登录页
     defaultLoginUrl: "https://www.migufun.com/middleh5/",
