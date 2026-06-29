@@ -53,22 +53,11 @@ process.on("unhandledRejection", (reason, promise) => {
     process.exit(1);
 });
 
-// 默认本地 Chrome 浏览器路径（如需 Edge/Chromium 请修改此处）
-// function getLocalChromePath() {
-//     const platform = os.platform();
-//     if (platform === "win32") {
-//         // Windows
-//         return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-//     } else if (platform === "linux") {
-//         // Linux
-//         return "/usr/bin/google-chrome";
-//     } else {
-//         // 其他平台暂不支持
-//         log("当前平台暂未配置默认浏览器路径，请手动指定");
-//         return null;
-//     }
-// }
-async function inject(/** @type {puppeteer.Page} */ page) {
+/**
+ * 注入 inject.js 到页面
+ * @param {import("puppeteer-core").Page} page
+ */
+async function inject(page) {
     const injectPath = path.resolve(__dirname, "inject.js");
     if (fs.existsSync(injectPath)) {
         try {
