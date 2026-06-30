@@ -381,8 +381,14 @@ function createUtils(ctx, _eval = eval) {
         };
     };
 
-    /** 截图并保存到日志目录，1秒内限一张 @param {string} [label=""] 截图标签/日志内容 */
-    const screenshot = async (label = "") => {
+    /**
+     * 截图并保存到日志目录，1秒内限一张
+     * @param {string} [label=""] 截图标签/日志内容
+     * @param {{returnBuffer?: boolean}} [options={}] 选项
+     * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，否则返回文件路径
+     */
+    const screenshot = async (label = "无描述", options = {}) => {
+        const returnBuffer = options.returnBuffer === true;
         if (config.isDev && !_devScreenshotWarned) {
             _devScreenshotWarned = true;
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
@@ -401,15 +407,6 @@ function createUtils(ctx, _eval = eval) {
         _screenshotInProgress = true;
 
         try {
-            const timeStr = new Date().toISOString().replace(/[:.]/g, "-");
-            const safeLabel = String(label)
-                .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
-                .substring(0, 80);
-            const filename = safeLabel
-                ? `${timeStr}_${safeLabel}.png`
-                : `${timeStr}.png`;
-            const filePath = path.join(logDir, filename);
-
             logRaw("准备截图");
             overlayWasVisible = await page.evaluate(() => {
                 const el = document.getElementById("auto-gamer-overlay");
@@ -419,28 +416,49 @@ function createUtils(ctx, _eval = eval) {
                 return visible;
             });
 
-            await Promise.race([
-                page.screenshot({
-                    path: filePath,
-                    fullPage: false,
-                    clip: {
-                        x: 0,
-                        y: 0,
-                        width: config.viewport?.width ?? 640,
-                        height: config.viewport?.height ?? 480,
-                    },
-                    captureBeyondViewport: false,
-                    optimizeForSpeed: true,
-                }),
-                new Promise((resolve, reject) =>
-                    setTimeout(
-                        () => reject(new Error("截图超时")),
-                        (config.screenshots?.screenshotThrottleMs ?? 2500) -
-                            100,
-                    ),
+            const screenshotOptions = {
+                fullPage: false,
+                clip: {
+                    x: 0,
+                    y: 0,
+                    width: config.viewport?.width ?? 640,
+                    height: config.viewport?.height ?? 480,
+                },
+                captureBeyondViewport: false,
+                optimizeForSpeed: true,
+            };
+
+            const raceTimeout = new Promise((_, reject) =>
+                setTimeout(
+                    () => reject(new Error("截图超时")),
+                    throttleMs - 100,
                 ),
+            );
+
+            if (returnBuffer) {
+                const buffer = await Promise.race([
+                    page.screenshot(screenshotOptions),
+                    raceTimeout,
+                ]);
+                logRaw("截图已获取(buffer)");
+                return /** @type {Buffer} */ (buffer);
+            }
+
+            const timeStr = new Date().toISOString().replace(/[:.]/g, "-");
+            const safeLabel = String(label)
+                .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
+                .substring(0, 80);
+            const filename = safeLabel
+                ? `${timeStr}_${safeLabel}.png`
+                : `${timeStr}.png`;
+            const filePath = path.join(logDir, filename);
+
+            await Promise.race([
+                page.screenshot({ ...screenshotOptions, path: filePath }),
+                raceTimeout,
             ]);
             logRaw("截图已保存:", filename);
+            return filePath;
         } catch (e) {
             logRaw("截图失败:", e.message);
             throw e;
