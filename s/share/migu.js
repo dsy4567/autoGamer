@@ -3,7 +3,6 @@
 // 提供悬浮球签到、退出等跨脚本复用的功能
 
 const { createUtils } = require("../../utils.js");
-const config = require("../../config.default.js");
 
 /**
  * @param {{
@@ -13,11 +12,21 @@ const config = require("../../config.default.js");
  *   log: (...args: any[]) => void,
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
- *   logDir: string
+ *   logDir: string,
+ *   getGlobalConfig: () => any
  * }} ctx
  */
 async function actionsInCloudGameBallAndExit(ctx) {
-    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+    const {
+        puppeteer,
+        browser,
+        page,
+        log,
+        logRaw,
+        pageOpenTime,
+        logDir,
+        getGlobalConfig,
+    } = ctx;
     const {
         ts,
         te,
@@ -32,6 +41,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
         screenshot,
         startAutoScreenshot,
     } = createUtils(ctx);
+    const config = getGlobalConfig();
 
     log("开始签到");
     try {
@@ -80,11 +90,21 @@ async function actionsInCloudGameBallAndExit(ctx) {
  *   log: (...args: any[]) => void,
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
- *   logDir: string
+ *   logDir: string,
+ *   getGlobalConfig: () => any
  * }} ctx
  */
 async function miguInit(ctx) {
-    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+    const {
+        puppeteer,
+        browser,
+        page,
+        log,
+        logRaw,
+        pageOpenTime,
+        logDir,
+        getGlobalConfig,
+    } = ctx;
     const {
         ts,
         te,
@@ -99,6 +119,7 @@ async function miguInit(ctx) {
         screenshot,
         startAutoScreenshot,
     } = createUtils(ctx);
+    const config = getGlobalConfig();
 
     // TODO: 云游戏连接成功后再继续
     await (async () => {

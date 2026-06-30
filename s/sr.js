@@ -1,6 +1,5 @@
 const scriptConfig = require("./config/sr.config.default.js");
 const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
-const config = require("../config.default.js");
 
 /**
  * @param {{
@@ -10,11 +9,21 @@ const config = require("../config.default.js");
  *   log: (...args: any[]) => void,
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
- *   logDir: string
+ *   logDir: string,
+ *   getGlobalConfig: () => any
  * }} ctx
  */
 module.exports = async function (ctx) {
-    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+    const {
+        puppeteer,
+        browser,
+        page,
+        log,
+        logRaw,
+        pageOpenTime,
+        logDir,
+        getGlobalConfig,
+    } = ctx;
     const { createUtils } = require("../utils.js");
     const {
         ts,
@@ -31,6 +40,7 @@ module.exports = async function (ctx) {
         setTaskTimeout,
         action,
     } = createUtils(ctx, code => eval(code));
+    const config = getGlobalConfig();
 
     /** 领取简单奖励 */
     async function receiveSimpleRewards() {

@@ -347,6 +347,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 logRaw,
                 pageOpenTime,
                 logDir,
+                getGlobalConfig: () => config,
             });
         } catch (e) {
             log("ERROR: 脚本执行出错:", e);
