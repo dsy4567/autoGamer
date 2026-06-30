@@ -1,5 +1,6 @@
 const readline = require("readline");
 const path = require("path");
+const { PNG } = require("pngjs");
 const config = require("./config.default.js");
 
 // 放在模块作用域，确保 createUtils 多次调用也只存在一个定时截图 timer
@@ -11,6 +12,8 @@ let _screenshotInProgress = false;
 let _devScreenshotWarned = false;
 // 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
 let _taskTimer = null;
+// 放在模块作用域，确保全局只有一个 waitSceneChange 在执行
+let _waitSceneChangeInProgress = false;
 
 // 放在模块作用域，确保 createUtils 多次调用时 action 的 start-at/end-at 状态全局共享
 /** --start-at 解析后的描述链（null 表示未指定） @type {string[] | null} */
@@ -33,6 +36,85 @@ let _actionStateInitialized = false;
 let _actionDbgEnabled = false;
 /** 调试模式下挂起的 action 任务队列 @type {Array<{resolve: () => void, reject: (e: Error) => void, task: () => Promise<void>, description: string}>} */
 let _actionDbgQueue = [];
+
+/**
+ * @typedef {Object} WaitSceneChangeOptions
+ * @property {number?} [timeout] 超时毫秒，默认600000
+ * @property {number?} [interval] 检查间隔毫秒，默认3000，不少于200
+ * @property {number?} [threshold] 变化阈值，范围[0,1]，默认0.9
+ * @property {boolean?} [inverse] 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
+ */
+
+/**
+ * @typedef {(['ts', number, number] |
+ *     ['te'] |
+ *     ['tm', number, number] |
+ *     ['tt', number, number] |
+ *     ['pc', string] |
+ *     ['hold', number, number, number?] |
+ *     ['drag', number, number, number, number, number?] |
+ *     ['sleep', number])[]} OperationArray
+ */
+
+/**
+ * @typedef {'ts' | 'te' | 'tm' | 'tt' | 'pc' | 'hold' | 'drag' | 'sleep'} GeneralOptions
+ */
+
+/**
+ * 使用 Block MSE 算法计算两张 PNG 图片的相似度
+ * @param {Buffer} buf1
+ * @param {Buffer} buf2
+ * @param {number} [blockSize=16]
+ * @returns {number} 相似度 [0, 1]
+ */
+function calculateSimilarity(buf1, buf2, blockSize = 16) {
+    const png1 = PNG.sync.read(buf1);
+    const png2 = PNG.sync.read(buf2);
+
+    const width = Math.min(png1.width, png2.width);
+    const height = Math.min(png1.height, png2.height);
+
+    const blocksX = Math.ceil(width / blockSize);
+    const blocksY = Math.ceil(height / blockSize);
+
+    let totalMse = 0;
+    let blockCount = 0;
+
+    for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+            let blockMse = 0;
+            let pixelCount = 0;
+
+            const yStart = by * blockSize;
+            const yEnd = Math.min(yStart + blockSize, height);
+            const xStart = bx * blockSize;
+            const xEnd = Math.min(xStart + blockSize, width);
+
+            for (let y = yStart; y < yEnd; y++) {
+                for (let x = xStart; x < xEnd; x++) {
+                    const idx1 = (y * png1.width + x) << 2;
+                    const idx2 = (y * png2.width + x) << 2;
+
+                    const dr = png1.data[idx1] - png2.data[idx2];
+                    const dg = png1.data[idx1 + 1] - png2.data[idx2 + 1];
+                    const db = png1.data[idx1 + 2] - png2.data[idx2 + 2];
+
+                    blockMse += (dr * dr + dg * dg + db * db) / 3;
+                    pixelCount++;
+                }
+            }
+
+            if (pixelCount > 0) {
+                totalMse += blockMse / pixelCount;
+                blockCount++;
+            }
+        }
+    }
+
+    const avgMse = blockCount > 0 ? totalMse / blockCount : 0;
+    const maxMse = 255 * 255;
+    return Math.max(0, Math.min(1, 1 - avgMse / maxMse));
+}
 
 /**
  * @param {{
@@ -120,17 +202,59 @@ function createUtils(ctx, _eval = eval) {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /**
-     * 执行一组自动化操作，自动处理日志、截图和流程控制（支持 --start-at / --end-at）
-     * 特殊指令（不执行实际操作）：
-     *   action('startAt', '描述#描述') / action('startAt', ['描述','描述']) — 覆盖 start-at 锚点
-     *   action('endAt', '描述#描述')   / action('endAt', ['描述','描述'])   — 覆盖 end-at 锚点
-     *   action('toggleDbg') — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
-     *   action('next') — 调试模式下兑现下一个挂起的 action
-     * @param {string} description 操作的简要描述，或特殊指令名
-     * @param {Array<[string, ...any]> | string | string[]} [operations] 要依次执行的操作数组，或特殊指令参数
+     * 统一的自动化操作函数，自动处理流程控制、日志、截图
+     *
+     * 一般操作：
+     *  - `action('<操作描述>',[['ts', x:number, y:number], ...])` — 触摸开始 - 在指定坐标触发 `touchStart` 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+     *  - `action('<操作描述>',[['te'], ...])` — 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+     *  - `action('<操作描述>',[['tm', x:number, y:number], ...])` — 触摸移动 - 在指定坐标触发 touchMove 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+     *  - `action('<操作描述>',[['tt', x:number, y:number], ...])` — 触摸点击 - 在指定坐标触发 tap 事件
+     *  - `action('<操作描述>',[['pc', selector:string], ...]])` — 页面点击 - 调用 page.click
+     *  - `action('<操作描述>',[['hold', x:number, y:number, duration?:number], ...])` — 长按 - 在指定坐标按下并保持一段时间后释放
+     *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
+     *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
+     *
+     * 特殊操作：
+     *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?})` — 等待场景大幅变化，每次循环执行一次操作数组
+     *    - `timeout`: 超时毫秒，默认600000
+     *    - `interval`: 检查间隔毫秒，默认3000，不少于200
+     *    - `threshold`: 变化阈值，范围[0,1]，默认0.9
+     *    - `inverse`: 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
+     *
+     * 调试指令：
+     *  - `action('startAt', '<描述1#描述2>')` / `action('startAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 `--start-at` 命令行参数
+     *  - `action('endAt', '<描述1#描述2>')` / `action('endAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 `--end-at` 命令行参数
+     *  - `action('toggleDbg')` — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
+     *  - `action('next')` — 调试模式下兑现下一个挂起的 action
+     *  - `action('skip')` — 调试模式下跳过下一个挂起的 action
+     *
+     * 描述链格式: 描述1#描述2，以半角 # 分隔；至少包含一个描述项；只有一个描述项时不使用 # 分隔符
+     * 举例：'点击前往#进入咖啡店' 或 '进入生存索引'
+     *
+     * @throws {Error} `action("waitSceneChange")` 已有实例正在执行中/超时未检测到场景变化时抛错
+     *
+     * @overload
+     * @param {string} description 普通操作描述
+     * @param {OperationArray} [operations] 操作数组
+     * @param {{screenshot?: boolean}} [options] 选项，screenshot 默认 true
+     * @returns {Promise<void>}
+     *
+     * @overload
+     * @param {'waitSceneChange'} description
+     * @param {OperationArray} operations 每次循环执行的操作数组
+     * @param {WaitSceneChangeOptions} [options]
+     * @returns {Promise<void>}
+     *
+     * @overload
+     * @param {'startAt' | 'endAt'} description
+     * @param {string | string[]} operations
+     * @returns {Promise<void>}
+     *
+     * @overload
+     * @param {'toggleDbg' | 'next' | 'skip'} description
      * @returns {Promise<void>}
      */
-    const action = async (description, operations) => {
+    const action = async (description, operations, options) => {
         if (!_actionStateInitialized) {
             _actionStateInitialized = true;
             const parseFlag = flag => {
@@ -284,10 +408,143 @@ function createUtils(ctx, _eval = eval) {
 
         /** action 核心执行逻辑 */
         const _runActionCore = async () => {
-            log(description);
+            // 特殊操作：等待场景大幅变化
+            if (description === "waitSceneChange") {
+                if (_waitSceneChangeInProgress) {
+                    throw new Error("waitSceneChange 已有实例正在执行中");
+                }
+                _waitSceneChangeInProgress = true;
+                try {
+                    const opts =
+                        typeof options === "object" && options !== null
+                            ? options
+                            : {};
+                    const timeout = Math.max(0, Number(opts.timeout) || 600000);
+                    const interval = Math.max(
+                        200,
+                        Number(opts.interval) || 3000,
+                    );
+                    const threshold = Math.min(
+                        1,
+                        Math.max(0, Number(opts.threshold) || 0.9),
+                    );
+                    const inverse = Boolean(opts.inverse);
+
+                    if (timeout <= 0) {
+                        if (shouldPassAfterThis) _actionEndAtPassed = true;
+                        return;
+                    }
+
+                    const startTime = Date.now();
+                    let prevBuffer = null;
+
+                    // 首次截图
+                    while (true) {
+                        try {
+                            prevBuffer = await screenshot(
+                                "waitSceneChange-基准",
+                                {
+                                    returnBuffer: true,
+                                },
+                            );
+                            break;
+                        } catch (e) {
+                            if (Date.now() - startTime >= timeout) {
+                                throw new Error("等待场景变化超时");
+                            }
+                            log(
+                                "WARNING: waitSceneChange 首次截图失败，3秒后重试:",
+                                e.message,
+                            );
+                            await sleep(3000);
+                        }
+                    }
+
+                    while (true) {
+                        const elapsed = Date.now() - startTime;
+                        if (elapsed >= timeout) {
+                            throw new Error("等待场景变化超时");
+                        }
+
+                        const waitTime = Math.min(interval, timeout - elapsed);
+                        await sleep(waitTime);
+
+                        for (const op of operations || []) {
+                            const [fnName, ...args] = op;
+                            const fn = {
+                                ts,
+                                te,
+                                tm,
+                                tt,
+                                pc,
+                                hold,
+                                sleep,
+                                drag,
+                            }[fnName];
+                            if (!fn) {
+                                log(
+                                    `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
+                                );
+                                continue;
+                            }
+                            await fn(...args);
+                        }
+
+                        if (Date.now() - startTime >= timeout) {
+                            throw new Error("等待场景变化超时");
+                        }
+
+                        let currentBuffer;
+                        try {
+                            currentBuffer = await screenshot(
+                                "waitSceneChange-比对",
+                                { returnBuffer: true },
+                            );
+                        } catch (e) {
+                            if (Date.now() - startTime >= timeout) {
+                                throw new Error("等待场景变化超时");
+                            }
+                            log(
+                                "WARNING: waitSceneChange 截图失败，3秒后重试:",
+                                e.message,
+                            );
+                            await sleep(3000);
+                            continue;
+                        }
+
+                        const similarity = calculateSimilarity(
+                            prevBuffer,
+                            currentBuffer,
+                        );
+                        log(`场景相似度: ${similarity.toFixed(4)}`);
+
+                        const conditionMet = inverse
+                            ? similarity >= threshold
+                            : similarity < threshold;
+                        if (conditionMet) {
+                            log(
+                                inverse
+                                    ? "场景未发生变化，继续执行"
+                                    : "场景已发生大幅变化，继续执行",
+                            );
+                            if (shouldPassAfterThis) _actionEndAtPassed = true;
+                            return;
+                        }
+
+                        prevBuffer = currentBuffer;
+                    }
+                } finally {
+                    _waitSceneChangeInProgress = false;
+                }
+            }
+
+            log("ACTION:", description);
 
             // 自动截图（迁移自 index.js 的 _logScreenshot 逻辑）
-            if (config.screenshots?.screenshotOnLog !== false) {
+            if (
+                config.screenshots?.screenshotOnLog !== false &&
+                options?.screenshot !== false
+            ) {
                 screenshot(description).catch(() => {});
             }
 
