@@ -83,35 +83,31 @@ async function main() {
     const arg = process.argv[2];
     if (!arg || arg === "-h" || arg === "--help") {
         // 例外：允许使用 console.log 而不是 log/logRaw
-        console.log("基于 Puppeteer 的自动化游戏工具");
-        console.log("Copyright (c) 2025~2026 dsy4567, MIT License");
-        console.log("版本 1.0.0");
-        console.log("");
-        console.log("用法: node index.js [选项] <命令/脚本>");
-        console.log("");
-        console.log("命令:");
-        console.log("  login [URL]           打开登录页面（默认 URL 可配置）");
-        console.log("  <操作脚本.js>         执行指定的自动化脚本");
-        console.log("");
-        console.log("选项:");
-        console.log("  -h, --help            显示此帮助信息");
-        console.log(
-            "  --start-at <描述链>   按描述链定位，从锚点开始执行 action",
-        );
-        console.log(
-            "  --end-at <描述链>     按描述链定位，到锚点停止执行 action",
-        );
-        console.log("");
-        console.log("描述链格式: 描述A#描述B#描述C，以半角 # 分隔");
-        console.log("");
-        console.log("示例:");
-        console.log("  node index.js s/sr.js");
-        console.log('  node index.js s/zzz.js --start-at "进入咖啡店"');
-        console.log('  node index.js s/sr.js --end-at "进入生存索引"');
-        console.log(
-            '  node index.js s/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"',
-        );
-        console.log("  node index.js login");
+        console.log(`
+基于 Puppeteer 的自动化游戏工具
+Copyright (c) 2025~2026 dsy4567, MIT License
+版本 1.0.0
+
+用法: node index.js [选项] <命令/脚本>
+
+命令:
+  login [URL]           打开登录页面（默认 URL 可配置）
+  <操作脚本.js>         执行指定的自动化脚本
+
+选项:
+  -h, --help            显示此帮助信息
+  --start-at <描述链>    前面的描述链辅助定位，从最后一个描述开始执行 action
+  --end-at <描述链>      前面的描述链辅助定位，到最后一个描述停止执行 action
+
+描述链格式: 描述1#描述2，以半角 # 分隔
+
+示例:
+  node index.js s/sr.js
+  node index.js s/sr.js --start-at "开始挑战#waitSceneChange"
+  node index.js s/sr.js --end-at "进入生存索引"
+  node index.js s/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"
+  node index.js login
+`);
         process.exit(arg ? 0 : 1);
     }
 

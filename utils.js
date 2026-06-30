@@ -590,7 +590,7 @@ function createUtils(ctx, _eval = eval) {
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
         log(
-            "\n输入 exit 退出 REPL，使用 return 语句获取执行结果\n快捷命令: next / skip / tdbg\n确保网页获得焦点后可按住 alt+鼠标左键，发送 touch tap/drag/hold 事件",
+            "\n输入 exit 退出 REPL，使用 return 语句获取执行结果\n快捷命令: next / skip / tdbg\n输入 help 获取更多帮助\n确保网页获得焦点后可按住 alt+鼠标左键，发送 touch tap/drag/hold 事件",
         );
 
         const rl = readline.createInterface({
@@ -621,6 +621,47 @@ function createUtils(ctx, _eval = eval) {
             }
             if (trimmed === "tdbg") {
                 await action("toggleDbg");
+                rl.prompt();
+                return;
+            }
+            if (trimmed === "help") {
+                log(
+                    `
+获取返回值: 使用 return 语句返回执行结果
+
+可用命令:
+  exit          - 退出 REPL 并关闭浏览器
+  next          - 调试模式下执行下一个挂起的 action
+  skip          - 调试模式下跳过下一个挂起的 action
+  tdbg          - 开启/关闭 action 调试模式
+  help          - 显示此帮助信息
+  <空回车>       - 显示网页已打开毫秒数
+  <JS 代码>      - 执行代码 (可用 browser, page, puppeteer, log 等变量)
+
+action() 部分用法:
+  action('startAt', '<描述1#描述2>') / action('startAt', ['<描述1>','<描述2>'])
+   — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 --start-at 命令行参数
+  action('endAt', '<描述1#描述2>') / action('endAt', ['<描述1>','<描述2>'])
+   — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 --end-at 命令行参数
+  action('waitSceneChange', [操作数组], opts) - 等待场景大幅变化，每次循环执行一次操作数组
+    opts: { timeout?, interval?, threshold?, inverse? }
+
+
+描述链:
+  格式: 描述1#描述2，以半角 # 分隔；至少包含一个描述项；只有一个描述项时不使用 # 分隔符
+  举例：'点击前往#进入咖啡店' 或 '进入生存索引'
+
+一般操作:
+  tt(x,y) - touch tap
+  pc(selector) - 元素点击
+  hold(x, y, duration?) - 长按(duration默认100ms)
+  drag(fromX, fromY, toX, toY, duration?) - 拖拽(duration默认500ms)
+  sleep(ms) - 延时等待
+  ts(x, y) - 触摸开始; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
+  te() - 触摸结束; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
+  tm(x, y) - 触摸移动; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
+`,
+                );
                 rl.prompt();
                 return;
             }
