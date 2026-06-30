@@ -16,7 +16,9 @@ const screenshotOnLog = true;
 const alwaysHideOverlay = true;
 
 const defaultConfig = {
+    /** 开发模式 */
     isDev,
+    /** Puppeteer 启动参数 */
     puppeteerArgs: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -43,50 +45,52 @@ const defaultConfig = {
         "--disable-renderer-backgrounding", // 禁用渲染器后台化
         "--disable-sync", // 禁用Chrome同步功能
     ],
-    // 默认登录页
+    /** 默认登录页 */
     defaultLoginUrl: "https://www.migufun.com/middleh5/",
-    // 默认UA
+    /** 默认UA */
     mobileUA:
         "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
-    // 默认视口
+    /** 默认视口 */
     viewport: {
+        // WARN: 不要修改默认宽高
         width: 640,
         height: 480,
         hasTouch: true,
         isLandscape: true,
     },
+    /** 页面加载选项 */
     pageloadOptions: {
         waitUntil: "load",
         timeout: 60000,
     },
-    // 截图功能配置
+    /** 截图功能配置 */
     screenshots: {
-        // 是否启用自动定时截图（true=启用, false=禁用）
-        // 开发模式下强制禁用，非开发模式跟随顶层 autoScreenshotEnabled 配置
+        /** 是否启用自动定时截图（true=启用, false=禁用）
+        开发模式下强制禁用，非开发模式跟随顶层 autoScreenshotEnabled 配置 */
         autoScreenshotEnabled: isDev ? false : autoScreenshotEnabled,
-        // 自动截图间隔（毫秒），默认 30 秒
+        /** 自动截图间隔（毫秒），默认 30 秒 */
         autoScreenshotInterval: 30000,
-        // 是否在日志事件时触发截图（true=启用, false=禁用）
+        /** 是否在日志事件时触发截图（true=启用, false=禁用） */
         screenshotOnLog: isDev ? false : screenshotOnLog,
-        // 截图节流&超时时间（毫秒），同一秒内限一张截图；超时时间会预留 100 ms用于处理遮罩层
+        /** 截图节流&超时时间（毫秒），同一秒内限一张截图；超时时间会预留 100 ms用于处理遮罩层 */
         screenshotThrottleMs: 2500,
     },
-    // 自动化行为配置
+    /** 自动化行为配置 */
     automation: {
-        // 默认任务超时时间（毫秒），默认 30 分钟
+        /** 默认任务超时时间（毫秒），默认 30 分钟 */
         defaultTaskTimeoutMs: 30 * 60 * 1000,
-        // 默认拖拽模拟步数
+        /** 默认拖拽模拟步数 */
         defaultDragSteps: 20,
-        // 默认拖拽持续时间（毫秒）
+        /** 默认拖拽持续时间（毫秒） */
         defaultDragDuration: 500,
     },
-    // 是否始终隐藏遮罩层（true=始终隐藏, false=跟随鼠标移入移出）
+    /** 是否始终隐藏遮罩层（true=始终隐藏, false=跟随鼠标移入移出） */
     alwaysHideOverlay: isDev ? true : alwaysHideOverlay,
-    // 目录配置
+    /** 目录配置 */
     dirs: {
-        // 日志目录基础名称
+        /** 日志目录基础名称 */
         logDirBase: "logs",
-        // 用户数据目录名称
+        /** 用户数据目录名称 */
         userDataDirName: "user-data",
     },
 };
