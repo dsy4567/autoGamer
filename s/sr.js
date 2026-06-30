@@ -1,8 +1,5 @@
 const scriptConfig = require("./config/sr.config.default.js");
-const {
-    actionsInCloudGameBallAndExit,
-    clickContinueGame,
-} = require("./share/migu.js");
+const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
 const config = require("../config.default.js");
 
 /**
@@ -222,7 +219,7 @@ module.exports = async function (ctx) {
         startAutoScreenshot();
     }
     // 如果游戏已经启动，点击继续游戏
-    clickContinueGame(page);
+    await miguInit(ctx);
 
     if (!config.isDev) {
         setTaskTimeout(

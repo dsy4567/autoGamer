@@ -18,7 +18,6 @@ const config = require("../../config.default.js");
  */
 async function actionsInCloudGameBallAndExit(ctx) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
-
     const {
         ts,
         te,
@@ -39,12 +38,12 @@ async function actionsInCloudGameBallAndExit(ctx) {
         // 点击悬浮球元素
         await page.click("#app > div > div.pagebox > div:nth-child(4) > div");
         await sleep(3000);
-        // 点击福利标签
-        await page.click(
-            "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
-        );
-        await sleep(3000);
         try {
+            // 点击福利标签
+            await page.click(
+                "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
+            );
+            await sleep(3000);
             // 先将签到按钮滚动到可视区域
             await page.evaluate(
                 'document.querySelector(".notSignInBtn").scrollIntoView()',
@@ -56,21 +55,54 @@ async function actionsInCloudGameBallAndExit(ctx) {
         }
         await sleep(3000);
         if (config.isDev) await screenshot("签到完成");
-        await sleep(4000);
+        await sleep(7000);
 
-        await browser.close();
-        process.exit(0);
+        await page.evaluate(
+            'document.querySelector(".quitCont .quit-icon").click()',
+        );
+        await sleep(1000);
+        await page.evaluate('document.querySelector(".sureQuitGame").click()');
+        await sleep(5000);
     } catch (e) {
         log("ERROR: 签到失败", e);
+    } finally {
+        // TODO: 正常退出
+        await browser.close();
+        process.exit(0);
     }
 }
 
 /**
- * 游戏已启动时，点击继续游戏按钮；检查是否有维护等公告
- * @param {import("puppeteer-core").Page} page
+ * @param {{
+ *   puppeteer: typeof import("puppeteer-core"),
+ *   browser: import("puppeteer-core").Browser,
+ *   page: import("puppeteer-core").Page,
+ *   log: (...args: any[]) => void,
+ *   logRaw: (...args: any[]) => void,
+ *   pageOpenTime: number,
+ *   logDir: string
+ * }} ctx
  */
-function clickContinueGame(page) {
-    setTimeout(async () => {
+async function miguInit(ctx) {
+    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+    const {
+        ts,
+        te,
+        tm,
+        tt,
+        pc,
+        hold,
+        sleep,
+        startRepl,
+        drag,
+        setTaskTimeout,
+        screenshot,
+        startAutoScreenshot,
+    } = createUtils(ctx);
+
+    // TODO: 云游戏连接成功后再继续
+    await (async () => {
+        await sleep(5000);
         if (!config.isDev) {
             const errBtn =
                 (await page.$("div.dialogBox b.iknowGoback")) ||
@@ -88,12 +120,12 @@ function clickContinueGame(page) {
                 page.click("b.button.continueGame"),
                 page.click("b.button.continueOpen"),
             ]);
-            // TODO: ~~console.log是不符合规范的写法，等待重构后改正~~ 一段时间后删除注释
-            // console.log("点击继续游戏按钮成功");
+            // log("点击继续游戏按钮成功");
         } catch (e) {
-            // console.log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
+            // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
         }
-    }, 5000);
+        await sleep(5000);
+    })();
 }
 
-module.exports = { actionsInCloudGameBallAndExit, clickContinueGame };
+module.exports = { actionsInCloudGameBallAndExit, miguInit };

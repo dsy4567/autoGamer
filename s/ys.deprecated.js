@@ -1,10 +1,7 @@
 // 已废弃的脚本，不允许编辑和使用。
 
 const scriptConfig = require("./config/ys.config.default.js");
-const {
-    actionsInCloudGameBallAndExit,
-    clickContinueGame,
-} = require("./share/migu.js");
+const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
 const config = require("../config.default.js");
 
 /**
@@ -255,7 +252,7 @@ module.exports = async function (ctx) {
         startAutoScreenshot();
     }
     // 游戏已经启动，点击继续游戏
-    clickContinueGame(page);
+    miguInit(ctx);
 
     if (!config.isDev) {
         setTaskTimeout(
