@@ -44,28 +44,55 @@ let _actionDbgQueue = [];
  *   pageOpenTime: number,
  *   logDir: string
  * }} ctx
- * @param {globalThis} that
+ * @param {Function} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
 function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
 
-    /** 触摸开始 - 在指定坐标触发 touchStart 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
+    /**
+     * 触摸开始 - 在指定坐标触发 touchStart 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag}
+     * @param {number} x 横坐标
+     * @param {number} y 纵坐标
+     */
     const ts = (x, y) => page.touchscreen.touchStart(x, y);
-    /** 触摸结束 - 触发 touchEnd 事件 */
+    /** 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag} */
     const te = () => page.touchscreen.touchEnd();
-    /** 触摸移动 - 在指定坐标触发 touchMove 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
+    /**
+     * 触摸移动 - 在指定坐标触发 touchMove 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag}
+     * @param {number} x 横坐标
+     * @param {number} y 纵坐标
+     */
     const tm = (x, y) => page.touchscreen.touchMove(x, y);
-    /** 触摸点击 - 在指定坐标触发 tap 事件 @param {number} x 横坐标 @param {number} y 纵坐标 */
+    /**
+     * 触摸点击 - 在指定坐标触发 tap 事件
+     * @param {number} x 横坐标
+     * @param {number} y 纵坐标
+     */
     const tt = (x, y) => page.touchscreen.tap(x, y);
-    /** 页面点击 - 调用 page.click @param {...any} args 传递给 page.click 的参数 */
-    const pc = (...args) => page.click(...args);
-    /** 长按 - 在指定坐标按下并保持一段时间后释放 @param {number} x 横坐标 @param {number} y 纵坐标 @param {number} [hold=100] 按住时长(毫秒) */
-    const hold = async (x, y, hold = 100) => {
+    /**
+     * 页面点击 - 调用 page.click(selector)
+     * @param {string} selector 传递给 page.click 的参数
+     */
+    const pc = selector => page.click(selector);
+    /**
+     * 长按 - 在指定坐标按下并保持一段时间后释放
+     * @param {number} x 横坐标
+     * @param {number} y 纵坐标
+     * @param {number} [hold=1000] 按住时长（毫秒）
+     */
+    const hold = async (x, y, hold = 1000) => {
         await ts(x, y);
         await sleep(hold);
         await te();
     };
-    /** 拖拽 - 从起点拖拽到终点，分步模拟触摸移动 @param {number} fromX 起点横坐标 @param {number} fromY 起点纵坐标 @param {number} toX 终点横坐标 @param {number} toY 终点纵坐标 @param {number} [duration=500] 拖拽持续时间(毫秒) */
+    /**
+     * 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
+     * @param {number} fromX 起点横坐标
+     * @param {number} fromY 起点纵坐标
+     * @param {number} toX 终点横坐标
+     * @param {number} toY 终点纵坐标
+     * @param {number} [duration=500] 拖拽持续时间（毫秒）
+     */
     const drag = async (
         fromX,
         fromY,
@@ -85,7 +112,11 @@ function createUtils(ctx, _eval = eval) {
         }
         await te();
     };
-    /** 延时等待 @param {number} ms 等待毫秒数 @returns {Promise<void>} */
+    /**
+     * 延时等待
+     * @param {number} ms 等待毫秒数
+     * @returns {Promise<void>}
+     */
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /**
@@ -354,7 +385,11 @@ function createUtils(ctx, _eval = eval) {
             process.exit(0);
         });
     }
-    /** 根据游戏任务实际用时，设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时 @param {number} [ms=1800000] 超时毫秒数，<=0时取消超时，默认30分钟 @returns {() => void} 取消超时的函数 */
+    /**
+     * 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时
+     * @param {number} [ms=1800000] 超时毫秒数，<=0 时取消超时，默认 30 分钟
+     * @returns {() => void} 取消超时的函数
+     */
     const setTaskTimeout = (
         ms = config.automation?.defaultTaskTimeoutMs ?? 30 * 60 * 1000,
     ) => {
@@ -479,7 +514,11 @@ function createUtils(ctx, _eval = eval) {
         }
     };
 
-    /** 启动每30秒自动截图 @param {number} [interval=30000] 间隔毫秒数 @returns {() => void} 停止定时器的函数 */
+    /**
+     * 启动定时自动截图
+     * @param {number} [interval=30000] 间隔毫秒数
+     * @returns {() => void} 停止定时器的函数
+     */
     const startAutoScreenshot = (
         interval = config.screenshots?.autoScreenshotInterval ?? 30000,
     ) => {

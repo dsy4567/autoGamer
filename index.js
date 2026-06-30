@@ -10,6 +10,7 @@ const { createUtils } = require("./utils.js");
 let _logWriteFile = () => {};
 
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
+/** 输出日志并触发写文件钩子 @param {...any} args */
 const log = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
