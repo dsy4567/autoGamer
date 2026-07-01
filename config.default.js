@@ -93,6 +93,8 @@ const defaultConfig = {
         /** 用户数据目录名称 */
         userDataDirName: "user-data",
     },
+    /** 游戏版本更新日是否运行脚本 */
+    forceRun: false,
 };
 
 module.exports = { ...defaultConfig, ...userConfig };

@@ -4,6 +4,8 @@ const loadUserConfig = require("../../loadUserConfig");
 const userConfig = loadUserConfig(__filename);
 
 const defaultConfig = {
+    // 版本更新日期列表，格式 "YYYY-MM-DD"，匹配时拒绝运行
+    updateDates: [],
     // 游戏启动 URL（咪咕快游平台）
     gameUrl:
         "https://www.migufun.com/miguplay/middleGame/gameplay/400007864?gameName=%E5%8E%9F%E7%A5%9E%C2%B7%E7%A9%BA%E6%9C%88%E4%B9%8B%E6%AD%8C",
