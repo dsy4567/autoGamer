@@ -30,7 +30,7 @@ let _actionEndAtIndex = 0;
 let _actionEndAtReached = false;
 /** 是否已执行完 end-at 锚点 action，后续应全部跳过 */
 let _actionEndAtPassed = false;
-/** action 状态是否已完成初始化（仅从 process.argv 解析一次） */
+/** action 状态是否已完成初始化（仅从 ctx 解析一次） */
 let _actionStateInitialized = false;
 /** action 调试模式是否开启 */
 let _actionDbgEnabled = false;
@@ -124,12 +124,21 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
  *   log: (...args: any[]) => void,
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
- *   logDir: string
+ *   logDir: string,
+ *   startAtChain?: string[] | null,
+ *   endAtChain?: string[] | null,
  * }} ctx
  * @param {Function} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
 function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+
+    // 从 ctx 初始化 --start-at / --end-at 描述链（仅初始化一次，后续 action("startAt"/"endAt") 可覆盖）
+    if (!_actionStateInitialized) {
+        _actionStateInitialized = true;
+        _actionStartAtChain = ctx.startAtChain ?? null;
+        _actionEndAtChain = ctx.endAtChain ?? null;
+    }
 
     /**
      * 触摸开始 - 在指定坐标触发 touchStart 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag}
@@ -255,19 +264,6 @@ function createUtils(ctx, _eval = eval) {
      * @returns {Promise<void>}
      */
     const action = async (description, operations, options) => {
-        if (!_actionStateInitialized) {
-            _actionStateInitialized = true;
-            const parseFlag = flag => {
-                const idx = process.argv.indexOf(flag);
-                if (idx !== -1 && process.argv[idx + 1]) {
-                    return process.argv[idx + 1].split("#");
-                }
-                return null;
-            };
-            _actionStartAtChain = parseFlag("--start-at");
-            _actionEndAtChain = parseFlag("--end-at");
-        }
-
         // 特殊指令：覆盖 start-at
         if (description === "startAt") {
             const chain =

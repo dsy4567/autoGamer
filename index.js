@@ -3,6 +3,7 @@ const readline = require("readline");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const { parseArgs } = require("util");
 const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig");
@@ -81,8 +82,16 @@ const MOBILE_UA =
     "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
 
 async function main() {
-    const arg = process.argv[2];
-    if (!arg || arg === "-h" || arg === "--help") {
+    const { values, positionals } = parseArgs({
+        options: {
+            help: { type: "boolean", short: "h" },
+            "start-at": { type: "string" },
+            "end-at": { type: "string" },
+        },
+        allowPositionals: true,
+    });
+    const arg = positionals[0];
+    if (values.help || !arg) {
         // 例外：允许使用 console.log 而不是 log/logRaw
         console.log(`
 基于 Puppeteer 的自动化游戏工具
@@ -109,8 +118,14 @@ Copyright (c) 2025~2026 dsy4567, MIT License
   node index.js userData.default/scripts/zzz/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"
   node index.js login
 `);
-        process.exit(arg ? 0 : 1);
+        process.exit(values.help ? 0 : 1);
     }
+
+    // 解析 --start-at / --end-at 描述链
+    const startAtChain = values["start-at"]
+        ? values["start-at"].split("#")
+        : null;
+    const endAtChain = values["end-at"] ? values["end-at"].split("#") : null;
 
     // 推导脚本名，用于日志目录
     const scriptName = (() => {
@@ -223,6 +238,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             logRaw,
             pageOpenTime,
             logDir,
+            startAtChain,
+            endAtChain,
         },
         code => eval(code),
     );
@@ -306,11 +323,13 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         let loginUrl =
             config.defaultLoginUrl ?? "https://www.migufun.com/middleh5/";
         // 允许 node index.js login https://xxx
-        const url = process.argv.at(-1);
-        try {
-            loginUrl = new URL(url).toString();
-        } catch (e) {
-            log("WARNING: 未指定/无效的 URL，使用配置或默认登录页");
+        const url = positionals[1];
+        if (url) {
+            try {
+                loginUrl = new URL(url).toString();
+            } catch (e) {
+                log("WARNING: 无效的 URL，使用配置或默认登录页");
+            }
         }
         log(`打开登录页面: ${loginUrl}`);
         await page.goto(loginUrl, config.pageloadOptions);
@@ -350,9 +369,11 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 pageOpenTime,
                 logDir,
                 getGlobalConfig: () => config,
-            createUtils,
-            loadUserConfig,
-        });
+                createUtils,
+                loadUserConfig,
+                startAtChain,
+                endAtChain,
+            });
         } catch (e) {
             log("ERROR: 脚本执行出错:", e);
         }
