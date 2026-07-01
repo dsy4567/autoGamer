@@ -1,8 +1,29 @@
+// @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 zzz.config.user.js 进行自定义配置。
 const loadUserConfig = require("../../loadUserConfig");
 
 const userConfig = loadUserConfig(__filename);
 
+/**
+ * @type {{
+ *   updateDates: string[],
+ *   gameUrl: string,
+ *   taskTimeoutMs: number,
+ *   startupDelays: {
+ *     initialWait: number,
+ *     afterStartGame: number,
+ *   },
+ *   isReturn: boolean,
+ *   selectPromoterActions: [string, number, number][],
+ *   customCardGroupSpacingOffset: [number, number],
+ *   customCardGroupSpacing: number,
+ *   manualInterventionDelay: number,
+ *   dungeonFightTimeout: number,
+ *   customTemplateIndex: number,
+ *   dungeonRunCount: number,
+ *   customFightActions: any[],
+ * }}
+ */
 const defaultConfig = {
     /** 版本更新日期列表，格式 "YYYY-MM-DD"，匹配时拒绝运行 */
     updateDates: [],

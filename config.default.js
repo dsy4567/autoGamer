@@ -1,3 +1,4 @@
+// @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 config.user.js 进行自定义配置。
 const loadUserConfig = require("./loadUserConfig");
 
@@ -15,6 +16,41 @@ const screenshotOnLog = true;
 // 是否始终隐藏遮罩层（true=始终隐藏, false=跟随鼠标移入移出）
 const alwaysHideOverlay = true;
 
+/**
+ * @type {{
+ *   isDev: boolean,
+ *   puppeteerArgs: string[],
+ *   defaultLoginUrl: string,
+ *   mobileUA: string,
+ *   viewport: {
+ *     width: number,
+ *     height: number,
+ *     hasTouch: boolean,
+ *     isLandscape: boolean,
+ *   },
+ *   pageloadOptions: {
+ *     waitUntil: string,
+ *     timeout: number,
+ *   },
+ *   screenshots: {
+ *     autoScreenshotEnabled: boolean,
+ *     autoScreenshotInterval: number,
+ *     screenshotOnLog: boolean,
+ *     screenshotThrottleMs: number,
+ *   },
+ *   automation: {
+ *     defaultTaskTimeoutMs: number,
+ *     defaultDragSteps: number,
+ *     defaultDragDuration: number,
+ *   },
+ *   alwaysHideOverlay: boolean,
+ *   dirs: {
+ *     logDirBase: string,
+ *     userDataDirName: string,
+ *   },
+ *   forceRun: boolean,
+ * }}
+ */
 const defaultConfig = {
     /** 开发模式 */
     isDev,

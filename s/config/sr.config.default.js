@@ -1,8 +1,23 @@
+// @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 sr.config.user.js 进行自定义配置。
 const loadUserConfig = require("../../loadUserConfig");
 
 const userConfig = loadUserConfig(__filename);
 
+/**
+ * @type {{
+ *   updateDates: string[],
+ *   gameUrl: string,
+ *   taskTimeoutMs: number,
+ *   dungeonType: number,
+ *   dungeonFightTimeout: number,
+ *   startupDelays: {
+ *     initialWait: number,
+ *     afterStartGame: number,
+ *   },
+ *   dungeonRunCount: number,
+ * }}
+ */
 const defaultConfig = {
     /** 版本更新日期列表，格式 "YYYY-MM-DD"，匹配时拒绝运行 */
     updateDates: [],
