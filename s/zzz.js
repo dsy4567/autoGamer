@@ -253,7 +253,6 @@ module.exports = async function (ctx) {
 
     /** 领取纪行奖励 */
     async function getJiXingReward() {
-        // TODO: 先领取手册奖励，在进入纪行
         await action("进入纪行界面", [
             ["tt", 517, 30],
             ["sleep", 3000],
