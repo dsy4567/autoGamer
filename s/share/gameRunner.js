@@ -13,7 +13,7 @@ const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => any,
+ *   getGlobalConfig: () => typeof import("../../config.default.js"),
  *   createUtils: () => typeof import("../../utils.js").createUtils
  * }} ctx
  * @param {string} gameName 游戏名称

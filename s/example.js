@@ -10,7 +10,7 @@ const { runGame } = require("./share/gameRunner.js");
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => any,
+ *   getGlobalConfig: () => typeof import("../config.default.js"),
  *   createUtils: () => typeof import("../utils.js").createUtils
  * }} ctx
  */
