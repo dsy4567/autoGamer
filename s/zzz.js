@@ -1,5 +1,5 @@
 const scriptConfig = require("./config/zzz.config.default.js");
-const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
+const { runGame } = require("./share/gameRunner.js");
 
 /**
  * @param {{
@@ -10,12 +10,22 @@ const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => any
+ *   getGlobalConfig: () => any,
+ *   createUtils: () => typeof import("../utils.js").createUtils
  * }} ctx
  */
 module.exports = async function (ctx) {
-    const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir, getGlobalConfig } = ctx;
-    const { createUtils } = require("../utils.js");
+    const {
+        puppeteer,
+        browser,
+        page,
+        log,
+        logRaw,
+        pageOpenTime,
+        logDir,
+        getGlobalConfig,
+        createUtils,
+    } = ctx;
     const {
         ts,
         te,
@@ -500,30 +510,7 @@ module.exports = async function (ctx) {
         //     await firstReturnGame();
         // }
         await firstEnterMainGame();
-
-        await actionsInCloudGameBallAndExit(ctx);
     }
 
-    log("游戏：绝区零");
-    log("等待页面加载");
-    await page.goto(scriptConfig.gameUrl);
-
-    // 根据配置决定是否启动自动定时截图
-    if (config.screenshots?.autoScreenshotEnabled !== false) {
-        startAutoScreenshot();
-    }
-    // 如果游戏已经启动，点击继续游戏
-    await miguInit(ctx);
-
-    if (!config.isDev) {
-        setTaskTimeout(
-            scriptConfig.taskTimeoutMs > 0
-                ? scriptConfig.taskTimeoutMs
-                : undefined,
-        );
-        await main();
-    }
-
-    // 自动化完成后即可进入 REPL
-    startRepl();
+    await runGame(ctx, "绝区零", scriptConfig, main, code => eval(code));
 };

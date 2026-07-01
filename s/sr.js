@@ -1,5 +1,5 @@
 const scriptConfig = require("./config/sr.config.default.js");
-const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
+const { runGame } = require("./share/gameRunner.js");
 
 /**
  * @param {{
@@ -10,7 +10,8 @@ const { actionsInCloudGameBallAndExit, miguInit } = require("./share/migu.js");
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => any
+ *   getGlobalConfig: () => any,
+ *   createUtils: () => ReturnType<typeof import("../utils.js").createUtils>
  * }} ctx
  */
 module.exports = async function (ctx) {
@@ -23,8 +24,8 @@ module.exports = async function (ctx) {
         pageOpenTime,
         logDir,
         getGlobalConfig,
+        createUtils,
     } = ctx;
-    const { createUtils } = require("../utils.js");
     const {
         ts,
         te,
@@ -296,30 +297,9 @@ module.exports = async function (ctx) {
         await receiveSimpleRewards();
         await dungeonFight();
         await getJiXingReward();
-
-        await actionsInCloudGameBallAndExit(ctx);
     }
 
-    log("游戏：崩坏：星穹铁道");
-    log("等待页面加载");
-    await page.goto(scriptConfig.gameUrl);
-
-    // 根据配置决定是否启动自动定时截图
-    if (config.screenshots?.autoScreenshotEnabled !== false) {
-        startAutoScreenshot();
-    }
-    // 如果游戏已经启动，点击继续游戏
-    await miguInit(ctx);
-
-    if (!config.isDev) {
-        setTaskTimeout(
-            scriptConfig.taskTimeoutMs > 0
-                ? scriptConfig.taskTimeoutMs
-                : undefined,
-        );
-        await main();
-    }
-
-    // 自动化完成后即可进入 REPL
-    startRepl();
+    await runGame(ctx, "崩坏：星穹铁道", scriptConfig, main, code =>
+        eval(code),
+    );
 };

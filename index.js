@@ -213,6 +213,18 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         );
     });
 
+    const utils = createUtils(
+        {
+            puppeteer,
+            browser,
+            page,
+            log,
+            logRaw,
+            pageOpenTime,
+            logDir,
+        },
+        code => eval(code),
+    );
     const {
         ts,
         te,
@@ -226,18 +238,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
-    } = createUtils(
-        {
-            puppeteer,
-            browser,
-            page,
-            log,
-            logRaw,
-            pageOpenTime,
-            logDir,
-        },
-        code => eval(code),
-    );
+    } = utils;
 
     // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
     await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
@@ -348,6 +349,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 pageOpenTime,
                 logDir,
                 getGlobalConfig: () => config,
+                createUtils,
             });
         } catch (e) {
             log("ERROR: 脚本执行出错:", e);
