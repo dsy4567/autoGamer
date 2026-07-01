@@ -1,5 +1,9 @@
 /node_modules
 /user-data
 /logs
-*.config.user.js
 /note.txt
+
+*.config.user.js
+
+/userData.default/chromeData/*
+/userData.default/logs/*

@@ -1,6 +1,7 @@
 // @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 config.user.js 进行自定义配置。
-const loadUserConfig = require("./loadUserConfig");
+// TODO: 路径需优化，loadUserConfig 已迁移至 userData.default/share/，后续考虑统一封装或符号链接
+const loadUserConfig = require("./userData.default/share/loadUserConfig");
 
 const userConfig = loadUserConfig(__filename, "用户自定义全局配置");
 
@@ -127,7 +128,7 @@ const defaultConfig = {
         /** 日志目录基础名称 */
         logDirBase: "logs",
         /** 用户数据目录名称 */
-        userDataDirName: "user-data",
+        userDataDirName: "userData.default/chromeData",
     },
     /** 游戏版本更新日是否运行脚本 */
     forceRun: false,

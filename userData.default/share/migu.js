@@ -1,8 +1,6 @@
-// s/share/migu.js
+// userData.default/share/migu.js
 // 咪咕快游云游戏平台通用操作集合
 // 提供悬浮球签到、退出等跨脚本复用的功能
-
-const { createUtils } = require("../../utils.js");
 
 /**
  * @param {{
@@ -17,7 +15,7 @@ const { createUtils } = require("../../utils.js");
  * }} ctx
  */
 async function actionsInCloudGameBallAndExit(ctx) {
-    const { browser, page, log, getGlobalConfig } = ctx;
+    const { browser, page, log, getGlobalConfig, createUtils } = ctx;
     const { tt, sleep, screenshot } = createUtils(ctx);
     const config = getGlobalConfig();
 
@@ -82,6 +80,7 @@ async function miguInit(ctx) {
         pageOpenTime,
         logDir,
         getGlobalConfig,
+        createUtils,
     } = ctx;
     const {
         ts,

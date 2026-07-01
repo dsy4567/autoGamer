@@ -29,9 +29,8 @@
 - `index.js`             主入口
 - `inject.js`            注入脚本
 - `utils.js`             工具函数
-- `s/*.js`               自动化脚本
-- `s/config/*.js`        脚本配置
-- `s/share/*.js`         共享函数
+- `userData.default/scripts/*/*.js`   自动化脚本（每脚本一个子目录）
+- `userData.default/share/*.js`       共享函数
 - `**/*.config.default.js`  全局配置
 - `**/*.config.user.js`     用户配置
 
@@ -42,17 +41,17 @@
 ```bash
 # Linux / macOS
 export AUTOGAMER_DEV=1
-node index.js s/example.js
+node index.js userData.default/scripts/example/example.js
 
 # Windows (PowerShell)
 $env:AUTOGAMER_DEV=1
-node index.js s/example.js
+node index.js userData.default/scripts/example/example.js
 ```
 
 开发模式下行为变化：
 - 自动禁用定时自动截屏
 - 自动禁用日志事件截图
-- `s/` 下的脚本不会自动执行 `main()` 函数，页面加载完成后直接进入 REPL
+- `userData.default/scripts/` 下的脚本不会自动执行 `main()` 函数，页面加载完成后直接进入 REPL
 - 日志仅输出到终端，不写入 `logs/` 目录下的文件
 
 ## 📄 许可证

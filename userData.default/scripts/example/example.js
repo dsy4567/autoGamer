@@ -1,5 +1,5 @@
-const scriptConfig = require("./config/example.config.default.js");
-const { runGame } = require("./share/gameRunner.js");
+const scriptConfig = require("./example.config.default.js");
+const { runGame } = require("../../share/gameRunner.js");
 
 /**
  * @param {{
@@ -10,8 +10,8 @@ const { runGame } = require("./share/gameRunner.js");
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => typeof import("../config.default.js"),
- *   createUtils: () => typeof import("../utils.js").createUtils
+ *   getGlobalConfig: () => typeof import("../../../config.default.js"),
+ *   createUtils: () => typeof import("../../../utils.js").createUtils
  * }} ctx
  */
 module.exports = async function (ctx) {

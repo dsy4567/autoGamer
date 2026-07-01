@@ -1,6 +1,6 @@
 // @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 zzz.config.user.js 进行自定义配置。
-const loadUserConfig = require("../../loadUserConfig");
+const loadUserConfig = require("../../share/loadUserConfig");
 
 const userConfig = loadUserConfig(__filename);
 

@@ -102,10 +102,10 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 描述链格式: 描述1#描述2，以半角 # 分隔
 
 示例:
-  node index.js s/sr.js
-  node index.js s/sr.js --start-at "开始挑战#waitSceneChange"
-  node index.js s/sr.js --end-at "进入生存索引"
-  node index.js s/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"
+  node index.js userData.default/scripts/sr/sr.js
+  node index.js userData.default/scripts/sr/sr.js --start-at "开始挑战#waitSceneChange"
+  node index.js userData.default/scripts/sr/sr.js --end-at "进入生存索引"
+  node index.js userData.default/scripts/zzz/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"
   node index.js login
 `);
         process.exit(arg ? 0 : 1);

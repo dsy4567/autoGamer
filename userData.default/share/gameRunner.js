@@ -1,4 +1,4 @@
-// s/share/gameRunner.js
+// userData.default/share/gameRunner.js
 // 游戏启动/收尾通用流程共享库
 // 所有游戏脚本通过调用此函数完成页面跳转、miguInit、main执行、签到退出、REPL 等通用流程
 
@@ -30,8 +30,8 @@ function checkUpdateDate(updateDates) {
  *   logRaw: (...args: any[]) => void,
  *   pageOpenTime: number,
  *   logDir: string,
- *   getGlobalConfig: () => typeof import("../../config.default.js"),
- *   createUtils: () => typeof import("../../utils.js").createUtils
+ *   getGlobalConfig: () => typeof import("../../../config.default.js"),
+ *   createUtils: () => typeof import("../../../utils.js").createUtils
  * }} ctx
  * @param {string} gameName 游戏名称
  * @param {object} scriptConfig 游戏配置
@@ -50,6 +50,7 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     const forceRun =
         process.env.AUTOGAMER_FORCE === "1" || config.forceRun === true;
     if (updateDate && !forceRun) {
+        // TODO: 「请阅读 s/README.md」文案需更新为实际 README 路径，由用户自行处理
         log(`ERROR: 游戏版本更新日当天无法运行脚本
 
 今日 (${updateDate}) 为 ${gameName} 版本更新日
