@@ -5,6 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
+const loadUserConfig = require("./loadUserConfig");
 
 // 日志增强钩子，初始为空函数，后续赋值以启用写文件
 let _logWriteFile = () => {};
@@ -349,8 +350,9 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 pageOpenTime,
                 logDir,
                 getGlobalConfig: () => config,
-                createUtils,
-            });
+            createUtils,
+            loadUserConfig,
+        });
         } catch (e) {
             log("ERROR: 脚本执行出错:", e);
         }

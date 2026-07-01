@@ -1,7 +1,6 @@
 // @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 config.user.js 进行自定义配置。
-// TODO: 路径需优化，loadUserConfig 已迁移至 userData.default/share/，后续考虑统一封装或符号链接
-const loadUserConfig = require("./userData.default/share/loadUserConfig");
+const loadUserConfig = require("./loadUserConfig");
 
 const userConfig = loadUserConfig(__filename, "用户自定义全局配置");
 

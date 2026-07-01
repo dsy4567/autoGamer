@@ -1,11 +1,15 @@
 // @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 sr.config.user.js 进行自定义配置。
-const loadUserConfig = require("../../share/loadUserConfig");
-
-const userConfig = loadUserConfig(__filename);
 
 /**
- * @type {{
+ * @param {{ loadUserConfig: typeof import("../../../loadUserConfig.js") }} ctx
+ */
+module.exports = function (ctx) {
+    const { loadUserConfig } = ctx;
+    const userConfig = loadUserConfig(__filename);
+
+    /**
+     * @type {{
  *   updateDates: string[],
  *   gameUrl: string,
  *   taskTimeoutMs: number,
@@ -43,4 +47,5 @@ const defaultConfig = {
     dungeonRunCount: 1,
 };
 
-module.exports = { ...defaultConfig, ...userConfig };
+    return { ...defaultConfig, ...userConfig };
+};

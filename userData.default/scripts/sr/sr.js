@@ -1,4 +1,4 @@
-const scriptConfig = require("./sr.config.default.js");
+const loadScriptConfig = require("./sr.config.default.js");
 const { runGame } = require("../../share/gameRunner.js");
 
 /**
@@ -11,7 +11,8 @@ const { runGame } = require("../../share/gameRunner.js");
  *   pageOpenTime: number,
  *   logDir: string,
  *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => typeof import("../../../utils.js").createUtils
+ *   createUtils: () => typeof import("../../../utils.js").createUtils,
+ *   loadUserConfig: typeof import("../../../loadUserConfig.js")
  * }} ctx
  */
 module.exports = async function (ctx) {
@@ -42,6 +43,7 @@ module.exports = async function (ctx) {
         action,
     } = createUtils(ctx, code => eval(code));
     const config = getGlobalConfig();
+    const scriptConfig = loadScriptConfig(ctx);
 
     /** 领取简单奖励 */
     async function receiveSimpleRewards() {

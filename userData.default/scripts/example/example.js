@@ -1,4 +1,4 @@
-const scriptConfig = require("./example.config.default.js");
+const loadScriptConfig = require("./example.config.default.js");
 const { runGame } = require("../../share/gameRunner.js");
 
 /**
@@ -11,7 +11,8 @@ const { runGame } = require("../../share/gameRunner.js");
  *   pageOpenTime: number,
  *   logDir: string,
  *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => typeof import("../../../utils.js").createUtils
+ *   createUtils: () => typeof import("../../../utils.js").createUtils,
+ *   loadUserConfig: typeof import("../../../loadUserConfig.js")
  * }} ctx
  */
 module.exports = async function (ctx) {
@@ -41,6 +42,7 @@ module.exports = async function (ctx) {
         setTaskTimeout,
     } = createUtils(ctx, code => eval(code));
     const config = getGlobalConfig();
+    const scriptConfig = loadScriptConfig(ctx);
 
     async function main() {
         // ========== 你的自动化逻辑 ==========

@@ -1,17 +1,21 @@
 // @ts-check
 // 警告：不建议直接修改此文件，请通过同目录下的 example.config.user.js 进行自定义配置。
-const loadUserConfig = require("../../share/loadUserConfig");
-
-const userConfig = loadUserConfig(__filename);
 
 /**
- * @type {{
- *   updateDates: string[],
- *   gameUrl: string,
- *   taskTimeoutMs: number,
- * }}
+ * @param {{ loadUserConfig: typeof import("../../../loadUserConfig.js") }} ctx
  */
-const defaultConfig = {
+module.exports = function (ctx) {
+    const { loadUserConfig } = ctx;
+    const userConfig = loadUserConfig(__filename);
+
+    /**
+     * @type {{
+     *   updateDates: string[],
+     *   gameUrl: string,
+     *   taskTimeoutMs: number,
+     * }}
+     */
+    const defaultConfig = {
     // 版本更新日期列表，格式 "YYYY-MM-DD"，匹配时拒绝运行
     updateDates: [],
     // 游戏启动 URL（咪咕快游平台）
@@ -21,4 +25,5 @@ const defaultConfig = {
     taskTimeoutMs: 0,
 };
 
-module.exports = { ...defaultConfig, ...userConfig };
+    return { ...defaultConfig, ...userConfig };
+};
