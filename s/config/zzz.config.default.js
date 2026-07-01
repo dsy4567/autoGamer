@@ -22,8 +22,6 @@ const defaultConfig = {
     isReturn: true,
     /** 录像店-邦布-选择宣传员，要选择的宣传员坐标，默认第一个即邦布 */
     selectPromoterActions: [["tt", 205, 175]],
-    /** 材料本-自定义模板序号，范围 [0, 4] */
-    customTemplateIndex: 0,
     /** customCardGroupSpacing 偏移量，单位像素 */
     customCardGroupSpacingOffset: [85, 330],
     /** 自定义卡组选项的间隔，单位像素 */
@@ -32,6 +30,8 @@ const defaultConfig = {
     manualInterventionDelay: 0 * 1000,
     /** 副本预计战斗时长（毫秒） */
     dungeonFightTimeout: 10 * 60 * 1000,
+    /** 材料本-自定义模板序号，范围 [0, 4] */
+    customTemplateIndex: 0,
     /** 刷本次数，默认 3 次 */
     dungeonRunCount: 3,
     /** 自定义副本打怪操作，推荐操作总时长接近小于 10000 毫秒 */
