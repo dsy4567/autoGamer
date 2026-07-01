@@ -38,17 +38,7 @@ function checkUpdateDate(updateDates) {
  * @param {Function} mainFn 脚本定义的 main 异步函数
  */
 async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
-    const {
-        puppeteer,
-        browser,
-        page,
-        log,
-        logRaw,
-        pageOpenTime,
-        logDir,
-        getGlobalConfig,
-        createUtils,
-    } = ctx;
+    const { page, log, getGlobalConfig, createUtils } = ctx;
     const { startAutoScreenshot, setTaskTimeout, startRepl } = createUtils(
         ctx,
         _eval,

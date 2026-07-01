@@ -17,30 +17,8 @@ const { createUtils } = require("../../utils.js");
  * }} ctx
  */
 async function actionsInCloudGameBallAndExit(ctx) {
-    const {
-        puppeteer,
-        browser,
-        page,
-        log,
-        logRaw,
-        pageOpenTime,
-        logDir,
-        getGlobalConfig,
-    } = ctx;
-    const {
-        ts,
-        te,
-        tm,
-        tt,
-        pc,
-        hold,
-        sleep,
-        startRepl,
-        drag,
-        setTaskTimeout,
-        screenshot,
-        startAutoScreenshot,
-    } = createUtils(ctx);
+    const { browser, page, log, getGlobalConfig } = ctx;
+    const { tt, sleep, screenshot } = createUtils(ctx);
     const config = getGlobalConfig();
 
     log("开始签到");
@@ -59,6 +37,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
                 'document.querySelector(".notSignInBtn").scrollIntoView()',
             );
             await sleep(1000);
+            // TODO: 这不知道干什么的，后面检查一下
             tt(488, 424);
         } catch (e) {
             log("今日已签到");
