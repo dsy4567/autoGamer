@@ -149,36 +149,26 @@ function runInit(sourceDir, dataDir) {
  * @param {string|null} scriptId 当前脚本 id（login 时为 null）
  */
 function ensureDataDir(sourceDir, dataDir, scriptId) {
-    if (
-        !fs.existsSync(dataDir) ||
-        !fs.existsSync(path.join(dataDir, "README.md")) ||
-        !fs.existsSync(path.join(dataDir, "share")) ||
-        !fs.existsSync(path.join(dataDir, "scripts"))
-    ) {
-        fs.mkdirSync(dataDir, { recursive: true });
-        copyForce(
-            path.join(sourceDir, "README.md"),
-            path.join(dataDir, "README.md"),
-        );
-        copyDirForce(
-            path.join(sourceDir, "share"),
-            path.join(dataDir, "share"),
-        );
-        copyDirForce(
-            path.join(sourceDir, "scripts"),
-            path.join(dataDir, "scripts"),
-        );
+    const items = ["README.md", "share", "scripts"];
 
+    if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        items.forEach(item => {
+            const src = path.join(sourceDir, item);
+            const dest = path.join(dataDir, item);
+            item === "README.md"
+                ? copyForce(src, dest)
+                : copyDirForce(src, dest);
+        });
         log("已初始化数据目录:", dataDir);
     }
-    if (scriptId) {
-        fs.mkdirSync(path.join(dataDir, "logs", scriptId), {
-            recursive: true,
-        });
-        fs.mkdirSync(path.join(dataDir, "scriptData", scriptId), {
-            recursive: true,
-        });
 
+    if (scriptId) {
+        ["logs", "scriptData"].forEach(dir => {
+            fs.mkdirSync(path.join(dataDir, dir, scriptId), {
+                recursive: true,
+            });
+        });
         log("已初始化脚本相关目录:", scriptId);
     }
 }
