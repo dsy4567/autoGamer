@@ -415,6 +415,7 @@ module.exports = async function (ctx) {
                             interval: 5000,
                             timeout: scriptConfig.dungeonFightTimeout,
                             inverse: true,
+                            recheckCount: 3,
                         });
                     } catch (e) {
                         log("WARNING: 检测结算画面超时，兜底等待");

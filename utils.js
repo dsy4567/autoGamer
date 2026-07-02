@@ -43,6 +43,7 @@ let _actionDbgQueue = [];
  * @property {number?} [interval] 检查间隔毫秒，默认3000，不少于200
  * @property {number?} [threshold] 变化阈值，范围[0,1]，默认0.9
  * @property {boolean?} [inverse] 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
+ * @property {number?} [recheckCount] 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行
  */
 
 /**
@@ -224,11 +225,12 @@ function createUtils(ctx, _eval = eval) {
      *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
      *
      * 特殊操作：
-     *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?})` — 等待场景大幅变化，每次循环执行一次操作数组
+     *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?})` — 等待场景大幅变化，每次循环执行一次操作数组
      *    - `timeout`: 超时毫秒，默认600000
      *    - `interval`: 检查间隔毫秒，默认3000，不少于200
      *    - `threshold`: 变化阈值，范围[0,1]，默认0.9
      *    - `inverse`: 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
+     *    - `recheckCount`: 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行
      *
      * 调试指令：
      *  - `action('startAt', '<描述1#描述2>')` / `action('startAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 `--start-at` 命令行参数
@@ -416,10 +418,15 @@ function createUtils(ctx, _eval = eval) {
                             ? options
                             : {};
                     const timeout = Math.max(0, Number(opts.timeout) || 600000);
-                    const interval = Math.max(
+                    const recheckCount = Math.max(
+                        0,
+                        Math.floor(Number(opts.recheckCount) || 0),
+                    );
+                    const normalInterval = Math.max(
                         200,
                         Number(opts.interval) || 3000,
                     );
+                    const recheckInterval = 3000; // 复查阶段固定使用3000ms
                     const threshold = Math.min(
                         1,
                         Math.max(0, Number(opts.threshold) || 0.9),
@@ -456,13 +463,22 @@ function createUtils(ctx, _eval = eval) {
                         }
                     }
 
+                    let recheckPassed = 0; // 已通过的复查次数
+                    let inRecheckPhase = false; // 是否进入复查阶段
+
                     while (true) {
                         const elapsed = Date.now() - startTime;
                         if (elapsed >= timeout) {
                             throw new Error("等待场景变化超时");
                         }
 
-                        const waitTime = Math.min(interval, timeout - elapsed);
+                        const currentInterval = inRecheckPhase
+                            ? recheckInterval
+                            : normalInterval;
+                        const waitTime = Math.min(
+                            currentInterval,
+                            timeout - elapsed,
+                        );
                         await sleep(waitTime);
 
                         for (const op of operations || []) {
@@ -517,14 +533,49 @@ function createUtils(ctx, _eval = eval) {
                         const conditionMet = inverse
                             ? similarity >= threshold
                             : similarity < threshold;
+
                         if (conditionMet) {
-                            log(
-                                inverse
-                                    ? "场景未发生变化，继续执行"
-                                    : "场景已发生大幅变化，继续执行",
-                            );
-                            if (shouldPassAfterThis) _actionEndAtPassed = true;
-                            return;
+                            if (recheckCount >= 1) {
+                                if (!inRecheckPhase) {
+                                    inRecheckPhase = true;
+                                    log(
+                                        "条件首次满足，进入复查阶段（间隔强制3秒）",
+                                    );
+                                }
+                                recheckPassed++;
+                                log(
+                                    `条件满足，复查进度: ${recheckPassed}/${recheckCount}`,
+                                );
+                                if (recheckPassed >= recheckCount) {
+                                    log(
+                                        inverse
+                                            ? "场景未发生变化（已复查确认），继续执行"
+                                            : "场景已发生大幅变化（已复查确认），继续执行",
+                                    );
+                                    if (shouldPassAfterThis)
+                                        _actionEndAtPassed = true;
+                                    return;
+                                }
+                                // 继续下一次循环进行复查
+                            } else {
+                                log(
+                                    inverse
+                                        ? "场景未发生变化，继续执行"
+                                        : "场景已发生大幅变化，继续执行",
+                                );
+                                if (shouldPassAfterThis)
+                                    _actionEndAtPassed = true;
+                                return;
+                            }
+                        } else {
+                            // 条件不满足，重置复查计数和复查阶段
+                            if (recheckPassed > 0) {
+                                log(
+                                    `条件不再满足，复查计数已重置 (${recheckPassed} → 0)，退出复查阶段`,
+                                );
+                                recheckPassed = 0;
+                                inRecheckPhase = false;
+                            }
                         }
 
                         prevBuffer = currentBuffer;
@@ -640,7 +691,7 @@ action() 部分用法:
   action('endAt', '<描述1#描述2>') / action('endAt', ['<描述1>','<描述2>'])
    — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 --end-at 命令行参数
   action('waitSceneChange', [操作数组], opts) - 等待场景大幅变化，每次循环执行一次操作数组
-    opts: { timeout?, interval?, threshold?, inverse? }
+    opts: { timeout?, interval?, threshold?, inverse?, recheckCount? }
 
 
 描述链:
