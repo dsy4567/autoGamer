@@ -186,7 +186,7 @@ async function main() {
     if (values.help || !arg) {
         // 例外：允许使用 console.log 而不是 log/logRaw
         console.log(`
-基于 Puppeteer 的自动化游戏工具
+autoGamer - 基于 Puppeteer 的自动化游戏工具
 Copyright (c) 2025~2026 dsy4567, MIT License
 版本 1.0.0
 
