@@ -20,7 +20,7 @@ module.exports = function (ctx) {
      * }}
      */
     const defaultConfig = {
-    // 版本更新日期列表，格式 "YYYY-MM-DD"，匹配时拒绝运行
+    // 版本更新时间列表，ISO 8601 格式（如 "2026-07-15T06:00:00+08:00"），更新后24h内拒绝运行
     updateDates: [],
     // 游戏启动 URL（咪咕快游平台）
     gameUrl:

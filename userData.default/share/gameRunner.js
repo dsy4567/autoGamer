@@ -5,9 +5,9 @@
 const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
 
 /**
- * 检查当前日期是否为游戏版本更新日
- * @param {string[]} updateDates 更新日期数组，格式 "YYYY-MM-DD"
- * @returns {string|null} 匹配的日期字符串，无匹配返回 null
+ * 检查当前时间是否在版本更新后的24小时内
+ * @param {string[]} updateDates 更新时间数组，ISO 8601 格式（如 "2026-07-15T06:00:00+08:00"）
+ * @returns {string|null} 匹配的时间字符串，无匹配返回 null
  */
 function checkUpdateDate(updateDates) {
     if (
@@ -17,8 +17,16 @@ function checkUpdateDate(updateDates) {
     ) {
         return null;
     }
-    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-    return updateDates.includes(today) ? today : null;
+    const now = Date.now();
+    for (const dateStr of updateDates) {
+        const updateTime = new Date(dateStr).getTime();
+        if (isNaN(updateTime)) continue;
+        // 在配置时间点之后的24小时内拒绝运行
+        if (now >= updateTime && now < updateTime + 24 * 60 * 60 * 1000) {
+            return dateStr;
+        }
+    }
+    return null;
 }
 
 /**
@@ -51,9 +59,9 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     const forceRun =
         process.env.AUTOGAMER_FORCE === "1" || config.forceRun === true;
     if (updateDate && !forceRun) {
-        log(`ERROR: 游戏版本更新日当天无法运行脚本
+        log(`ERROR: 版本更新后24小时内无法运行脚本
 
-今日 (${updateDate}) 为 ${gameName} 版本更新日
+当前处于 ${gameName} 版本更新后24小时保护期内（更新时间：${updateDate}）
 请阅读数据目录下的 README.md 并手动进入游戏完成必要事项：
  - 同意新用户协议
  - 处理可能影响脚本运行的弹窗和活动
