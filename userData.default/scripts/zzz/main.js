@@ -135,12 +135,22 @@ module.exports = async function (ctx) {
             ["sleep", 20 * 1000],
         ]);
 
-        // NOTE: 体力达到上限后无法摄取咖啡
+        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒
 
         await action("点击确认", [
             ["tt", 323, 318],
             ["sleep", 5000],
         ]);
+
+        // 等待用户干预
+        if (scriptConfig.coffeeShopInterventionDelay > 0) {
+            log(
+                `----------请在 ${scriptConfig.coffeeShopInterventionDelay / 1000}ms 内完成人工干预----------`,
+            );
+            await action("咖啡店人工干预等待", [
+                ["sleep", scriptConfig.coffeeShopInterventionDelay],
+            ]);
+        }
     }
 
     /** 前往报刊亭 */
@@ -194,6 +204,16 @@ module.exports = async function (ctx) {
             ["tt", 43, 81],
             ["sleep", 5000],
         ]);
+
+        // 等待用户干预
+        if (scriptConfig.magazineShopInterventionDelay > 0) {
+            log(
+                `----------请在 ${scriptConfig.magazineShopInterventionDelay / 1000}ms 内完成人工干预----------`,
+            );
+            await action("报刊亭人工干预等待", [
+                ["sleep", scriptConfig.magazineShopInterventionDelay],
+            ]);
+        }
     }
 
     /** 前往录像店 */
