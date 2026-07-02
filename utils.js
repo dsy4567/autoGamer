@@ -536,14 +536,6 @@ function createUtils(ctx, _eval = eval) {
 
             log("ACTION:", description);
 
-            // 自动截图（迁移自 index.js 的 _logScreenshot 逻辑）
-            if (
-                config.screenshots?.screenshotOnLog !== false &&
-                options?.screenshot !== false
-            ) {
-                screenshot(description).catch(() => {});
-            }
-
             for (const op of operations) {
                 const [fnName, ...args] = op;
                 const fn = { ts, te, tm, tt, pc, hold, sleep, drag }[fnName];
@@ -552,6 +544,14 @@ function createUtils(ctx, _eval = eval) {
                     continue;
                 }
                 await fn(...args);
+            }
+
+            // 自动截图（迁移自 index.js 的 _logScreenshot 逻辑）
+            if (
+                config.screenshots?.screenshotOnLog !== false &&
+                options?.screenshot !== false
+            ) {
+                screenshot(description).catch(() => {});
             }
 
             if (shouldPassAfterThis) {
