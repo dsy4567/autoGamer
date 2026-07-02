@@ -1,13 +1,24 @@
 // @ts-check
-// 警告：不建议直接修改此文件，请通过同目录下的 config.user.js 进行自定义配置。
+// 警告：不建议直接修改此文件，请通过 <数据目录>/globalConfig.js 进行自定义配置。
+// 数据目录：开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/
+const os = require("os");
+const path = require("path");
 const loadUserConfig = require("./loadUserConfig");
-
-const userConfig = loadUserConfig(__filename, "用户自定义全局配置");
 
 // 开发模式检测：设置环境变量 AUTOGAMER_DEV=1 或 NODE_ENV=development 可进入开发模式
 // 开发模式下会自动禁用定时自动截屏、日志文件写入，且脚本不会自动执行 main 函数
 const isDev =
     process.env.AUTOGAMER_DEV === "1" || process.env.NODE_ENV === "development";
+
+// 数据目录：开发模式使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/
+const dataDir = isDev
+    ? path.resolve(__dirname, "userData.default")
+    : path.resolve(os.homedir(), ".autoGamer");
+
+const userConfig = loadUserConfig(
+    path.join(dataDir, "globalConfig.js"),
+    "用户自定义全局配置，优先于 config.default.js",
+);
 
 // 非开发模式下是否启用自动定时截屏，用户按需修改
 const autoScreenshotEnabled = true;
@@ -44,9 +55,10 @@ const alwaysHideOverlay = true;
  *     defaultDragDuration: number,
  *   },
  *   alwaysHideOverlay: boolean,
+ *   dataDir: string,
  *   dirs: {
  *     logDirBase: string,
- *     userDataDirName: string,
+ *     chromeDataDir: string,
  *   },
  *   forceRun: boolean,
  * }}
@@ -54,6 +66,8 @@ const alwaysHideOverlay = true;
 const defaultConfig = {
     /** 开发模式 */
     isDev,
+    /** 数据目录（开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/） */
+    dataDir,
     /** Puppeteer 启动参数 */
     puppeteerArgs: [
         "--no-sandbox",
@@ -126,8 +140,8 @@ const defaultConfig = {
     dirs: {
         /** 日志目录基础名称 */
         logDirBase: "logs",
-        /** 用户数据目录名称 */
-        userDataDirName: "userData.default/chromeData",
+        /** Chrome 用户数据目录（浏览器自动创建） */
+        chromeDataDir: path.join(dataDir, "chromeData"),
     },
     /** 游戏版本更新日是否运行脚本 */
     forceRun: false,

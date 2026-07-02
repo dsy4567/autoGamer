@@ -1,4 +1,6 @@
-const loadScriptConfig = require("./zzz.config.default.js");
+// ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
+// 如需自定义脚本逻辑，请将整个 scripts/zzz/ 目录复制为新的 id（如 scripts/myZzz/），并用新 id 运行：node index.js myZzz
+const loadScriptConfig = require("./config.default.js");
 const { runGame } = require("../../share/gameRunner.js");
 
 /**
@@ -12,7 +14,11 @@ const { runGame } = require("../../share/gameRunner.js");
  *   logDir: string,
  *   getGlobalConfig: () => typeof import("../../../config.default.js"),
  *   createUtils: () => typeof import("../../../utils.js").createUtils,
- *   loadUserConfig: typeof import("../../../loadUserConfig.js")
+ *   loadUserConfig: typeof import("../../../loadUserConfig.js"),
+ *   dataDir: string,
+ *   scriptId: string,
+ *   startAtChain: string[] | null,
+ *   endAtChain: string[] | null
  * }} ctx
  */
 module.exports = async function (ctx) {
@@ -26,6 +32,11 @@ module.exports = async function (ctx) {
         logDir,
         getGlobalConfig,
         createUtils,
+        loadUserConfig,
+        dataDir,
+        scriptId,
+        startAtChain,
+        endAtChain,
     } = ctx;
     const {
         ts,

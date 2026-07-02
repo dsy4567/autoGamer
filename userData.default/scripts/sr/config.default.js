@@ -1,12 +1,16 @@
 // @ts-check
-// 警告：不建议直接修改此文件，请通过同目录下的 sr.config.user.js 进行自定义配置。
+// ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
+// 如需自定义配置，请编辑 scriptData/sr/config.js（由 loadUserConfig 自动创建）。
+const path = require("path");
 
 /**
- * @param {{ loadUserConfig: typeof import("../../../loadUserConfig.js") }} ctx
+ * @param {{ loadUserConfig: typeof import("../../../loadUserConfig.js"), dataDir: string, scriptId: string }} ctx
  */
 module.exports = function (ctx) {
-    const { loadUserConfig } = ctx;
-    const userConfig = loadUserConfig(__filename);
+    const { loadUserConfig, dataDir, scriptId } = ctx;
+    const userConfig = loadUserConfig(
+        path.join(dataDir, "scriptData", scriptId, "config.js"),
+    );
 
     /**
      * @type {{

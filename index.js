@@ -81,6 +81,108 @@ async function inject(page) {
 const MOBILE_UA =
     "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
 
+/**
+ * 强制覆盖单个文件
+ * @param {string} src
+ * @param {string} dest
+ */
+function copyForce(src, dest) {
+    fs.cpSync(src, dest, { force: true });
+}
+
+/**
+ * 强制覆盖整个目录（递归合并覆盖，不删除目标中额外文件）
+ * @param {string} src
+ * @param {string} dest
+ */
+function copyDirForce(src, dest) {
+    fs.cpSync(src, dest, { recursive: true, force: true });
+}
+
+/**
+ * 执行 init 命令：创建数据目录、各脚本的 logs/scriptData 子目录，并强制覆盖 README/share/scripts
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string} dataDir 数据目录
+ */
+function runInit(sourceDir, dataDir) {
+    fs.mkdirSync(dataDir, { recursive: true });
+
+    // 扫描源 scripts 目录，为每个脚本创建 logs/<id>/、scriptData/<id>/
+    const scriptsSrc = path.join(sourceDir, "scripts");
+    if (fs.existsSync(scriptsSrc)) {
+        for (const id of fs.readdirSync(scriptsSrc)) {
+            if (fs.statSync(path.join(scriptsSrc, id)).isDirectory()) {
+                fs.mkdirSync(path.join(dataDir, "logs", id), {
+                    recursive: true,
+                });
+                fs.mkdirSync(path.join(dataDir, "scriptData", id), {
+                    recursive: true,
+                });
+            }
+        }
+    }
+
+    // 强制覆盖 README.md、share/、scripts/（源=目标时跳过，避免递归）
+    if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
+        copyForce(
+            path.join(sourceDir, "README.md"),
+            path.join(dataDir, "README.md"),
+        );
+        copyDirForce(
+            path.join(sourceDir, "share"),
+            path.join(dataDir, "share"),
+        );
+        copyDirForce(
+            path.join(sourceDir, "scripts"),
+            path.join(dataDir, "scripts"),
+        );
+        log("初始化完成（已覆盖 README/share/scripts）:", dataDir);
+    } else {
+        log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
+    }
+}
+
+/**
+ * 非开发模式自动初始化：数据目录不存在时创建并复制内置文件
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string} dataDir 数据目录
+ * @param {string|null} scriptId 当前脚本 id（login 时为 null）
+ */
+function ensureDataDir(sourceDir, dataDir, scriptId) {
+    if (
+        !fs.existsSync(dataDir) ||
+        !fs.existsSync(path.join(dataDir, "README.md")) ||
+        !fs.existsSync(path.join(dataDir, "share")) ||
+        !fs.existsSync(path.join(dataDir, "scripts"))
+    ) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        copyForce(
+            path.join(sourceDir, "README.md"),
+            path.join(dataDir, "README.md"),
+        );
+        copyDirForce(
+            path.join(sourceDir, "share"),
+            path.join(dataDir, "share"),
+        );
+        copyDirForce(
+            path.join(sourceDir, "scripts"),
+            path.join(dataDir, "scripts"),
+        );
+
+        log("已初始化数据目录:", dataDir);
+    }
+    if (scriptId) {
+        fs.mkdirSync(path.join(dataDir, "logs", scriptId), {
+            recursive: true,
+        });
+        fs.mkdirSync(path.join(dataDir, "scriptData", scriptId), {
+            recursive: true,
+        });
+
+        log("已初始化脚本相关目录:", scriptId);
+    }
+}
+
 async function main() {
     const { values, positionals } = parseArgs({
         options: {
@@ -98,25 +200,27 @@ async function main() {
 Copyright (c) 2025~2026 dsy4567, MIT License
 版本 1.0.0
 
-用法: node index.js [选项] <命令/脚本>
+用法: node index.js [选项] <命令>
 
 命令:
+  init                  初始化数据目录（开发模式为 userData.default/，否则为 ~/.autoGamer/）
   login [URL]           打开登录页面（默认 URL 可配置）
-  <操作脚本.js>         执行指定的自动化脚本
+  <脚本id>              执行指定的自动化脚本（如 sr、zzz、example）
 
 选项:
   -h, --help            显示此帮助信息
-  --start-at <描述链>    前面的描述链辅助定位，从最后一个描述开始执行 action
-  --end-at <描述链>      前面的描述链辅助定位，到最后一个描述停止执行 action
+  --start-at <描述链>    前面的描述链辅助定位，从最后一个描述开始执行 action（仅对 <脚本id> 有效）
+  --end-at <描述链>      前面的描述链辅助定位，到最后一个描述停止执行 action（仅对 <脚本id> 有效）
 
 描述链格式: 描述1#描述2，以半角 # 分隔
 
 示例:
-  node index.js userData.default/scripts/sr/sr.js
-  node index.js userData.default/scripts/sr/sr.js --start-at "开始挑战#waitSceneChange"
-  node index.js userData.default/scripts/sr/sr.js --end-at "进入生存索引"
-  node index.js userData.default/scripts/zzz/zzz.js --start-at "点击前往#进入咖啡店" --end-at "点击确认"
+  node index.js init
   node index.js login
+  node index.js sr
+  node index.js sr --start-at "开始挑战#waitSceneChange"
+  node index.js sr --end-at "进入生存索引"
+  node index.js zzz --start-at "点击前往#进入咖啡店" --end-at "点击确认"
 `);
         process.exit(values.help ? 0 : 1);
     }
@@ -127,21 +231,42 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         : null;
     const endAtChain = values["end-at"] ? values["end-at"].split("#") : null;
 
+    // 命令判定：init / login / <脚本id> 三者互斥
+    const command = arg;
+    const isInit = command === "init";
+    const isLogin = command === "login";
+    const scriptId = !isInit && !isLogin ? command : null;
+
+    if ((startAtChain || endAtChain) && !scriptId) {
+        log(
+            "WARNING: --start-at / --end-at 仅在运行脚本时生效，当前命令已忽略",
+        );
+    }
+
+    // 源数据目录（项目内 userData.default/），用于 init/自动初始化时复制文件
+    const sourceDir = path.resolve(__dirname, "userData.default");
+    const dataDir = config.dataDir;
+
+    // init 命令：初始化数据目录后退出
+    if (isInit) {
+        runInit(sourceDir, dataDir);
+        process.exit(0);
+    }
+
+    // 非开发模式自动初始化：首次运行时创建数据目录并复制内置文件
+    if (!config.isDev) {
+        ensureDataDir(sourceDir, dataDir, scriptId);
+    }
+
     // 推导脚本名，用于日志目录
-    const scriptName = (() => {
-        if (!arg) return "unknown";
-        if (arg === "login") return "_login";
-        const ext = path.extname(arg);
-        if (ext) return path.basename(arg, ext);
-        return "unknown";
-    })();
+    const scriptName = isLogin ? "_login" : (scriptId ?? "unknown");
     const startTimeStr = new Date()
         .toISOString()
         .replace(/[:.]/g, "-")
         .replace("T", "_");
     const logDir = config.isDev
-        ? path.resolve(__dirname, "logs", "devTemp")
-        : path.resolve(__dirname, "logs", scriptName, startTimeStr);
+        ? path.join(dataDir, "logs", "devTemp")
+        : path.join(dataDir, "logs", scriptName, startTimeStr);
     fs.mkdirSync(logDir, { recursive: true });
     if (!config.isDev) {
         const logFilePath = path.join(logDir, "log.txt");
@@ -168,10 +293,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 
     // 启动 Puppeteer
     log("启动浏览器...");
-    const userDataDir = path.resolve(
-        __dirname,
-        config.dirs?.userDataDirName ?? "user-data",
-    );
+    const userDataDir =
+        config.dirs?.chromeDataDir ?? path.join(config.dataDir, "chromeData");
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: {
@@ -318,7 +441,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         });
     });
 
-    if (arg === "login") {
+    if (isLogin) {
         // 支持 node index.js login [url]
         let loginUrl =
             config.defaultLoginUrl ?? "https://www.migufun.com/middleh5/";
@@ -342,10 +465,10 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         });
         await startRepl();
     } else {
-        // 执行操作脚本
-        let scriptPath = path.resolve(arg);
+        // 执行操作脚本（按脚本 id 解析）
+        const scriptPath = path.join(dataDir, "scripts", scriptId, "main.js");
         if (!fs.existsSync(scriptPath)) {
-            log("ERROR: 找不到操作脚本:", scriptPath);
+            log("ERROR: 找不到脚本:", scriptPath);
             process.exit(1);
         }
         log("加载操作脚本:", scriptPath);
@@ -371,6 +494,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 getGlobalConfig: () => config,
                 createUtils,
                 loadUserConfig,
+                dataDir,
+                scriptId,
                 startAtChain,
                 endAtChain,
             });

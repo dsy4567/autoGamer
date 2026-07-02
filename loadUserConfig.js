@@ -1,25 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 
-/** @returns {object} 用户自定义配置项 */
-function loadUserConfig(defaultFile, description = "用户自定义配置") {
-    const dir = path.dirname(defaultFile);
-    const basename = path.basename(defaultFile);
-    const userBasename = basename.replace(".default.js", ".user.js");
-    const userFile = path.join(dir, userBasename);
-
-    if (!fs.existsSync(userFile)) {
+/**
+ * 加载用户自定义配置文件，不存在则自动创建空配置
+ * @param {string} userConfigPath 用户配置文件的绝对路径
+ * @param {string} [description="用户自定义配置"] 描述，写入自动创建文件的注释
+ * @returns {object} 用户配置对象
+ */
+function loadUserConfig(userConfigPath, description = "用户自定义配置") {
+    if (!fs.existsSync(userConfigPath)) {
+        fs.mkdirSync(path.dirname(userConfigPath), { recursive: true });
         fs.writeFileSync(
-            userFile,
-            `// ${description}，优先于 ${basename}
-// 提示：可将 ${basename} 中的配置项复制到此文件按需修改
-// 也可直接编辑 ${basename}，但不推荐
-module.exports = {};
-`,
+            userConfigPath,
+            `// ${description}\nmodule.exports = {};\n`,
         );
     }
 
-    return fs.existsSync(userFile) ? require(userFile) : {};
+    return require(userConfigPath);
 }
 
 module.exports = loadUserConfig;

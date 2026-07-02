@@ -51,11 +51,10 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     const forceRun =
         process.env.AUTOGAMER_FORCE === "1" || config.forceRun === true;
     if (updateDate && !forceRun) {
-        // TODO: 「请阅读 s/README.md」文案需更新为实际 README 路径，由用户自行处理
         log(`ERROR: 游戏版本更新日当天无法运行脚本
 
 今日 (${updateDate}) 为 ${gameName} 版本更新日
-请阅读 s/README.md 并手动进入游戏完成必要事项：
+请阅读数据目录下的 README.md 并手动进入游戏完成必要事项：
  - 同意新用户协议
  - 处理可能影响脚本运行的弹窗和活动
 完成后可使用以下方式强制运行脚本：

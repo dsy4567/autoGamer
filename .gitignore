@@ -5,5 +5,7 @@
 
 *.config.user.js
 
+/userData.default/scriptData/
+/userData.default/globalConfig.js
 /userData.default/chromeData/*
 /userData.default/logs/*

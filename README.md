@@ -15,44 +15,64 @@
    ```bash
    pnpm install
    ```
-2. 启动脚本：
+2. 首次使用前初始化数据目录（非开发模式必须）：
+   ```bash
+   node index.js init
+   ```
+3. 启动脚本：
    ```bash
    node index.js login [可选登录URL]
-   node index.js s/ys.js
+   node index.js sr        # 运行崩坏：星穹铁道脚本
+   node index.js zzz       # 运行绝区零脚本
    ```
-3. 配置参数：
-   编辑 `*.config.user.js` 可自定义浏览器路径、UA、登录页等。
-   首次运行时，若同级目录不存在 `*.config.user.js`，会自动创建空配置供用户按需覆盖。
+4. 配置参数：
+   - 全局配置：编辑数据目录下的 `globalConfig.js`（首次运行自动创建）
+   - 脚本配置：编辑数据目录下的 `scriptData/<脚本id>/config.js`（首次运行自动创建）
+
+> 数据目录：开发模式为项目内 `userData.default/`，非开发模式为 `~/.autoGamer/`
 
 
 ## 📁 目录结构
 - `index.js`             主入口
 - `inject.js`            注入脚本
 - `utils.js`             工具函数
-- `userData.default/scripts/*/*.js`   自动化脚本（每脚本一个子目录）
-- `userData.default/share/*.js`       共享函数
-- `**/*.config.default.js`  全局配置
-- `**/*.config.user.js`     用户配置
+- `config.default.js`    全局默认配置
+- `loadUserConfig.js`    用户配置加载器
+- `userData.default/`    源数据目录（开发模式即为数据目录）
+  - `scripts/<id>/main.js`           自动化脚本入口
+  - `scripts/<id>/config.default.js` 脚本默认配置
+  - `share/*.js`                     共享函数
+  - `README.md`                      内置脚本说明
+- 数据目录（运行时生成，开发模式即 `userData.default/`，非开发模式即 `~/.autoGamer/`）：
+  - `globalConfig.js`                用户全局配置
+  - `scriptData/<id>/config.js`      用户脚本配置
+  - `logs/<id>/<timestamp>/`         日志
+  - `chromeData/`                    浏览器用户数据
 
 ## 🛠️ 开发指引
 
-设置环境变量进入开发模式，可禁用部分自动化行为，方便本地调试：
+设置环境变量进入开发模式，数据目录将切换为项目内 `userData.default/`，并禁用部分自动化行为，方便本地调试：
 
 ```bash
 # Linux / macOS
 export AUTOGAMER_DEV=1
-node index.js userData.default/scripts/example/example.js
+node index.js example
 
 # Windows (PowerShell)
 $env:AUTOGAMER_DEV=1
-node index.js userData.default/scripts/example/example.js
+node index.js example
 ```
 
 开发模式下行为变化：
 - 自动禁用定时自动截屏
 - 自动禁用日志事件截图
-- `userData.default/scripts/` 下的脚本不会自动执行 `main()` 函数，页面加载完成后直接进入 REPL
+- `scripts/` 下的脚本不会自动执行 `main()` 函数，页面加载完成后直接进入 REPL
 - 日志仅输出到终端，不写入 `logs/` 目录下的文件
+
+> 💡 **共享登录态**：非开发模式下可手动创建软链接，让 `~/.autoGamer/chromeData` 复用开发模式的浏览器会话，避免重复登录：
+> ```bash
+> ln -s /path/to/autoGamer/userData.default/chromeData ~/.autoGamer/chromeData
+> ```
 
 ## 📄 许可证
 
