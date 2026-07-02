@@ -39,7 +39,7 @@ function checkUpdateDate(updateDates) {
  *   pageOpenTime: number,
  *   logDir: string,
  *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => typeof import("../../../utils.js").createUtils,
+ *   createUtils: () => ReturnType<typeof import("../../../utils.js").createUtils>,
  *   loadUserConfig: typeof import("../../../loadUserConfig.js")
  * }} ctx
  * @param {string} gameName 游戏名称

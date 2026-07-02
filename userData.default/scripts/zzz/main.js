@@ -13,7 +13,7 @@ const { runGame } = require("../../share/gameRunner.js");
  *   pageOpenTime: number,
  *   logDir: string,
  *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => typeof import("../../../utils.js").createUtils,
+ *   createUtils: () => ReturnType<typeof import("../../../utils.js").createUtils>,
  *   loadUserConfig: typeof import("../../../loadUserConfig.js"),
  *   dataDir: string,
  *   scriptId: string,
