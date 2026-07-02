@@ -32,8 +32,8 @@ module.exports = function (ctx) {
         /** 游戏启动 URL（咪咕快游平台） */
         gameUrl:
             "https://www.migufun.com/miguplay/middleGame/gameplay/400803874?gameName=%E5%B4%A9%E5%9D%8F%EF%BC%9A%E6%98%9F%E7%A9%B9%E9%93%81%E9%81%93",
-        /** 任务超时时间（毫秒），默认 30 分钟 */
-        taskTimeoutMs: 30 * 60 * 1000,
+        /** 基础任务超时时间（毫秒），默认 15 分钟，会额外增加刷本次数*副本预计战斗时长 */
+        taskTimeoutMs: 15 * 60 * 1000,
         /** 副本预计战斗时长（毫秒） */
         dungeonFightTimeout: 15 * 60 * 1000,
         /** 启动阶段延时配置（毫秒） */

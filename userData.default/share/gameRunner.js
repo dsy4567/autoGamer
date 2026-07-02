@@ -88,7 +88,9 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     if (!config.isDev) {
         setTaskTimeout(
             scriptConfig.taskTimeoutMs > 0
-                ? scriptConfig.taskTimeoutMs
+                ? scriptConfig.taskTimeoutMs +
+                      (scriptConfig.dungeonFightTimeout ?? 0) *
+                          (scriptConfig.dungeonRunCount ?? 0)
                 : undefined,
         );
         await mainFn();
