@@ -1,12 +1,8 @@
 // @ts-check
 
 const puppeteer = require("puppeteer-core");
-// @ts-ignore
-const readline = require("readline");
 const path = require("path");
 const fs = require("fs");
-// @ts-ignore
-const os = require("os");
 const { parseArgs } = require("util");
 const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
@@ -46,7 +42,6 @@ process.on("uncaughtException", err => {
     process.exit(1);
 });
 
-// @ts-ignore
 process.on("unhandledRejection", (reason, promise) => {
     // 例外：允许使用 console.error 而不是 log/logRaw
     console.error("ERROR: 未处理的 Promise 拒绝:", reason);
@@ -359,25 +354,17 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         (/** @type {string} */ code) => eval(code),
     );
     const {
-        // @ts-ignore
         ts,
-        // @ts-ignore
         te,
-        // @ts-ignore
         tm,
         tt,
-        // @ts-ignore
         pc,
         hold,
-        // @ts-ignore
         sleep,
         drag,
-        // @ts-ignore
         screenshot,
-        // @ts-ignore
         startAutoScreenshot,
         startRepl,
-        // @ts-ignore
         setTaskTimeout,
     } = utils;
 
@@ -461,7 +448,6 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             }
         }
         log(`打开登录页面: ${loginUrl}`);
-        // @ts-ignore
         await page.goto(loginUrl, config.pageloadOptions);
         await inject(page);
         log("请在浏览器中完成登录操作，完成后关闭页面即可退出");
@@ -473,19 +459,26 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         await startRepl();
     } else {
         // 执行操作脚本（按脚本 id 解析）
-        // @ts-ignore
+        if (!scriptId) {
+            log("ERROR: 脚本 id 无效");
+            process.exit(1);
+        }
+
         const scriptPath = path.join(dataDir, "scripts", scriptId, "main.js");
         if (!fs.existsSync(scriptPath)) {
             log("ERROR: 找不到脚本:", scriptPath);
             process.exit(1);
         }
+
         log("加载操作脚本:", scriptPath);
         // 传递 puppeteer, browser, page, log 给脚本
+        /** @type {AutoGamer.ScriptFunction} */
         const script = require(scriptPath);
         if (typeof script !== "function") {
             log("ERROR: 脚本文件需导出一个 async function");
             process.exit(1);
         }
+
         try {
             page.on("load", async () => {
                 await inject(page);

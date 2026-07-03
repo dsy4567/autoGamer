@@ -5,7 +5,7 @@ const loadScriptConfig = require("./config.default.js");
 const { runGame } = require("../../share/gameRunner.js");
 
 /**
- * @param {AutoGamer.ScriptCtx} ctx
+ * @type {AutoGamer.ScriptFunction} ctx
  */
 module.exports = async function (ctx) {
     const {
@@ -38,7 +38,7 @@ module.exports = async function (ctx) {
         startRepl,
         setTaskTimeout,
         action,
-    } = createUtils(ctx, code => eval(code));
+    } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 

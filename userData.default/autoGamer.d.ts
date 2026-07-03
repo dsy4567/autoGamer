@@ -13,7 +13,7 @@
  * 注意：本文件不导出 userData.default/ 下脚本的类型，那些脚本继续使用 JSDoc。
  */
 
-import type { Browser, Page } from "puppeteer-core";
+import type { Browser, Page, GoToOptions, TouchHandle } from "puppeteer-core";
 
 declare global {
     namespace AutoGamer {
@@ -55,7 +55,7 @@ declare global {
             threshold?: number;
             /** 反向模式，默认 false。为 true 时画面无变化（相似度 ≥ threshold）则继续执行 */
             inverse?: boolean;
-            /** 复查次数，默认 0。>=1 时强制截图间隔为 3000ms，需连续多次复查通过后才继续执行 */
+            /** 复查次数，默认 0。>=1 时，复查期间强制截图间隔为 3000ms，需连续多次复查通过后才继续执行 */
             recheckCount?: number;
         }
 
@@ -79,7 +79,7 @@ declare global {
         /** createUtils(ctx, _eval?) 返回的工具集 */
         interface Utils {
             /** 触摸开始 - 在指定坐标触发 touchStart 事件 */
-            ts(x: number, y: number): Promise<void>;
+            ts(x: number, y: number): Promise<TouchHandle>;
             /** 触摸结束 - 触发 touchEnd 事件 */
             te(): Promise<void>;
             /** 触摸移动 - 在指定坐标触发 touchMove 事件 */
@@ -231,6 +231,16 @@ declare global {
             scriptId: string;
         }
 
+        // ============ 脚本函数类型 ============
+
+        /**
+         * scripts/<id>/main.js 导出的脚本函数类型
+         * @example
+         * /// <reference path="../../autoGamer.d.ts" />
+         * module.exports = async function(ctx) { ... }
+         */
+        type ScriptFunction = (ctx: ScriptCtx) => Promise<void>;
+
         // ============ 全局配置类型 ============
 
         /** config.default.js 导出的全局配置 */
@@ -253,10 +263,7 @@ declare global {
                 isLandscape: boolean;
             };
             /** 页面加载选项 */
-            pageloadOptions: {
-                waitUntil: string;
-                timeout: number;
-            };
+            pageloadOptions: GoToOptions;
             /** 截图功能配置 */
             screenshots: {
                 autoScreenshotEnabled: boolean;

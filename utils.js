@@ -187,61 +187,27 @@ function createUtils(ctx, _eval = eval) {
 
     /**
      * 统一的自动化操作函数，自动处理流程控制、日志、截图
-     *
-     * 一般操作：
-     *  - `action('<操作描述>',[['ts', x:number, y:number], ...])` — 触摸开始 - 在指定坐标触发 `touchStart` 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-     *  - `action('<操作描述>',[['te'], ...])` — 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-     *  - `action('<操作描述>',[['tm', x:number, y:number], ...])` — 触摸移动 - 在指定坐标触发 touchMove 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-     *  - `action('<操作描述>',[['tt', x:number, y:number], ...])` — 触摸点击 - 在指定坐标触发 tap 事件
-     *  - `action('<操作描述>',[['pc', selector:string], ...]])` — 页面点击 - 调用 page.click
-     *  - `action('<操作描述>',[['hold', x:number, y:number, duration?:number], ...])` — 长按 - 在指定坐标按下并保持一段时间后释放
-     *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
-     *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
-     *
-     * 特殊操作：
-     *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?})` — 等待场景大幅变化，每次循环执行一次操作数组
-     *    - `timeout`: 超时毫秒，默认600000
-     *    - `interval`: 检查间隔毫秒，默认3000，不少于200
-     *    - `threshold`: 变化阈值，范围[0,1]，默认0.9
-     *    - `inverse`: 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
-     *    - `recheckCount`: 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行
-     *
-     * 调试指令：
-     *  - `action('startAt', '<描述1#描述2>')` / `action('startAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 `--start-at` 命令行参数
-     *  - `action('endAt', '<描述1#描述2>')` / `action('endAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 `--end-at` 命令行参数
-     *  - `action('toggleDbg')` — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
-     *  - `action('next')` — 调试模式下兑现下一个挂起的 action
-     *  - `action('skip')` — 调试模式下跳过下一个挂起的 action
-     *
-     * 描述链格式: 描述1#描述2，以半角 # 分隔；至少包含一个描述项；只有一个描述项时不使用 # 分隔符
-     * 举例：'点击前往#进入咖啡店' 或 '进入生存索引'
-     *
-     * @throws {Error} `action("waitSceneChange")` 已有实例正在执行中/超时未检测到场景变化时抛错
-     *
      * @overload
-     * @param {string} description 普通操作描述
-     * @param {AutoGamer.OperationArray} [operations] 操作数组
-     * @param {AutoGamer.ActionOptions} [options] 选项，screenshot 默认 true
+     * @param {string} description
+     * @param {AutoGamer.OperationArray} [operations]
+     * @param {AutoGamer.ActionOptions} [options]
      * @returns {Promise<void>}
-     *
      * @overload
-     * @param {'waitSceneChange'} description
-     * @param {AutoGamer.OperationArray} operations 每次循环执行的操作数组
-     * @param {AutoGamer.WaitSceneChangeOptions} [options]
+     * @param {"toggleDbg" | "next" | "skip"} description
      * @returns {Promise<void>}
-     *
      * @overload
-     * @param {'startAt' | 'endAt'} description
+     * @param {"startAt" | "endAt"} description
      * @param {string | string[]} operations
      * @returns {Promise<void>}
-     *
      * @overload
-     * @param {'toggleDbg' | 'next' | 'skip'} description
+     * @param {"waitSceneChange"} description
+     * @param {AutoGamer.OperationArray} operations
+     * @param {AutoGamer.WaitSceneChangeOptions} [options]
      * @returns {Promise<void>}
-     *
-     * @param {any} description
-     * @param {any} [operations]
-     * @param {any} [options]
+     * @param {string} description
+     * @param {string | string[]} [operations]
+     * @param {AutoGamer.ActionOptions | AutoGamer.WaitSceneChangeOptions | {}} [options]
+     * @returns {Promise<void>}
      */
     const action = async (description, operations, options) => {
         // 特殊指令：覆盖 start-at
@@ -388,25 +354,29 @@ function createUtils(ctx, _eval = eval) {
                 }
                 _waitSceneChangeInProgress = true;
                 try {
-                    const opts =
+                    /** @type {AutoGamer.WaitSceneChangeOptions} */
+                    const wscOpts =
                         typeof options === "object" && options !== null
                             ? options
                             : {};
-                    const timeout = Math.max(0, Number(opts.timeout) || 600000);
+                    const timeout = Math.max(
+                        0,
+                        Number(wscOpts.timeout) || 600000,
+                    );
                     const recheckCount = Math.max(
                         0,
-                        Math.floor(Number(opts.recheckCount) || 0),
+                        Math.floor(Number(wscOpts.recheckCount) || 0),
                     );
                     const normalInterval = Math.max(
                         200,
-                        Number(opts.interval) || 3000,
+                        Number(wscOpts.interval) || 3000,
                     );
                     const recheckInterval = 3000; // 复查阶段固定使用3000ms
                     const threshold = Math.min(
                         1,
-                        Math.max(0, Number(opts.threshold) || 0.9),
+                        Math.max(0, Number(wscOpts.threshold) || 0.9),
                     );
-                    const inverse = Boolean(opts.inverse);
+                    const inverse = Boolean(wscOpts.inverse);
 
                     if (timeout <= 0) {
                         if (shouldPassAfterThis) _actionEndAtPassed = true;
@@ -564,7 +534,7 @@ function createUtils(ctx, _eval = eval) {
 
             log("ACTION:", description);
 
-            for (const op of operations) {
+            for (const op of operations || []) {
                 const [fnName, ...args] = op;
                 const fn =
                     /** @type {Record<string, (...args: any[]) => any>} */ ({
@@ -584,10 +554,13 @@ function createUtils(ctx, _eval = eval) {
                 await fn(...args);
             }
 
+            /** @type {AutoGamer.ActionOptions} */
+            const aOpts =
+                typeof options === "object" && options !== null ? options : {};
             // 自动截图（迁移自 index.js 的 _logScreenshot 逻辑）
             if (
                 config.screenshots?.screenshotOnLog !== false &&
-                options?.screenshot !== false
+                aOpts?.screenshot !== false
             ) {
                 screenshot(description).catch(() => {});
             }
