@@ -5,6 +5,45 @@
 
 const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
 
+// 模块作用域状态，供开发模式 REPL 中手动调用 mainFn
+/**
+ * @type {Function | null}
+ */
+let _mainFn = null;
+let _mainFnRunning = false;
+let _initDone = false;
+
+/**
+ * 手动执行 mainFn，供开发模式 REPL 使用
+ * 会检查初始化是否完成、是否有正在执行的 mainFn，异常情况仅打日志不抛错
+ */
+async function executeMainFn() {
+    if (!_mainFn) {
+        console.log("WARNING: executeMainFn: mainFn 未设置");
+        return;
+    }
+    if (!_initDone) {
+        console.log(
+            "WARNING: executeMainFn: 初始化尚未完成，请等待页面加载和 miguInit 完成后再试",
+        );
+        return;
+    }
+    if (_mainFnRunning) {
+        console.log(
+            "WARNING: executeMainFn: mainFn 正在执行中，请等待当前执行完成",
+        );
+        return;
+    }
+    _mainFnRunning = true;
+    try {
+        await _mainFn();
+    } catch (e) {
+        console.log(`ERROR: executeMainFn: mainFn 执行出错 - ${e}`);
+    } finally {
+        _mainFnRunning = false;
+    }
+}
+
 /**
  * 检查当前时间是否在版本更新后的24小时内
  * @param {string[]} updateDates 更新时间数组，ISO 8601 格式（如 "2026-07-15T06:00:00+08:00"）
@@ -45,10 +84,13 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     );
     const config = getGlobalConfig();
 
+    // 存储 mainFn 供开发模式 REPL 使用
+    _mainFn = mainFn;
+
     // 检查是否为游戏版本更新日
     const updateDate = checkUpdateDate(scriptConfig.updateDates);
     const forceRun =
-        process.env.AUTOGAMER_FORCE === "1" || config.forceRun === true;
+        config.forceRun === true || process.argv.includes("--force-run");
     if (updateDate && !forceRun) {
         log(`ERROR: 版本更新后24小时内无法运行脚本
 
@@ -57,8 +99,8 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
  - 同意新用户协议
  - 处理可能影响脚本运行的弹窗和活动
 完成后可使用以下方式强制运行脚本：
-  - 设置环境变量: AUTOGAMER_FORCE=1
   - 或在全局配置中设置: forceRun: true
+  - 或在命令行中添加参数: --force-run
 注意监控程序是否操作异常
   `);
         process.exit(1);
@@ -76,6 +118,9 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     // 如果游戏已经启动，点击继续游戏
     await miguInit(ctx);
 
+    // 初始化完成，标记状态供 executeMainFn 检查
+    _initDone = true;
+
     if (!config.isDev) {
         setTaskTimeout(
             scriptConfig.taskTimeoutMs > 0
@@ -92,4 +137,4 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     startRepl();
 }
 
-module.exports = { runGame };
+module.exports = { runGame, eMain: executeMainFn };

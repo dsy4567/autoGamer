@@ -2,7 +2,7 @@
 // 如需自定义脚本逻辑，请将整个 scripts/sr/ 目录复制为新的 id（如 scripts/mySr/），并用新 id 运行：node index.js mySr
 /// <reference path="../../autoGamer.d.ts" />
 const loadScriptConfig = require("./config.default.js");
-const { runGame } = require("../../share/gameRunner.js");
+const { runGame, eMain } = require("../../share/gameRunner.js");
 
 /**
  * @type {AutoGamer.ScriptFunction} ctx
