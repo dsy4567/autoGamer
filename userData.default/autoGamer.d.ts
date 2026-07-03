@@ -211,7 +211,7 @@ declare global {
             loadUserConfig: (
                 userConfigPath: string,
                 description?: string,
-            ) => any;
+            ) => {};
             /** 数据目录绝对路径 */
             dataDir: string;
             /** 当前脚本 id */
@@ -224,7 +224,7 @@ declare global {
             loadUserConfig: (
                 userConfigPath: string,
                 description?: string,
-            ) => any;
+            ) => {};
             /** 数据目录绝对路径 */
             dataDir: string;
             /** 当前脚本 id */

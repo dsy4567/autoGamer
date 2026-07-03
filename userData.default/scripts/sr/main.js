@@ -54,7 +54,7 @@ module.exports = async function (ctx) {
 
         await action("领取登录游戏活跃度", [
             ["tt", 108, 344],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("进入派遣页面", [
@@ -64,12 +64,12 @@ module.exports = async function (ctx) {
 
         await action("点击一键领取", [
             ["tt", 508, 378],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击空白处", [
             ["tt", 320, 342],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭派遣页面", [
@@ -79,14 +79,14 @@ module.exports = async function (ctx) {
 
         await action("领取派遣活跃度", [
             ["tt", 110, 353],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("活跃度兑换奖励", [
             ["tt", 196, 155],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 196, 155],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭每日实训页面", [
@@ -152,7 +152,7 @@ module.exports = async function (ctx) {
                 await action("拉满挑战次数至24次", [
                     ["tt", 563, 398],
                     ["tt", 564, 379],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                 ]);
 
                 await action("点击挑战按钮", [
@@ -164,9 +164,9 @@ module.exports = async function (ctx) {
                     ["drag", 196, 31, 492, 31, 200],
                     ["sleep", 1000],
                     ["drag", 196, 31, 492, 31, 200],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                     ["tt", 198, 29],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                 ]);
 
                 await action("开始挑战", [
@@ -209,16 +209,16 @@ module.exports = async function (ctx) {
                 ]);
                 await action("领取战斗活跃度", [
                     ["tt", 110, 353],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                     ["tt", 110, 353],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                 ]);
 
                 await action("活跃度兑换奖励", [
                     ["tt", 377, 154],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                     ["tt", 377, 154],
-                    ["sleep", 3000],
+                    ["sleep", 1000],
                 ]);
 
                 await action("关闭每日实训", [
@@ -243,7 +243,7 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 526, 400],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击奖励标签页", [
@@ -253,9 +253,9 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 433, 396],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 433, 396],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭纪行页面", [

@@ -79,14 +79,14 @@ module.exports = async function (ctx) {
 
         await action("选择六分街", [
             ["tt", 101, 154],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("选择咖啡店", [
             ["drag", 181, 380, 589, 380, 1146],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 193, 380],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("确认传送到咖啡店", [
@@ -169,21 +169,21 @@ module.exports = async function (ctx) {
 
         await action("点击刮刮卡", [
             ["tt", 47, 362],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("刮卡", [
-            ["drag", 246, 236, 377, 236],
-            ["sleep", 1000],
-            ["drag", 251, 254, 384, 252],
-            ["sleep", 1000],
-            ["drag", 250, 271, 380, 270],
+            ["drag", 246, 236, 377, 236, 200],
+            ["sleep", 500],
+            ["drag", 251, 254, 384, 252, 200],
+            ["sleep", 500],
+            ["drag", 250, 271, 380, 270, 200],
             ["sleep", 3000],
         ]);
 
         await action("点击确认", [
             ["tt", 323, 318],
-            ["sleep", 5000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭刮刮卡、报刊亭页面", [
@@ -218,7 +218,7 @@ module.exports = async function (ctx) {
 
         await action("靠近邦布", [
             ["drag", 138, 374, 198, 330],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("与邦布交互", [
@@ -228,12 +228,12 @@ module.exports = async function (ctx) {
 
         await action("关闭昨日账本", [
             ["tt", 308, 412],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("进入选择宣传员页面", [
             ["tt", 280, 320],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         // 使用默认宣传员
@@ -246,27 +246,27 @@ module.exports = async function (ctx) {
 
         await action("点击确定", [
             ["tt", 548, 401],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("进入选择录像带页面", [
             ["tt", 381, 316],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击推荐上架", [
             ["tt", 423, 400],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击开始营业", [
             ["tt", 549, 390],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击确定", [
             ["tt", 379, 279],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 318, 276],
             ["sleep", 3000],
         ]);
@@ -281,24 +281,24 @@ module.exports = async function (ctx) {
 
         await action("点击成长任务", [
             ["tt", 463, 80],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击全部领取", [
             ["tt", 556, 397],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击等级回馈", [
             ["tt", 369, 81],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击全部领取", [
             ["tt", 400, 395],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 400, 395],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭纪行奖励页面", [
@@ -316,12 +316,12 @@ module.exports = async function (ctx) {
 
         await action("领取全部奖励", [
             ["tt", 237, 154],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("点击确认", [
             ["tt", 327, 322],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭手册", [
@@ -339,9 +339,9 @@ module.exports = async function (ctx) {
 
         await action("选择HIA俱乐部", [
             ["tt", 106, 227],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 252, 378],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("确认传送到HIA俱乐部", [
@@ -388,7 +388,7 @@ module.exports = async function (ctx) {
                         scriptConfig.customTemplateIndex,
                 scriptConfig.customCardGroupSpacingOffset[1],
             ],
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         for (let i = 0; i < scriptConfig.dungeonRunCount; i++) {
@@ -456,9 +456,9 @@ module.exports = async function (ctx) {
 
         await action("离开副本", [
             ["tt", 28, 76],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 28, 76],
-            ["sleep", 3000],
+            ["sleep", 1000],
             ["tt", 28, 76],
             ["sleep", 5000],
         ]);
