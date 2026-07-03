@@ -240,7 +240,7 @@ module.exports = async function (ctx) {
         await action("选择宣传员", [
             ...(scriptConfig.selectPromoterActions?.[0]
                 ? scriptConfig.selectPromoterActions
-                : ["tt", 205, 175]),
+                : [["tt", 205, 175]]),
             ["sleep", 3000],
         ]);
 
