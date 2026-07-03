@@ -1,3 +1,5 @@
+// @ts-check
+
 // ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
 // 如需自定义脚本逻辑，请将整个 scripts/sr/ 目录复制为新的 id（如 scripts/mySr/），并用新 id 运行：node index.js mySr
 /// <reference path="../../autoGamer.d.ts" />

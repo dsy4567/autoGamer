@@ -1,3 +1,5 @@
+// @ts-check
+
 // ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
 // 如需自定义脚本逻辑，请将整个 scripts/example/ 目录复制为新的 id（如 scripts/myExample/），并用新 id 运行：node index.js myExample
 /// <reference path="../../autoGamer.d.ts" />
@@ -37,12 +39,14 @@ module.exports = async function (ctx) {
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
+        action,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
     async function main() {
         // ========== 你的自动化逻辑 ==========
+        await action("点击某个位置", [["tt", 100, 100]]);
     }
 
     await runGame(ctx, "原神（示例脚本）", scriptConfig, main, code =>
