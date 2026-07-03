@@ -2,17 +2,10 @@
 // 咪咕快游云游戏平台通用操作集合
 // 提供悬浮球签到、退出等跨脚本复用的功能
 
+/// <reference path="../autoGamer.d.ts" />
+
 /**
- * @param {{
- *   puppeteer: typeof import("puppeteer-core"),
- *   browser: import("puppeteer-core").Browser,
- *   page: import("puppeteer-core").Page,
- *   log: (...args: any[]) => void,
- *   logRaw: (...args: any[]) => void,
- *   pageOpenTime: number,
- *   logDir: string,
- *   getGlobalConfig: () => any
- * }} ctx
+ * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
  */
 async function actionsInCloudGameBallAndExit(ctx) {
     const { browser, page, log, getGlobalConfig, createUtils } = ctx;
@@ -59,16 +52,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
 }
 
 /**
- * @param {{
- *   puppeteer: typeof import("puppeteer-core"),
- *   browser: import("puppeteer-core").Browser,
- *   page: import("puppeteer-core").Page,
- *   log: (...args: any[]) => void,
- *   logRaw: (...args: any[]) => void,
- *   pageOpenTime: number,
- *   logDir: string,
- *   getGlobalConfig: () => any
- * }} ctx
+ * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
  */
 async function miguInit(ctx) {
     const {

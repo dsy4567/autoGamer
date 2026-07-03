@@ -1,4 +1,5 @@
 // @ts-check
+
 // 警告：不建议直接修改此文件，请通过 <数据目录>/globalConfig.js 进行自定义配置。
 // 数据目录：开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/
 const os = require("os");
@@ -27,42 +28,7 @@ const screenshotOnLog = true;
 // 是否始终隐藏遮罩层（true=始终隐藏, false=跟随鼠标移入移出）
 const alwaysHideOverlay = true;
 
-/**
- * @type {{
- *   isDev: boolean,
- *   puppeteerArgs: string[],
- *   defaultLoginUrl: string,
- *   mobileUA: string,
- *   viewport: {
- *     width: number,
- *     height: number,
- *     hasTouch: boolean,
- *     isLandscape: boolean,
- *   },
- *   pageloadOptions: {
- *     waitUntil: string,
- *     timeout: number,
- *   },
- *   screenshots: {
- *     autoScreenshotEnabled: boolean,
- *     autoScreenshotInterval: number,
- *     screenshotOnLog: boolean,
- *     screenshotThrottleMs: number,
- *   },
- *   automation: {
- *     defaultTaskTimeoutMs: number,
- *     defaultDragSteps: number,
- *     defaultDragDuration: number,
- *   },
- *   alwaysHideOverlay: boolean,
- *   dataDir: string,
- *   dirs: {
- *     logDirBase: string,
- *     chromeDataDir: string,
- *   },
- *   forceRun: boolean,
- * }}
- */
+/** @type {AutoGamer.GlobalConfig} */
 const defaultConfig = {
     /** 开发模式 */
     isDev,

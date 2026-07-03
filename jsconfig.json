@@ -1,0 +1,34 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "CommonJS",
+        "moduleResolution": "Node10",
+        "baseUrl": ".",
+        "paths": {
+            "pngjs": ["./userData.default/pngjs.d.ts"]
+        },
+        "ignoreDeprecations": "6.0",
+        "lib": ["ES2022", "DOM"],
+        "types": ["node"],
+        "checkJs": true,
+        "allowJs": true,
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": false
+    },
+    "include": [
+        "index.js",
+        "inject.js",
+        "utils.js",
+        "config.default.js",
+        "loadUserConfig.js",
+        "userData.default/**/*.js",
+        "userData.default/**/*.d.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/*.deprecated.*",
+        "userData.default/chromeData/**"
+    ]
+}

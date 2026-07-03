@@ -1,14 +1,18 @@
+// @ts-check
+
 const puppeteer = require("puppeteer-core");
+// @ts-ignore
 const readline = require("readline");
 const path = require("path");
 const fs = require("fs");
+// @ts-ignore
 const os = require("os");
 const { parseArgs } = require("util");
 const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig");
 
-// 日志增强钩子，初始为空函数，后续赋值以启用写文件
+/** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, args: any[]) => void} */
 let _logWriteFile = () => {};
 
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
@@ -18,14 +22,14 @@ const log = (...args) => {
     console.log(`[${now}]`, ...args);
     _logWriteFile(now, args);
 };
-// 原始日志，不触发截图钩子，供截图函数自身使用以避免递归
+/** 原始日志，不触发截图钩子，供截图函数自身使用以避免递归 @param {...any} args */
 const logRaw = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
     _logWriteFile(now, args);
 };
 
-// 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝
+/** 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝 @type {string | null} */
 let _errorLogFile = null;
 
 process.on("uncaughtException", err => {
@@ -42,6 +46,7 @@ process.on("uncaughtException", err => {
     process.exit(1);
 });
 
+// @ts-ignore
 process.on("unhandledRejection", (reason, promise) => {
     // 例外：允许使用 console.error 而不是 log/logRaw
     console.error("ERROR: 未处理的 Promise 拒绝:", reason);
@@ -49,6 +54,7 @@ process.on("unhandledRejection", (reason, promise) => {
         try {
             fs.appendFileSync(
                 _errorLogFile,
+                // @ts-ignore
                 `[${new Date().toISOString()}] ERROR: 未处理的 Promise 拒绝: ${reason?.stack || reason}\n`,
             );
         } catch (e) {}
@@ -66,12 +72,13 @@ async function inject(page) {
         try {
             // 将全局配置注入页面，供 inject.js 读取
             await page.evaluate(alwaysHideOverlay => {
+                // @ts-ignore
                 window.__autoGamerConfig = { alwaysHideOverlay };
             }, config.alwaysHideOverlay ?? false);
             await page.mainFrame().addScriptTag({ path: injectPath });
             log("已注入 inject.js");
         } catch (e) {
-            log("ERROR: inject.js 注入失败:", e.message);
+            log("ERROR: inject.js 注入失败:", e);
         }
     } else {
         log("ERROR: inject.js 文件不存在，未注入");
@@ -136,7 +143,11 @@ function runInit(sourceDir, dataDir) {
             path.join(sourceDir, "scripts"),
             path.join(dataDir, "scripts"),
         );
-        log("初始化完成（已覆盖 README/share/scripts）:", dataDir);
+        copyDirForce(
+            path.join(sourceDir, "autoGamer.d.ts"),
+            path.join(dataDir, "autoGamer.d.ts"),
+        );
+        log("初始化完成:", dataDir);
     } else {
         log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
     }
@@ -149,7 +160,7 @@ function runInit(sourceDir, dataDir) {
  * @param {string|null} scriptId 当前脚本 id（login 时为 null）
  */
 function ensureDataDir(sourceDir, dataDir, scriptId) {
-    const items = ["README.md", "share", "scripts"];
+    const items = ["README.md", "share", "scripts", "autoGamer.d.ts"];
 
     if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
         fs.mkdirSync(dataDir, { recursive: true });
@@ -354,68 +365,81 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             startAtChain,
             endAtChain,
         },
-        code => eval(code),
+        (/** @type {string} */ code) => eval(code),
     );
     const {
+        // @ts-ignore
         ts,
+        // @ts-ignore
         te,
+        // @ts-ignore
         tm,
         tt,
+        // @ts-ignore
         pc,
         hold,
+        // @ts-ignore
         sleep,
         drag,
+        // @ts-ignore
         screenshot,
+        // @ts-ignore
         startAutoScreenshot,
         startRepl,
+        // @ts-ignore
         setTaskTimeout,
     } = utils;
 
     // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
-    await page.exposeFunction("__autoGamerSimulateTouch", async msg => {
-        if (!msg || typeof msg !== "object" || !msg.type) return;
-        if (msg.type === "auto-gamer-mouse-to-tap") {
-            log("收到 tap 事件，位置:", msg.x, msg.y);
-            try {
-                await tt(msg.x, msg.y);
-            } catch (e) {
-                log("ERROR: tap 执行失败:", e.message);
-            }
-        } else if (msg.type === "auto-gamer-mouse-to-drag") {
-            log(
-                "收到 drag 事件，从:",
-                msg.from,
-                "到:",
-                msg.to,
-                "持续时间:",
-                msg.duration,
-            );
-            try {
-                await drag(
-                    msg.from.x,
-                    msg.from.y,
-                    msg.to.x,
-                    msg.to.y,
+    await page.exposeFunction(
+        "__autoGamerSimulateTouch",
+        async (
+            /** @type {{ type: string; x: number; y: number; from: { x: number; y: number; }; to: { x: number; y: number; }; duration: number | undefined; }} */ msg,
+        ) => {
+            if (!msg || typeof msg !== "object" || !msg.type) return;
+            if (msg.type === "auto-gamer-mouse-to-tap") {
+                log("收到 tap 事件，位置:", msg.x, msg.y);
+                try {
+                    await tt(msg.x, msg.y);
+                } catch (e) {
+                    log("ERROR: tap 执行失败:", e);
+                }
+            } else if (msg.type === "auto-gamer-mouse-to-drag") {
+                log(
+                    "收到 drag 事件，从:",
+                    msg.from,
+                    "到:",
+                    msg.to,
+                    "持续时间:",
                     msg.duration,
                 );
-            } catch (e) {
-                log("ERROR: drag 执行失败:", e.message);
+                try {
+                    await drag(
+                        msg.from.x,
+                        msg.from.y,
+                        msg.to.x,
+                        msg.to.y,
+                        msg.duration,
+                    );
+                } catch (e) {
+                    log("ERROR: drag 执行失败:", e);
+                }
+            } else if (msg.type === "auto-gamer-mouse-to-hold") {
+                log(
+                    "收到 hold 事件，位置:",
+                    msg.x,
+                    msg.y,
+                    "持续时间:",
+                    msg.duration,
+                );
+                try {
+                    await hold(msg.x, msg.y, msg.duration);
+                } catch (e) {
+                    log("ERROR: hold 执行失败:", e);
+                }
             }
-        } else if (msg.type === "auto-gamer-mouse-to-hold") {
-            log(
-                "收到 hold 事件，位置:",
-                msg.x,
-                msg.y,
-                "持续时间:",
-                msg.duration,
-            );
-            try {
-                await hold(msg.x, msg.y, msg.duration);
-            } catch (e) {
-                log("ERROR: hold 执行失败:", e.message);
-            }
-        }
-    });
+        },
+    );
     await page.evaluateOnNewDocument(() => {
         window.addEventListener("message", ev => {
             if (
@@ -426,6 +450,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                     ev.data.type === "auto-gamer-mouse-to-hold")
             ) {
                 // 通过 puppeteer 暴露的函数转发到 Node 端
+                // @ts-ignore
                 window.__autoGamerSimulateTouch(ev.data);
             }
         });
@@ -445,6 +470,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             }
         }
         log(`打开登录页面: ${loginUrl}`);
+        // @ts-ignore
         await page.goto(loginUrl, config.pageloadOptions);
         await inject(page);
         log("请在浏览器中完成登录操作，完成后关闭页面即可退出");
@@ -456,6 +482,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         await startRepl();
     } else {
         // 执行操作脚本（按脚本 id 解析）
+        // @ts-ignore
         const scriptPath = path.join(dataDir, "scripts", scriptId, "main.js");
         if (!fs.existsSync(scriptPath)) {
             log("ERROR: 找不到脚本:", scriptPath);

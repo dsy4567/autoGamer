@@ -1,6 +1,7 @@
 // userData.default/share/gameRunner.js
 // 游戏启动/收尾通用流程共享库
 // 所有游戏脚本通过调用此函数完成页面跳转、miguInit、main执行、签到退出、REPL 等通用流程
+/// <reference path="../autoGamer.d.ts" />
 
 const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
 
@@ -30,21 +31,11 @@ function checkUpdateDate(updateDates) {
 }
 
 /**
- * @param {{
- *   puppeteer: typeof import("puppeteer-core"),
- *   browser: import("puppeteer-core").Browser,
- *   page: import("puppeteer-core").Page,
- *   log: (...args: any[]) => void,
- *   logRaw: (...args: any[]) => void,
- *   pageOpenTime: number,
- *   logDir: string,
- *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => ReturnType<typeof import("../../../utils.js").createUtils>,
- *   loadUserConfig: typeof import("../../../loadUserConfig.js")
- * }} ctx
+ * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
  * @param {string} gameName 游戏名称
- * @param {object} scriptConfig 游戏配置
+ * @param {any} scriptConfig 游戏配置（各脚本自定义结构）
  * @param {Function} mainFn 脚本定义的 main 异步函数
+ * @param {AutoGamer.EvalFn} _eval 用于 REPL 中执行代码的 eval 函数
  */
 async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     const { page, log, getGlobalConfig, createUtils } = ctx;

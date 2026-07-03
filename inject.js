@@ -1,7 +1,11 @@
+// @ts-check
+
 (() => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     let devMode = false;
+    /** @type {{ alwaysHideOverlay: boolean }} */
+    // @ts-ignore
     const autoGamerConfig = window.__autoGamerConfig || {};
     const alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
@@ -112,7 +116,10 @@
     // Alt+鼠标事件转发为 puppeteer 触摸事件
     let altPressed = false;
     let mouseLeftPressed = false;
-    let dragStart = null;
+    let dragStart = {
+        x: 0,
+        y: 0,
+    };
     let dragConfirmed = false;
     let mousedownTime = 0;
     window.addEventListener("keydown", e => {
@@ -130,7 +137,10 @@
         if (e.key === "Alt") {
             altPressed = false;
             mouseLeftPressed = false;
-            dragStart = null;
+            dragStart = {
+                x: 0,
+                y: 0,
+            };
             dragConfirmed = false;
             mousedownTime = 0;
             indicator.style.setProperty(
@@ -254,7 +264,10 @@
                 }
 
                 navigator.clipboard.writeText(cmd).catch(() => {});
-                dragStart = null;
+                dragStart = {
+                    x: 0,
+                    y: 0,
+                };
             }
         },
         true,
@@ -264,6 +277,7 @@
     const BLANK_ICON =
         "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     // 通过 rel 属性查找图标元素
+    /** @type {HTMLLinkElement | null} */
     const $icon = document.querySelector('link[rel="shortcut icon"]');
 
     setInterval(() => {

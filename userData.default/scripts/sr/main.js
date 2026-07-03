@@ -1,25 +1,11 @@
 // ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
 // 如需自定义脚本逻辑，请将整个 scripts/sr/ 目录复制为新的 id（如 scripts/mySr/），并用新 id 运行：node index.js mySr
+/// <reference path="../../autoGamer.d.ts" />
 const loadScriptConfig = require("./config.default.js");
 const { runGame } = require("../../share/gameRunner.js");
 
 /**
- * @param {{
- *   puppeteer: typeof import("puppeteer-core"),
- *   browser: import("puppeteer-core").Browser,
- *   page: import("puppeteer-core").Page,
- *   log: (...args: any[]) => void,
- *   logRaw: (...args: any[]) => void,
- *   pageOpenTime: number,
- *   logDir: string,
- *   getGlobalConfig: () => typeof import("../../../config.default.js"),
- *   createUtils: () => ReturnType<typeof import("../../../utils.js").createUtils>,
- *   loadUserConfig: typeof import("../../../loadUserConfig.js"),
- *   dataDir: string,
- *   scriptId: string,
- *   startAtChain: string[] | null,
- *   endAtChain: string[] | null
- * }} ctx
+ * @param {AutoGamer.ScriptCtx} ctx
  */
 module.exports = async function (ctx) {
     const {

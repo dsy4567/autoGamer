@@ -1,9 +1,14 @@
+//@ts-check
+
 const readline = require("readline");
 const path = require("path");
 const { PNG } = require("pngjs");
 const config = require("./config.default.js");
 
 // 放在模块作用域，确保 createUtils 多次调用也只存在一个定时截图 timer
+/**
+ * @type {string | number | NodeJS.Timeout | null | undefined}
+ */
 let _autoScreenshotTimer = null;
 // 放在模块作用域，确保 createUtils 多次调用时节流和防并发状态全局共享
 let _lastScreenshotTime = 0;
@@ -11,6 +16,9 @@ let _screenshotInProgress = false;
 // 放在模块作用域，确保开发模式截图警告只输出一次
 let _devScreenshotWarned = false;
 // 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
+/**
+ * @type {NodeJS.Timeout | null}
+ */
 let _taskTimer = null;
 // 放在模块作用域，确保全局只有一个 waitSceneChange 在执行
 let _waitSceneChangeInProgress = false;
@@ -34,32 +42,8 @@ let _actionEndAtPassed = false;
 let _actionStateInitialized = false;
 /** action 调试模式是否开启 */
 let _actionDbgEnabled = false;
-/** 调试模式下挂起的 action 任务队列 @type {Array<{resolve: () => void, reject: (e: Error) => void, task: () => Promise<void>, description: string}>} */
+/** 调试模式下挂起的 action 任务队列 @type {Array<{resolve: (value?: any) => void, reject: (e?: any) => void, task: () => Promise<void>, description: string}>} */
 let _actionDbgQueue = [];
-
-/**
- * @typedef {Object} WaitSceneChangeOptions
- * @property {number?} [timeout] 超时毫秒，默认600000
- * @property {number?} [interval] 检查间隔毫秒，默认3000，不少于200
- * @property {number?} [threshold] 变化阈值，范围[0,1]，默认0.9
- * @property {boolean?} [inverse] 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
- * @property {number?} [recheckCount] 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行
- */
-
-/**
- * @typedef {(['ts', number, number] |
- *     ['te'] |
- *     ['tm', number, number] |
- *     ['tt', number, number] |
- *     ['pc', string] |
- *     ['hold', number, number, number?] |
- *     ['drag', number, number, number, number, number?] |
- *     ['sleep', number])[]} OperationArray
- */
-
-/**
- * @typedef {'ts' | 'te' | 'tm' | 'tt' | 'pc' | 'hold' | 'drag' | 'sleep'} GeneralOptions
- */
 
 /**
  * 使用 Block MSE 算法计算两张 PNG 图片的相似度
@@ -118,18 +102,8 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
 }
 
 /**
- * @param {{
- *   puppeteer: typeof import("puppeteer-core"),
- *   browser: import("puppeteer-core").Browser,
- *   page: import("puppeteer-core").Page,
- *   log: (...args: any[]) => void,
- *   logRaw: (...args: any[]) => void,
- *   pageOpenTime: number,
- *   logDir: string,
- *   startAtChain?: string[] | null,
- *   endAtChain?: string[] | null,
- * }} ctx
- * @param {Function} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
+ * @param {AutoGamer.UtilsCtx} ctx
+ * @param {AutoGamer.EvalFn} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
 function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
@@ -246,14 +220,14 @@ function createUtils(ctx, _eval = eval) {
      *
      * @overload
      * @param {string} description 普通操作描述
-     * @param {OperationArray} [operations] 操作数组
-     * @param {{screenshot?: boolean}} [options] 选项，screenshot 默认 true
+     * @param {AutoGamer.OperationArray} [operations] 操作数组
+     * @param {AutoGamer.ActionOptions} [options] 选项，screenshot 默认 true
      * @returns {Promise<void>}
      *
      * @overload
      * @param {'waitSceneChange'} description
-     * @param {OperationArray} operations 每次循环执行的操作数组
-     * @param {WaitSceneChangeOptions} [options]
+     * @param {AutoGamer.OperationArray} operations 每次循环执行的操作数组
+     * @param {AutoGamer.WaitSceneChangeOptions} [options]
      * @returns {Promise<void>}
      *
      * @overload
@@ -264,6 +238,10 @@ function createUtils(ctx, _eval = eval) {
      * @overload
      * @param {'toggleDbg' | 'next' | 'skip'} description
      * @returns {Promise<void>}
+     *
+     * @param {any} description
+     * @param {any} [operations]
+     * @param {any} [options]
      */
     const action = async (description, operations, options) => {
         // 特殊指令：覆盖 start-at
@@ -326,7 +304,7 @@ function createUtils(ctx, _eval = eval) {
                     try {
                         await task();
                         resolve();
-                    } catch (e) {
+                    } catch (/** @type {any} */ e) {
                         reject(e);
                     }
                 }
@@ -336,16 +314,12 @@ function createUtils(ctx, _eval = eval) {
 
         // 特殊指令：调试模式下执行下一个挂起的 action
         if (description === "next") {
-            if (_actionDbgQueue.length === 0) {
+            const nextAction = _actionDbgQueue.shift();
+            if (!nextAction) {
                 log("WARNING: action next 无挂起的调试任务");
                 return;
             }
-            const {
-                resolve,
-                reject,
-                task,
-                description: taskDesc,
-            } = _actionDbgQueue.shift();
+            const { resolve, reject, task, description: taskDesc } = nextAction;
             log(`action next 执行: ${taskDesc}`);
             try {
                 await task();
@@ -358,11 +332,12 @@ function createUtils(ctx, _eval = eval) {
 
         // 特殊指令：调试模式下跳过下一个挂起的 action（直接 resolve，不执行操作）
         if (description === "skip") {
-            if (_actionDbgQueue.length === 0) {
+            const skipAction = _actionDbgQueue.shift();
+            if (!skipAction) {
                 log("WARNING: action skip 无挂起的调试任务");
                 return;
             }
-            const { resolve, description: taskDesc } = _actionDbgQueue.shift();
+            const { resolve, description: taskDesc } = skipAction;
             log(`action skip 跳过: ${taskDesc}`);
             resolve();
             return;
@@ -439,6 +414,7 @@ function createUtils(ctx, _eval = eval) {
                     }
 
                     const startTime = Date.now();
+                    /** @type {Buffer | null} */
                     let prevBuffer = null;
 
                     // 首次截图
@@ -457,7 +433,7 @@ function createUtils(ctx, _eval = eval) {
                             }
                             log(
                                 "WARNING: waitSceneChange 首次截图失败，3秒后重试:",
-                                e.message,
+                                e,
                             );
                             await sleep(3000);
                         }
@@ -483,16 +459,17 @@ function createUtils(ctx, _eval = eval) {
 
                         for (const op of operations || []) {
                             const [fnName, ...args] = op;
-                            const fn = {
-                                ts,
-                                te,
-                                tm,
-                                tt,
-                                pc,
-                                hold,
-                                sleep,
-                                drag,
-                            }[fnName];
+                            const fn =
+                                /** @type {Record<string, (...args: any[]) => any>} */ ({
+                                    ts,
+                                    te,
+                                    tm,
+                                    tt,
+                                    pc,
+                                    hold,
+                                    sleep,
+                                    drag,
+                                })[fnName];
                             if (!fn) {
                                 log(
                                     `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
@@ -518,7 +495,7 @@ function createUtils(ctx, _eval = eval) {
                             }
                             log(
                                 "WARNING: waitSceneChange 截图失败，3秒后重试:",
-                                e.message,
+                                /** @type {any} */ (e).message,
                             );
                             await sleep(3000);
                             continue;
@@ -589,7 +566,17 @@ function createUtils(ctx, _eval = eval) {
 
             for (const op of operations) {
                 const [fnName, ...args] = op;
-                const fn = { ts, te, tm, tt, pc, hold, sleep, drag }[fnName];
+                const fn =
+                    /** @type {Record<string, (...args: any[]) => any>} */ ({
+                        ts,
+                        te,
+                        tm,
+                        tt,
+                        pc,
+                        hold,
+                        sleep,
+                        drag,
+                    })[fnName];
                 if (!fn) {
                     log(`WARNING: action 中存在未知操作 "${fnName}"，已跳过`);
                     continue;
@@ -631,7 +618,7 @@ function createUtils(ctx, _eval = eval) {
      * 输入 "exit" 退出 REPL 并关闭浏览器
      * @returns {Promise<void>}
      */
-    async function startRepl() {
+    const startRepl = async () => {
         await sleep(1000);
         log(
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
@@ -729,7 +716,7 @@ action() 部分用法:
             await browser.close();
             process.exit(0);
         });
-    }
+    };
     /**
      * 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时
      * @param {number} [ms=1800000] 超时毫秒数，<=0 时取消超时，默认 30 分钟
@@ -739,7 +726,7 @@ action() 部分用法:
         ms = config.automation?.defaultTaskTimeoutMs ?? 30 * 60 * 1000,
     ) => {
         if (ms <= 0) {
-            clearTimeout(_taskTimer);
+            if (_taskTimer) clearTimeout(_taskTimer);
             _taskTimer = null;
             return () => {};
         }
@@ -756,15 +743,26 @@ action() 部分用法:
             process.exit(1);
         }, ms);
         return () => {
-            clearTimeout(_taskTimer);
+            if (_taskTimer) clearTimeout(_taskTimer);
             _taskTimer = null;
         };
     };
 
     /**
      * 截图并保存到日志目录，1秒内限一张
-     * @param {string} [label=""] 截图标签/日志内容
-     * @param {{returnBuffer?: boolean}} [options={}] 选项
+     *
+     * @overload
+     * @param {string} [label] 截图标签/日志内容
+     * @param {{returnBuffer: true}} options 必须显式传 returnBuffer: true
+     * @returns {Promise<Buffer>}
+     *
+     * @overload
+     * @param {string} [label] 截图标签/日志内容
+     * @param {{returnBuffer?: false}} [options] 不返回 Buffer
+     * @returns {Promise<string>} 保存的文件路径
+     *
+     * @param {string} [label="无描述"] 截图标签/日志内容
+     * @param {AutoGamer.ScreenshotOptions} [options={}] 选项
      * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，否则返回文件路径
      */
     const screenshot = async (label = "无描述", options = {}) => {
@@ -840,7 +838,7 @@ action() 部分用法:
             logRaw("截图已保存:", filename);
             return filePath;
         } catch (e) {
-            logRaw("截图失败:", e.message);
+            logRaw("截图失败:", /** @type {any} */ (e).message);
             throw e;
         } finally {
             try {
@@ -874,7 +872,7 @@ action() 部分用法:
                 .catch(() => {});
         }, interval);
         return () => {
-            clearInterval(_autoScreenshotTimer);
+            if (_autoScreenshotTimer) clearInterval(_autoScreenshotTimer);
             _autoScreenshotTimer = null;
             screenshot("退出前").catch(() => {});
         };
