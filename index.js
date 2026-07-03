@@ -129,7 +129,8 @@ function runInit(sourceDir, dataDir) {
         items.forEach(item => {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            item === "README.md"
+            // TODO: 写得不好需要优化
+            item === "README.md" || item === "autoGamer.d.ts"
                 ? copyForce(src, dest)
                 : copyDirForce(src, dest);
         });
@@ -153,7 +154,8 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
         items.forEach(item => {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            item === "README.md"
+            // TODO: 写得不好需要优化
+            item === "README.md" || item === "autoGamer.d.ts"
                 ? copyForce(src, dest)
                 : copyDirForce(src, dest);
         });
