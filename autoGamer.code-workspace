@@ -1,11 +1,13 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../.autoGamer"
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": ".",
+        },
+        {
+            "path": "../.autoGamer",
+        },
+    ],
+    "settings": {
+        "typescript.tsdk": "autoGamer/node_modules/typescript/lib",
+    },
 }
