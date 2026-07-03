@@ -119,34 +119,25 @@ function runInit(sourceDir, dataDir) {
     if (fs.existsSync(scriptsSrc)) {
         for (const id of fs.readdirSync(scriptsSrc)) {
             if (fs.statSync(path.join(scriptsSrc, id)).isDirectory()) {
-                fs.mkdirSync(path.join(dataDir, "logs", id), {
-                    recursive: true,
-                });
-                fs.mkdirSync(path.join(dataDir, "scriptData", id), {
-                    recursive: true,
+                ["logs", "scriptData"].forEach(dir => {
+                    fs.mkdirSync(path.join(dataDir, dir, id), {
+                        recursive: true,
+                    });
                 });
             }
         }
     }
 
-    // 强制覆盖 README.md、share/、scripts/（源=目标时跳过，避免递归）
+    // 强制覆盖 README.md、share/、scripts/、autoGamer.d.ts（源=目标时跳过，避免递归）
     if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
-        copyForce(
-            path.join(sourceDir, "README.md"),
-            path.join(dataDir, "README.md"),
-        );
-        copyDirForce(
-            path.join(sourceDir, "share"),
-            path.join(dataDir, "share"),
-        );
-        copyDirForce(
-            path.join(sourceDir, "scripts"),
-            path.join(dataDir, "scripts"),
-        );
-        copyDirForce(
-            path.join(sourceDir, "autoGamer.d.ts"),
-            path.join(dataDir, "autoGamer.d.ts"),
-        );
+        const items = ["README.md", "share", "scripts", "autoGamer.d.ts"];
+        items.forEach(item => {
+            const src = path.join(sourceDir, item);
+            const dest = path.join(dataDir, item);
+            item === "README.md"
+                ? copyForce(src, dest)
+                : copyDirForce(src, dest);
+        });
         log("初始化完成:", dataDir);
     } else {
         log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
