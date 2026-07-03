@@ -745,7 +745,7 @@ action() 部分用法:
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
         }
         const now = Date.now();
-        const throttleMs = config.screenshots?.screenshotThrottleMs ?? 2500;
+        const throttleMs = config.screenshots?.screenshotThrottleMs ?? 750;
         let msg = "";
         if (now - _lastScreenshotTime < throttleMs) msg = "截图失败: 触发节流";
         if (_screenshotInProgress) msg = "截图失败: 上一张截图正在处理中";
