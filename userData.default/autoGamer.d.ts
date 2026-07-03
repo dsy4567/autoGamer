@@ -109,7 +109,7 @@ declare global {
             /** 截图并保存到日志目录，1 秒内限一张；returnBuffer 为 true 时返回 Buffer */
             screenshot(
                 label?: string,
-                options: { returnBuffer: true },
+                options?: { returnBuffer: true },
             ): Promise<Buffer>;
             /** 截图并保存到日志目录，1 秒内限一张；返回保存的文件路径 */
             screenshot(
