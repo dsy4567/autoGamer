@@ -9,5 +9,10 @@
     ],
     "settings": {
         "typescript.tsdk": "autoGamer/node_modules/typescript/lib",
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/chromeData": true,
+            "**/chromeData.bk": true,
+        },
     },
 }
