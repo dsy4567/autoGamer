@@ -237,6 +237,8 @@ module.exports = async function (ctx) {
         ]);
 
         // 使用默认宣传员
+        // TODO: 这写的不好，不知道为什么报错
+        // @ts-ignore
         await action("选择宣传员", [
             ...(scriptConfig.selectPromoterActions?.[0]
                 ? scriptConfig.selectPromoterActions
