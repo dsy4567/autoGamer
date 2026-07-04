@@ -14,7 +14,15 @@ function loadUserConfig(userConfigPath, description = "用户自定义配置") {
         fs.mkdirSync(path.dirname(userConfigPath), { recursive: true });
         fs.writeFileSync(
             userConfigPath,
-            `// ${description}\nmodule.exports = {};\n`,
+            // TODO: 为其他脚本配置适配类型定义
+            userConfigPath.endsWith("globalConfig.js")
+                ? `// ${description}\nmodule.exports = {};\n`
+                : `// ${description}
+// @ts-check
+/// <reference path="./autoGamer.d.ts" />
+/** @type {Partial<AutoGamer.GlobalConfig>} */
+const config = {};
+module.exports = config;`,
         );
     }
 
