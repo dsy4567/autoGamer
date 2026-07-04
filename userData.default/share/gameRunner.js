@@ -108,7 +108,7 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
 
     log(`游戏：${gameName}`);
     log("等待页面加载");
-    await page.goto(scriptConfig.gameUrl);
+    await page.goto(scriptConfig.gameUrl, config.pageloadOptions);
     page.on("load", () => {
         if (page.url() !== "about:blank") return;
         log("游戏已退出，程序退出");
