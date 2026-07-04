@@ -79,9 +79,6 @@ async function inject(page) {
     }
 }
 
-const MOBILE_UA =
-    "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36";
-
 /**
  * 强制覆盖单个文件
  * @param {string} src
@@ -345,7 +342,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         process.exit(0);
     });
     const [page] = await browser.pages();
-    await page.setUserAgent(config.mobileUA ?? MOBILE_UA);
+    await page.setUserAgent(config.mobileUA);
     log("已设置移动端UA");
     const pageOpenTime = Date.now();
 
