@@ -109,6 +109,11 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     log(`游戏：${gameName}`);
     log("等待页面加载");
     await page.goto(scriptConfig.gameUrl);
+    page.on("load", () => {
+        if (page.url() !== "about:blank") return;
+        log("游戏已退出，程序退出");
+        process.exit(0);
+    });
 
     // 根据配置决定是否启动自动定时截图
     if (config.screenshots?.autoScreenshotEnabled !== false) {
