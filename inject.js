@@ -273,15 +273,18 @@
         true,
     );
 
-    // 透明 1x1 像素 GIF 的 Data URL，用于"清空"图标
-    const BLANK_ICON =
-        "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    // 通过 rel 属性查找图标元素
-    /** @type {HTMLLinkElement | null} */
-    const $icon = document.querySelector('link[rel="shortcut icon"]');
-
-    setInterval(() => {
-        document.title = ".";
-        if ($icon) $icon.href = BLANK_ICON;
-    }, 3000);
+    // 移除标题，替换图标
+    if (!alwaysHideOverlay) {
+        /** @type {HTMLLinkElement} */
+        const link =
+            document.querySelector("link[rel*='icon']") ||
+            document.createElement("link");
+        link.rel = "icon";
+        link.href =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+        document.head.appendChild(link);
+        setInterval(() => {
+            document.title = ".";
+        }, 3000);
+    }
 })();
