@@ -133,7 +133,7 @@ module.exports = async function (ctx) {
         // 等待用户干预
         if (scriptConfig.coffeeShopInterventionDelay > 0) {
             log(
-                `----------请在 ${scriptConfig.coffeeShopInterventionDelay / 1000}ms 内完成人工干预----------`,
+                `----------请在 ${scriptConfig.coffeeShopInterventionDelay}ms 内完成人工干预----------`,
             );
             await action("咖啡店人工干预等待", [
                 ["sleep", scriptConfig.coffeeShopInterventionDelay],
@@ -196,7 +196,7 @@ module.exports = async function (ctx) {
         // 等待用户干预
         if (scriptConfig.magazineShopInterventionDelay > 0) {
             log(
-                `----------请在 ${scriptConfig.magazineShopInterventionDelay / 1000}ms 内完成人工干预----------`,
+                `----------请在 ${scriptConfig.magazineShopInterventionDelay}ms 内完成人工干预----------`,
             );
             await action("报刊亭人工干预等待", [
                 ["sleep", scriptConfig.magazineShopInterventionDelay],
