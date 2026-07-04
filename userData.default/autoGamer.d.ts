@@ -245,8 +245,16 @@ declare global {
 
         /** config.default.js 导出的全局配置 */
         interface GlobalConfig {
-            /** 是否开发模式 */
-            isDev: boolean;
+            /** 开发模式类型
+             *
+             * 开发模式下会自动禁用定时自动截屏、日志文件写入，且脚本不会自动执行 main 函数
+             *
+             * 0: 关闭开发模式
+             * 1: 开启开发模式（供项目贡献者使用，改变数据目录为 .userData.default/）
+             * 2: 开启开发模式（继续使用数据目录 ~/.autoGamer/）
+             *
+             */
+            isDev: 0 | 1 | 2;
             /** 数据目录绝对路径 */
             dataDir: string;
             /** Puppeteer 启动参数 */

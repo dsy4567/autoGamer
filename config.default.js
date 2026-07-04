@@ -6,15 +6,19 @@ const os = require("os");
 const path = require("path");
 const loadUserConfig = require("./loadUserConfig");
 
-// 开发模式检测：设置环境变量 AUTOGAMER_DEV=1 或 NODE_ENV=development 可进入开发模式
-// 开发模式下会自动禁用定时自动截屏、日志文件写入，且脚本不会自动执行 main 函数
-const isDev =
-    process.env.AUTOGAMER_DEV === "1" || process.env.NODE_ENV === "development";
+/** @type {AutoGamer.GlobalConfig["isDev"]} */
+let isDev = process.argv.includes("--dev")
+    ? 2
+    : process.env.AUTOGAMER_DEV === "1" ||
+        process.env.NODE_ENV === "development"
+      ? 1
+      : 0;
 
-// 数据目录：开发模式使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/
-const dataDir = isDev
-    ? path.resolve(__dirname, "userData.default")
-    : path.resolve(os.homedir(), ".autoGamer");
+// 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/
+const dataDir =
+    isDev === 1
+        ? path.resolve(__dirname, "userData.default")
+        : path.resolve(os.homedir(), ".autoGamer");
 
 const userConfig = loadUserConfig(
     path.join(dataDir, "globalConfig.js"),

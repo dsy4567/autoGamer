@@ -198,8 +198,12 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 
 选项:
   -h, --help            显示此帮助信息
+  --dev                 进入开发模式，禁用定时自动截屏、日志文件写入等功能，视脚本可能不会自动执行 main 函数
+
+作用视脚本而定的选项:
   --start-at <描述链>    前面的描述链辅助定位，从最后一个描述开始执行 action（仅对 <脚本id> 有效）
   --end-at <描述链>      前面的描述链辅助定位，到最后一个描述停止执行 action（仅对 <脚本id> 有效）
+  --force-run           强制运行脚本，忽略更新日等限制（仅对 <脚本id> 有效）
 
 描述链格式: 描述1#描述2，以半角 # 分隔
 
@@ -242,8 +246,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         process.exit(0);
     }
 
-    // 非开发模式自动初始化：首次运行时创建数据目录并复制内置文件
-    if (!config.isDev) {
+    // 非开发模式（贡献者）自动初始化：首次运行时创建数据目录并复制内置文件
+    if (config.isDev === 1) {
         ensureDataDir(sourceDir, dataDir, scriptId);
     }
 
