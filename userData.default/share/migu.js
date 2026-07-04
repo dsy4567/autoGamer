@@ -28,7 +28,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
                 'document.querySelector(".notSignInBtn").scrollIntoView()',
             );
             await sleep(1000);
-            // TODO: 这不知道干什么的，后面检查一下
+            // 点击签到按钮
             tt(488, 424);
         } catch (e) {
             log("今日已签到");
