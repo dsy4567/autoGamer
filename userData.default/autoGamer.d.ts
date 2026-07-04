@@ -256,6 +256,8 @@ declare global {
              */
             isDev: 0 | 1 | 2;
             /** 数据目录绝对路径 */
+            /** 是否使用 Stealth 反检测插件 */
+            useStealth: boolean;
             dataDir: string;
             /** Puppeteer 启动参数 */
             puppeteerArgs: string[];

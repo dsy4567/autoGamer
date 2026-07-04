@@ -1,6 +1,5 @@
 // @ts-check
 
-const puppeteer = require("puppeteer-core");
 const path = require("path");
 const fs = require("fs");
 const { parseArgs } = require("util");
@@ -286,8 +285,22 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 
     // 启动 Puppeteer
     log("启动浏览器...");
+
+    /** @type {import("puppeteer-core")} */
+    let puppeteer;
+    if (config.useStealth) {
+        puppeteer = require("puppeteer-core");
+    } else {
+        // @ts-ignore
+        puppeteer = require("puppeteer-extra");
+        const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+        // @ts-ignore
+        puppeteer.use(StealthPlugin());
+    }
+
     const userDataDir =
         config.dirs?.chromeDataDir ?? path.join(config.dataDir, "chromeData");
+
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: {

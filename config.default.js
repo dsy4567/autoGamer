@@ -36,6 +36,8 @@ const alwaysHideOverlay = true;
 const defaultConfig = {
     /** 开发模式 */
     isDev,
+    /** 是否使用 Stealth 反检测插件 */
+    useStealth: true,
     /** 数据目录（开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/） */
     dataDir,
     /** Puppeteer 启动参数 */
