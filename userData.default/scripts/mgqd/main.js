@@ -87,7 +87,9 @@ module.exports = async function (ctx) {
         startAutoScreenshot();
     }
 
-    if (!config.isDev) {
+    if (config.isDev) {
+        log("Warning: 目前处于开发模式，请手动执行 main 函数");
+    } else {
         setTaskTimeout(scriptConfig.taskTimeoutMs);
         await main();
     }
