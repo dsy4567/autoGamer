@@ -7,21 +7,31 @@ const config = require("./config.default.js");
 const { createUtils } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig");
 
-/** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, args: any[]) => void} */
+/** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, str: string) => void} */
 let _logWriteFile = () => {};
+/** 日志增强钩子，初始为空函数，后续赋值在网页展示日志 @type {(str: string) => void} */
+let _logWriteHtml = () => {};
 
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
 /** 输出日志并触发写文件钩子 @param {...any} args */
 const log = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
-    _logWriteFile(now, args);
+    const str = args
+        .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+        .join(" ");
+    _logWriteFile(now, str);
+    _logWriteHtml(str);
 };
 /** 原始日志，不触发截图钩子，供截图函数自身使用以避免递归 @param {...any} args */
 const logRaw = (...args) => {
     const now = new Date().toISOString();
     console.log(`[${now}]`, ...args);
-    _logWriteFile(now, args);
+    const str = args
+        .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+        .join(" ");
+    _logWriteFile(now, str);
+    _logWriteHtml(str);
 };
 
 /** 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝 @type {string | null} */
@@ -270,12 +280,9 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 
         // 启用日志写入文件
         _errorLogFile = logFilePath;
-        _logWriteFile = (now, args) => {
+        _logWriteFile = (now, str) => {
             try {
-                fs.appendFileSync(
-                    logFilePath,
-                    `[${now}] ${args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")}\n`,
-                );
+                fs.appendFileSync(logFilePath, `[${now}] ${str}\n`);
             } catch (e) {}
         };
     }
@@ -359,6 +366,16 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         setTaskTimeout,
     } = utils;
 
+    _logWriteHtml = async content => {
+        try {
+            await page.evaluate(content => {
+                window.postMessage({
+                    type: "auto-gamer-log",
+                    content,
+                });
+            }, content);
+        } catch (e) {}
+    };
     // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
     await page.exposeFunction(
         "__autoGamerSimulateTouch",

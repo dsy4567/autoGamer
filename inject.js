@@ -356,6 +356,12 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
         true,
     );
 
+    window.addEventListener("message", e => {
+        if (e.data?.type === "auto-gamer-log" && e.data.content) {
+            updateIndicator(null, null, ` [log: ${e.data.content}]`, "");
+        }
+    });
+
     // 移除标题，替换图标
     if (!alwaysHideOverlay) {
         /** @type {HTMLLinkElement} */
