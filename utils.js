@@ -2,6 +2,7 @@
 
 const readline = require("readline");
 const path = require("path");
+const fs = require("fs");
 const { PNG } = require("pngjs");
 const config = require("./config.default.js");
 
@@ -47,17 +48,27 @@ let _actionDbgQueue = [];
 
 /**
  * 使用 Block MSE 算法计算两张 PNG 图片的相似度
+ *
+ * 注意：两张 PNG 图片的尺寸必须完全相同，否则会抛出异常
+ *
  * @param {Buffer} buf1
  * @param {Buffer} buf2
  * @param {number} [blockSize=16]
  * @returns {number} 相似度 [0, 1]
+ * @throws {Error} 当两张图片尺寸不一致时抛出
  */
 function calculateSimilarity(buf1, buf2, blockSize = 16) {
     const png1 = PNG.sync.read(buf1);
     const png2 = PNG.sync.read(buf2);
 
-    const width = Math.min(png1.width, png2.width);
-    const height = Math.min(png1.height, png2.height);
+    if (png1.width !== png2.width || png1.height !== png2.height) {
+        throw new Error(
+            `图片尺寸不一致: ${png1.width}x${png1.height} vs ${png2.width}x${png2.height}`,
+        );
+    }
+
+    const width = png1.width;
+    const height = png1.height;
 
     const blocksX = Math.ceil(width / blockSize);
     const blocksY = Math.ceil(height / blockSize);
@@ -737,6 +748,8 @@ action() 部分用法:
      * @param {string} [label="无描述"] 截图标签/日志内容
      * @param {AutoGamer.ScreenshotOptions} [options={}] 选项
      * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，否则返回文件路径
+     * @throws {Error} 以下情况抛出：options.clip 属性不完整；触发节流（throttleMs 内已有截图）；
+     *                 上一张截图正在处理中；截图超时；puppeteer 截图失败
      */
     const screenshot = async (label = "无描述", options = {}) => {
         const returnBuffer = options.returnBuffer === true;
@@ -752,6 +765,27 @@ action() 部分用法:
         if (msg) {
             logRaw(msg);
             throw new Error(msg);
+        }
+        // clip 校验：未提供时使用默认视口（全屏）；提供时必须包含完整属性
+        /** @type {{x: number, y: number, width: number, height: number} | undefined} */
+        let clip;
+        if (options.clip !== undefined && options.clip !== null) {
+            const c = options.clip;
+            if (
+                typeof c !== "object" ||
+                c.x === undefined ||
+                c.y === undefined ||
+                c.width === undefined ||
+                c.height === undefined
+            ) {
+                throw new Error("clip 属性不完整，需包含 x, y, width, height");
+            }
+            clip = {
+                x: Number(c.x),
+                y: Number(c.y),
+                width: Number(c.width),
+                height: Number(c.height),
+            };
         }
         let overlayWasVisible = false;
         _lastScreenshotTime = now;
@@ -769,7 +803,7 @@ action() 部分用法:
 
             const screenshotOptions = {
                 fullPage: false,
-                clip: {
+                clip: clip || {
                     x: 0,
                     y: 0,
                     width: config.viewport?.width ?? 640,
@@ -851,6 +885,99 @@ action() 部分用法:
         };
     };
 
+    /**
+     * 比对当前页面截图与指定 PNG 文件的相似度
+     *
+     * 注意：当前页面截图与指定 PNG 文件的尺寸必须完全相同，否则会抛出异常
+     * （截图尺寸由 config.viewport 或 clip 决定，PNG 文件应使用相同尺寸）
+     *
+     * @param {string} pngPath PNG 文件路径
+     * @param {AutoGamer.CompareScreenshotOptions} [options] 配置选项
+     * @returns {Promise<boolean>} 满足条件（相似度 >= threshold，或 inverse 时相似度 < threshold）时返回 true
+     * @throws {Error} 图片尺寸不一致、clip 属性不完整（透传 screenshot）或读取失败时抛出
+     */
+    const compareScreenshot = async (pngPath, options = {}) => {
+        /** @type {AutoGamer.CompareScreenshotOptions} */
+        const opts =
+            typeof options === "object" && options !== null ? options : {};
+        const threshold = Math.min(
+            1,
+            Math.max(0, Number(opts.threshold) ?? 0.9),
+        );
+        const inverse = Boolean(opts.inverse);
+        const recheckCount = Math.max(
+            0,
+            Math.floor(Number(opts.recheckCount) || 0),
+        );
+        const recheckInterval = Math.max(
+            200,
+            Number(opts.recheckInterval) || 3000,
+        );
+
+        const fileBuffer = fs.readFileSync(pngPath);
+        // 截图重试：screenshot 可能因节流/并发/超时等抛错，重试以增强健壮性
+        const maxRetries = 3;
+        const retryDelay = 3000;
+        const takeScreenshot = async () => {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await screenshot("compareScreenshot", {
+                        returnBuffer: true,
+                        ...(opts.clip ? { clip: opts.clip } : {}),
+                    });
+                } catch (/** @type {any} */ e) {
+                    if (attempt === maxRetries) throw e;
+                    log(
+                        `WARNING: compareScreenshot 截图失败(第${attempt}/${maxRetries}次)，${retryDelay}ms 后重试:`,
+                        e.message,
+                    );
+                    await sleep(retryDelay);
+                }
+            }
+            // unreachable
+            throw new Error("compareScreenshot 截图失败");
+        };
+
+        const baseName = path.basename(pngPath);
+        let recheckPassed = 0;
+
+        while (true) {
+            const currentBuffer = await takeScreenshot();
+            const similarity = calculateSimilarity(fileBuffer, currentBuffer);
+            const conditionMet = inverse
+                ? similarity < threshold
+                : similarity >= threshold;
+            const recheckTag =
+                recheckCount >= 1
+                    ? ` 复查 ${recheckPassed}/${recheckCount}`
+                    : "";
+            log(
+                `截图与 ${baseName} 相似度: ${similarity.toFixed(4)} (阈值 ${threshold})${recheckTag}`,
+            );
+
+            if (!conditionMet) {
+                if (recheckPassed > 0) {
+                    log(
+                        `复查条件不再满足，返回 false (已通过 ${recheckPassed}/${recheckCount})`,
+                    );
+                }
+                return false;
+            }
+
+            if (recheckCount < 1) {
+                return true;
+            }
+
+            recheckPassed++;
+            if (recheckPassed >= recheckCount) {
+                log(`复查全部通过 (${recheckCount}/${recheckCount})`);
+                return true;
+            }
+
+            await sleep(recheckInterval);
+        }
+    };
+
     return {
         ts,
         te,
@@ -864,6 +991,7 @@ action() 部分用法:
         setTaskTimeout,
         screenshot,
         startAutoScreenshot,
+        compareScreenshot,
         action,
     };
 }

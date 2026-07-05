@@ -412,6 +412,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
+        compareScreenshot,
+        action,
     } = utils;
 
     _logWriteHtml = async content => {

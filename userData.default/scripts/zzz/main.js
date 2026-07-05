@@ -39,6 +39,7 @@ module.exports = async function (ctx) {
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
+        compareScreenshot,
         action,
     } = createUtils(ctx, code => eval(code));
     const config = getGlobalConfig();

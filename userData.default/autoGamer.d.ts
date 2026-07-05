@@ -69,6 +69,22 @@ declare global {
         interface ScreenshotOptions {
             /** 为 true 时返回 Buffer 而非写入文件 */
             returnBuffer?: boolean;
+            /** 截图区域，未提供时使用默认视口区域 */
+            clip?: { x: number; y: number; width: number; height: number };
+        }
+
+        /** compareScreenshot 选项 */
+        interface CompareScreenshotOptions {
+            /** 相似度阈值，范围 [0, 1]，默认 0.9。截图与文件相似度 >= threshold 时返回 true */
+            threshold?: number;
+            /** 截图区域，未提供时使用默认视口区域；提供时必须包含完整的 x, y, width, height 属性 */
+            clip?: { x: number; y: number; width: number; height: number };
+            /** 复查次数，默认 0。>=1 时需连续多次复查通过后才返回 true */
+            recheckCount?: number;
+            /** 复查间隔毫秒，默认 3000，不少于 200 */
+            recheckInterval?: number;
+            /** 反向模式，默认 false。为 true 时相似度 < threshold 才视为满足条件 */
+            inverse?: boolean;
         }
 
         // ============ createUtils / Utils ============
@@ -102,19 +118,56 @@ declare global {
             sleep(ms: number): Promise<void>;
             /** 启动定时自动截图（默认间隔 30000ms），返回停止定时器的函数 */
             startAutoScreenshot(interval?: number): () => void;
+            /**
+             * 比对当前页面截图与指定 PNG 文件的相似度
+             *
+             * 注意：当前页面截图与指定 PNG 文件的尺寸必须完全相同，否则会抛出异常
+             * （截图尺寸由 config.viewport 决定，PNG 文件应使用相同尺寸）
+             *
+             * @param pngPath PNG 文件路径
+             * @param options 配置选项
+             * @returns 相似度 >= threshold 时返回 true
+             * @throws {Error} 图片尺寸不一致、clip 属性不完整（透传 screenshot）或读取失败时抛出
+             */
+            compareScreenshot(
+                pngPath: string,
+                options?: CompareScreenshotOptions,
+            ): Promise<boolean>;
             /** 进入实时测试模式 (REPL)，可输入并执行 puppeteer 代码 */
             startRepl(): Promise<void>;
             /** 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时（默认 30 分钟） */
             setTaskTimeout(ms?: number): () => void;
-            /** 截图并保存到日志目录，1 秒内限一张；returnBuffer 为 true 时返回 Buffer */
+            /**
+             * 截图并保存到日志目录，1 秒内限一张；returnBuffer 为 true 时返回 Buffer
+             * @throws {Error} 以下情况抛出：clip 属性不完整；触发节流；上一张截图正在处理中；截图超时；puppeteer 截图失败
+             */
             screenshot(
                 label?: string,
-                options?: { returnBuffer: true },
+                options?: {
+                    returnBuffer: true;
+                    clip?: {
+                        x: number;
+                        y: number;
+                        width: number;
+                        height: number;
+                    };
+                },
             ): Promise<Buffer>;
-            /** 截图并保存到日志目录，1 秒内限一张；返回保存的文件路径 */
+            /**
+             * 截图并保存到日志目录，1 秒内限一张；返回保存的文件路径
+             * @throws {Error} 以下情况抛出：clip 属性不完整；触发节流；上一张截图正在处理中；截图超时；puppeteer 截图失败
+             */
             screenshot(
                 label?: string,
-                options?: { returnBuffer?: false },
+                options?: {
+                    returnBuffer?: false;
+                    clip?: {
+                        x: number;
+                        y: number;
+                        width: number;
+                        height: number;
+                    };
+                },
             ): Promise<string>;
             /**
              * 统一的自动化操作函数，自动处理流程控制、日志、截图
