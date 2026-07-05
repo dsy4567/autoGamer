@@ -121,12 +121,13 @@ function runInit(sourceDir, dataDir) {
 
     // 强制覆盖 README.md、share/、scripts/、autoGamer.d.ts（源=目标时跳过，避免递归）
     if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
-        const items = ["README.md", "share", "scripts", "autoGamer.d.ts"];
+        const dirs = ["logs", "scriptData"];
+        const files = ["README.md", "autoGamer.d.ts"];
+        const items = [...dirs, ...files];
         items.forEach(item => {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            // TODO: 写得不好需要优化
-            item === "README.md" || item === "autoGamer.d.ts"
+            files.includes(item)
                 ? copyForce(src, dest)
                 : copyDirForce(src, dest);
         });
@@ -143,15 +144,16 @@ function runInit(sourceDir, dataDir) {
  * @param {string|null} scriptId 当前脚本 id（login 时为 null）
  */
 function ensureDataDir(sourceDir, dataDir, scriptId) {
-    const items = ["README.md", "share", "scripts", "autoGamer.d.ts"];
+    const dirs = ["logs", "scriptData"];
+    const files = ["README.md", "autoGamer.d.ts"];
+    const items = [...dirs, ...files];
 
     if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
         fs.mkdirSync(dataDir, { recursive: true });
         items.forEach(item => {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            // TODO: 写得不好需要优化
-            item === "README.md" || item === "autoGamer.d.ts"
+            files.includes(item)
                 ? copyForce(src, dest)
                 : copyDirForce(src, dest);
         });
@@ -159,7 +161,7 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
     }
 
     if (scriptId) {
-        ["logs", "scriptData"].forEach(dir => {
+        dirs.forEach(dir => {
             fs.mkdirSync(path.join(dataDir, dir, scriptId), {
                 recursive: true,
             });
