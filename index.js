@@ -280,14 +280,6 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         };
     }
 
-    // 获取本地浏览器路径
-    // const executablePath = getLocalChromePath();
-    // if (!executablePath || !fs.existsSync(executablePath)) {
-    //     log("未找到本地浏览器，请检查路径:", executablePath);
-    //     process.exit(1);
-    // }
-    // log("使用本地浏览器:", executablePath);
-
     // 启动 Puppeteer
     log("启动浏览器...");
 
