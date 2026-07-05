@@ -210,7 +210,7 @@ declare global {
             /** 加载用户自定义配置文件 */
             loadUserConfig: (
                 userConfigPath: string,
-                description?: string,
+                ctx: ScriptConfigCtx,
             ) => {};
             /** 数据目录绝对路径 */
             dataDir: string;
@@ -218,17 +218,20 @@ declare global {
             scriptId: string;
         }
 
-        /** scripts/<id>/config.default.js 接收的 ctx */
-        interface ScriptConfigCtx {
-            /** 加载用户自定义配置文件 */
-            loadUserConfig: (
-                userConfigPath: string,
-                description?: string,
-            ) => {};
+        interface LoadUserConfigCtx {
             /** 数据目录绝对路径 */
             dataDir: string;
             /** 当前脚本 id */
             scriptId: string;
+        }
+
+        /** scripts/<id>/config.default.js 接收的 ctx */
+        interface ScriptConfigCtx extends LoadUserConfigCtx {
+            /** 加载用户自定义配置文件 */
+            loadUserConfig: (
+                userConfigPath: string,
+                ctx: ScriptConfigCtx,
+            ) => {};
         }
 
         // ============ 脚本函数类型 ============
@@ -291,7 +294,6 @@ declare global {
             alwaysHideOverlay: boolean;
             /** 目录配置 */
             dirs: {
-                logDirBase: string;
                 chromeDataDir: string;
             };
             /** 游戏版本更新日是否运行脚本 */

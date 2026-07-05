@@ -6,23 +6,29 @@ const path = require("path");
 /**
  * 加载用户自定义配置文件，不存在则自动创建空配置
  * @param {string} userConfigPath 用户配置文件的绝对路径
- * @param {string} [description="用户自定义配置"] 描述，写入自动创建文件的注释
+ * @param {AutoGamer.LoadUserConfigCtx} ctx
  * @returns {object} 用户配置对象
  */
-function loadUserConfig(userConfigPath, description = "用户自定义配置") {
+function loadUserConfig(userConfigPath, ctx) {
     if (!fs.existsSync(userConfigPath)) {
         fs.mkdirSync(path.dirname(userConfigPath), { recursive: true });
         fs.writeFileSync(
             userConfigPath,
             // TODO: 为其他脚本配置适配类型定义
             userConfigPath.endsWith("globalConfig.js")
-                ? `// ${description}\nmodule.exports = {};\n`
-                : `// ${description}
+                ? `// 全局用户自定义配置
 // @ts-check
 /// <reference path="./autoGamer.d.ts" />
 /** @type {Partial<AutoGamer.GlobalConfig>} */
 const config = {};
-module.exports = config;`,
+module.exports = config;
+`
+                : `// 脚本id ${ctx.scriptId} 的用户自定义配置，优先于 scripts/${ctx.scriptId}/config.default.js
+// @ts-check
+/** @type {Partial<ReturnType<typeof import("../../scripts/${ctx.scriptId}/config.default.js")>>} */
+const config = {};
+module.exports = config;
+`,
         );
     }
 

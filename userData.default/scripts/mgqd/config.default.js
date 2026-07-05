@@ -11,6 +11,7 @@ module.exports = function (ctx) {
     const { loadUserConfig, dataDir, scriptId } = ctx;
     const userConfig = loadUserConfig(
         path.join(dataDir, "scriptData", scriptId, "config.js"),
+        ctx,
     );
 
     /**

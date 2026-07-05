@@ -20,10 +20,10 @@ const dataDir =
         ? path.resolve(__dirname, "userData.default")
         : path.resolve(os.homedir(), ".autoGamer");
 
-const userConfig = loadUserConfig(
-    path.join(dataDir, "globalConfig.js"),
-    "用户自定义全局配置，优先于 config.default.js",
-);
+const userConfig = loadUserConfig(path.join(dataDir, "globalConfig.js"), {
+    dataDir,
+    scriptId: "_globalConfig",
+});
 
 // 非开发模式下是否启用自动定时截屏，用户按需修改
 const autoScreenshotEnabled = true;
@@ -110,8 +110,6 @@ const defaultConfig = {
     alwaysHideOverlay: isDev ? true : alwaysHideOverlay,
     /** 目录配置 */
     dirs: {
-        /** 日志目录基础名称 */
-        logDirBase: "logs",
         /** Chrome 用户数据目录（浏览器自动创建） */
         chromeDataDir: path.join(dataDir, "chromeData"),
     },

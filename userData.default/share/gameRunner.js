@@ -70,7 +70,7 @@ function checkUpdateDate(updateDates) {
 }
 
 /**
- * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
+ * @param {AutoGamer.ScriptCtx} ctx
  * @param {string} gameName 游戏名称
  * @param {any} scriptConfig 游戏配置（各脚本自定义结构）
  * @param {Function} mainFn 脚本定义的 main 异步函数
