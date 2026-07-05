@@ -45,9 +45,9 @@
         value: "visible",
         writable: false,
     });
+    // 屏蔽 visibilitychange/pagehide/pageshow 事件监听
     window.addEventListener = new Proxy(window.addEventListener, {
         apply(target, thisArg, args) {
-            // 屏蔽 visibilitychange/pagehide/pageshow 事件监听
             const event = args[0];
             if (
                 [
@@ -87,34 +87,90 @@
     indicator.style.setProperty("position", "fixed", "important");
     indicator.style.setProperty("top", "10px", "important");
     indicator.style.setProperty("left", "10px", "important");
-    indicator.style.setProperty("opacity", "0.5", "important");
+    indicator.style.setProperty("opacity", "0.8", "important");
     indicator.style.setProperty("padding", "6px 12px", "important");
-    indicator.style.setProperty("background", "rgba(0,0,0,0.7)", "important");
+    indicator.style.setProperty("background", "rgb(0,0,0)", "important");
     indicator.style.setProperty("color", "#fff", "important");
     indicator.style.setProperty("border-radius", "6px", "important");
     indicator.style.setProperty("font-size", "14px", "important");
     indicator.style.setProperty("z-index", "9999", "important");
     indicator.style.setProperty("pointer-events", "none", "important");
+    indicator.style.setProperty("transition", "opacity 0.3s", "important");
     indicator.textContent = "X: 0, Y: 0";
     document.documentElement.appendChild(indicator);
 
+    let altPressed = false;
+
+    let mousePos = {
+            x: 0,
+            y: 0,
+        },
+        extraContent = "",
+        extraHtml = "",
+        /** @type {number|undefined} - 用于延迟显示指示器的定时器 ID */
+        setOpacityTimer = undefined;
+    /**
+     * 更新指示器的坐标和额外内容
+     * @param {number|null|string} _x - 鼠标 X 坐标
+     * @param {number|null|string} _y - 鼠标 Y 坐标
+     * @param {string} _extraContent - 额外的文本内容
+     * @param {string} _extraHtml - 额外的 HTML 内容
+     */
+    const updateIndicator = (
+        _x = null,
+        _y = null,
+        _extraContent = "",
+        _extraHtml = "",
+    ) => {
+        if (_x !== null && _x !== undefined && _x !== "") mousePos.x = +_x;
+        if (_y !== null && _y !== undefined && _y !== "") mousePos.y = +_y;
+        if (_extraHtml) extraHtml = _extraHtml;
+        if (_extraContent) extraContent = _extraContent;
+        indicator.textContent = `X: ${mousePos.x}, Y: ${mousePos.y}${
+            altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
+        }${extraContent}`;
+        indicator.innerHTML += extraHtml;
+    };
+    const showIndicator = () => {
+        indicator.style.setProperty("opacity", "0.8", "important");
+        window.clearTimeout(setOpacityTimer);
+        if (altPressed) return;
+        setOpacityTimer = window.setTimeout(() => {
+            indicator.style.setProperty("opacity", "0", "important");
+        }, 3000);
+    };
+    updateIndicator();
+    showIndicator();
+
     // 鼠标移动时更新坐标
     document.addEventListener("mousemove", function (e) {
-        indicator.textContent = `X: ${e.clientX}, Y: ${e.clientY}${
-            altPressed ? " [Alt模式]" : ""
-        }`;
+        updateIndicator(e.clientX, e.clientY);
+        showIndicator();
     });
     document.addEventListener("touchmove", function (e) {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
-            indicator.textContent = `X: ${touch.clientX}, Y: ${touch.clientY}${
-                altPressed ? " [Alt模式]" : ""
-            }`;
+            updateIndicator(touch.clientX, touch.clientY);
+            showIndicator();
         }
     });
 
+    // 隐藏/显示悬浮球
+    let ballVisible = true,
+        hideBallStyle = document.createElement("style");
+    hideBallStyle.textContent = `.gameSetingButton {
+        display: none !important;
+    }`;
+    const toggleBallVisible = () => {
+        try {
+            document.head[
+                (ballVisible = !ballVisible) ? "removeChild" : "appendChild"
+            ](hideBallStyle);
+        } catch (e) {}
+    };
+    toggleBallVisible();
+
     // Alt+鼠标事件转发为 puppeteer 触摸事件
-    let altPressed = false;
     let mouseLeftPressed = false;
     let dragStart = {
         x: 0,
@@ -123,19 +179,42 @@
     let dragConfirmed = false;
     let mousedownTime = 0;
     window.addEventListener("keydown", e => {
+        if (e.repeat) return;
         if (e.key === "Alt") {
             altPressed = true;
+            updateIndicator();
+            showIndicator();
             indicator.style.setProperty(
                 "background",
-                "rgba(255,100,0,0.7)",
+                "rgb(255,100,0)",
                 "important",
             );
             devMode = true;
+        }
+        if (e.key === "h" && e.altKey) {
+            updateIndicator(
+                null,
+                null,
+                "",
+                `<br>
+Alt + h       显示帮助<br>
+Alt + b       隐藏/显示悬浮球<br>
+Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
+            );
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (e.key === "b" && e.altKey) {
+            toggleBallVisible();
+            e.preventDefault();
+            e.stopPropagation();
         }
     });
     window.addEventListener("keyup", e => {
         if (e.key === "Alt") {
             altPressed = false;
+            updateIndicator();
+            showIndicator();
             mouseLeftPressed = false;
             dragStart = {
                 x: 0,
@@ -145,9 +224,13 @@
             mousedownTime = 0;
             indicator.style.setProperty(
                 "background",
-                "rgba(0,0,0,0.7)",
+                "rgb(0,0,0)",
                 "important",
             );
+        }
+        if (e.key === "h" || !e.altKey) {
+            updateIndicator(null, null, "", " ");
+            e.preventDefault();
         }
     });
 
