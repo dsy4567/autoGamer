@@ -5,9 +5,10 @@
 /// <reference path="../autoGamer.d.ts" />
 
 /**
- * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
+ * @param {AutoGamer.ScriptCtx} ctx
  */
 async function actionsInCloudGameBallAndExit(ctx) {
+    if (!ctx) return;
     const { browser, page, log, getGlobalConfig, createUtils } = ctx;
     const { tt, sleep, screenshot } = createUtils(ctx);
     const config = getGlobalConfig();
@@ -55,6 +56,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
  * @param {Pick<AutoGamer.ScriptCtx, "puppeteer" | "browser" | "page" | "log" | "logRaw" | "pageOpenTime" | "logDir" | "getGlobalConfig" | "createUtils">} ctx
  */
 async function miguInit(ctx) {
+    if (!ctx) return;
     const {
         puppeteer,
         browser,
