@@ -460,6 +460,17 @@ function createUtils(ctx, _eval = eval) {
                         await sleep(waitTime);
 
                         for (const op of operations || []) {
+                            if (op[0] === "fn") {
+                                // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
+                                // 通过 await 执行，不处理抛错
+                                const fnOp = /** @type {any} */ (op);
+                                /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
+                                const userFn = fnOp[1];
+                                /** @type {any[]} */
+                                const userArgs = fnOp[2] || [];
+                                await userFn(description, ctx, ...userArgs);
+                                continue;
+                            }
                             const [fnName, ...args] = op;
                             const fn =
                                 /** @type {Record<string, (...args: any[]) => any>} */ ({
@@ -567,6 +578,17 @@ function createUtils(ctx, _eval = eval) {
             log("ACTION:", description);
 
             for (const op of operations || []) {
+                if (op[0] === "fn") {
+                    // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
+                    // 通过 await 执行，不处理抛错
+                    const fnOp = /** @type {any} */ (op);
+                    /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
+                    const userFn = fnOp[1];
+                    /** @type {any[]} */
+                    const userArgs = fnOp[2] || [];
+                    await userFn(description, ctx, ...userArgs);
+                    continue;
+                }
                 const [fnName, ...args] = op;
                 const fn =
                     /** @type {Record<string, (...args: any[]) => any>} */ ({

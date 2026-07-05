@@ -29,6 +29,7 @@ declare global {
          * - ["hold", x, y, dur?]    长按（dur 默认 1000ms）
          * - ["drag", fx, fy, tx, ty, dur?]  拖拽（dur 默认 500ms）
          * - ["sleep", ms]           延时
+         * - ["fn", fn, args]        自定义函数，fn(desc, ctx, ...args) 通过 await 执行，不处理抛错
          */
         type Operation =
             | ["ts", number, number]
@@ -38,7 +39,12 @@ declare global {
             | ["pc", string]
             | ["hold", number, number, number?]
             | ["drag", number, number, number, number, number?]
-            | ["sleep", number];
+            | ["sleep", number]
+            | [
+                  "fn",
+                  (desc: string, ctx: UtilsCtx, ...args: any[]) => any,
+                  any[],
+              ];
 
         /** 操作数组 */
         type OperationArray = Operation[];
@@ -181,6 +187,7 @@ declare global {
              *  - `action('<操作描述>',[['hold', x:number, y:number, duration?:number], ...])` — 长按 - 在指定坐标按下并保持一段时间后释放
              *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
              *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
+             *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
              *
              * 特殊操作：
              *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?})` — 等待场景大幅变化，每次循环执行一次操作数组
