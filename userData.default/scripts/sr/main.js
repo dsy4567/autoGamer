@@ -112,7 +112,8 @@ module.exports = async function (ctx) {
             {
                 if (scriptConfig.dungeonType === 4) {
                     await action("进入培养目标首个副本", [
-                        ["tt", 533, 211],
+                        ["tt", 533, 220], // 材料本
+                        ["tt", 534, 257], // 遗器本，正常情况二者仅有一个点不中
                         ["sleep", 3000],
                     ]);
                 } else {
@@ -276,10 +277,9 @@ module.exports = async function (ctx) {
 
         try {
             await action("waitSceneChange", [["tt", 432, 281]], {
-                // threshold: 0.95,
-                // inverse: true,
-                // timeout: scriptConfig.dungeonFightTimeout ?? 15 * 60 * 1000,
-                // interval: 10000,
+                threshold: 0.9,
+                timeout: 10 * 60 * 1000,
+                interval: 10000,
             });
             await action("检测到场景变化后点击开始游戏", [
                 ["sleep", 3000],
