@@ -15,7 +15,6 @@ async function actionsInCloudGameBallAndExit(ctx) {
 
     log("开始签到");
     try {
-        await hideBall(ctx, true);
         // 点击悬浮球元素
         await page.click("#app > div > div.pagebox > div:nth-child(4) > div");
         await sleep(3000);
@@ -51,16 +50,6 @@ async function actionsInCloudGameBallAndExit(ctx) {
         await browser.close();
         process.exit(0);
     }
-}
-
-/** 隐藏悬浮球 @param {AutoGamer.ScriptCtx} ctx  */
-async function hideBall(ctx, show = false) {
-    if (!ctx) return;
-    const { page } = ctx;
-    await page.waitForSelector(".gameSetingButton");
-    await page.evaluate(
-        `document.querySelector(".gameSetingButton").style.display = "${show ? "block" : "none"}";`,
-    );
 }
 
 /**
@@ -119,11 +108,8 @@ async function miguInit(ctx) {
         } catch (e) {
             // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
         }
-        try {
-            await hideBall(ctx);
-        } catch (e) {}
-        await sleep(5000);
+        // await page.waitForSelector(".gameSetingButton");
     })();
 }
 
-module.exports = { actionsInCloudGameBallAndExit, miguInit, hideBall };
+module.exports = { actionsInCloudGameBallAndExit, miguInit };
