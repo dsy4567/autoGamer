@@ -190,7 +190,7 @@ declare global {
              *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
              *
              * 特殊操作：
-             *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?})` — 等待场景大幅变化，每次循环执行一次操作数组
+             *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?})` — 等待场景大幅变化，每次循环执行一次操作数组（复查阶段暂停执行操作数组）
              *    - `timeout`: 超时毫秒，默认600000
              *    - `interval`: 检查间隔毫秒，默认3000，不少于200
              *    - `threshold`: 变化阈值，范围[0,1]，默认0.9

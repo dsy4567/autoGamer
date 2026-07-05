@@ -459,37 +459,40 @@ function createUtils(ctx, _eval = eval) {
                         );
                         await sleep(waitTime);
 
-                        for (const op of operations || []) {
-                            if (op[0] === "fn") {
-                                // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
-                                // 通过 await 执行，不处理抛错
-                                const fnOp = /** @type {any} */ (op);
-                                /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
-                                const userFn = fnOp[1];
-                                /** @type {any[]} */
-                                const userArgs = fnOp[2] || [];
-                                await userFn(description, ctx, ...userArgs);
-                                continue;
+                        // 复查阶段为纯观察阶段，暂停执行 operations 数组，避免干扰验证
+                        if (!inRecheckPhase) {
+                            for (const op of operations || []) {
+                                if (op[0] === "fn") {
+                                    // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
+                                    // 通过 await 执行，不处理抛错
+                                    const fnOp = /** @type {any} */ (op);
+                                    /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
+                                    const userFn = fnOp[1];
+                                    /** @type {any[]} */
+                                    const userArgs = fnOp[2] || [];
+                                    await userFn(description, ctx, ...userArgs);
+                                    continue;
+                                }
+                                const [fnName, ...args] = op;
+                                const fn =
+                                    /** @type {Record<string, (...args: any[]) => any>} */ ({
+                                        ts,
+                                        te,
+                                        tm,
+                                        tt,
+                                        pc,
+                                        hold,
+                                        sleep,
+                                        drag,
+                                    })[fnName];
+                                if (!fn) {
+                                    log(
+                                        `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
+                                    );
+                                    continue;
+                                }
+                                await fn(...args);
                             }
-                            const [fnName, ...args] = op;
-                            const fn =
-                                /** @type {Record<string, (...args: any[]) => any>} */ ({
-                                    ts,
-                                    te,
-                                    tm,
-                                    tt,
-                                    pc,
-                                    hold,
-                                    sleep,
-                                    drag,
-                                })[fnName];
-                            if (!fn) {
-                                log(
-                                    `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
-                                );
-                                continue;
-                            }
-                            await fn(...args);
                         }
 
                         if (Date.now() - startTime >= timeout) {
@@ -529,7 +532,7 @@ function createUtils(ctx, _eval = eval) {
                                 if (!inRecheckPhase) {
                                     inRecheckPhase = true;
                                     log(
-                                        "条件首次满足，进入复查阶段（间隔强制3秒）",
+                                        "条件首次满足，进入复查阶段（间隔强制3秒，暂停执行操作数组）",
                                     );
                                 }
                                 recheckPassed++;
