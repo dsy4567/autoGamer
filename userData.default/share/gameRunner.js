@@ -7,7 +7,7 @@ const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
 
 // 模块作用域状态，供开发模式 REPL 中手动调用 mainFn
 /**
- * @type {Function | null}
+ * @type {((...args: any[]) => any) | null}
  */
 let _mainFn = null;
 let _mainFnRunning = false;
@@ -73,7 +73,7 @@ function checkUpdateDate(updateDates) {
  * @param {AutoGamer.ScriptCtx} ctx
  * @param {string} gameName 游戏名称
  * @param {any} scriptConfig 游戏配置（各脚本自定义结构）
- * @param {Function} mainFn 脚本定义的 main 异步函数
+ * @param {(...args: any[]) => any} mainFn 脚本定义的 main 异步函数
  * @param {AutoGamer.EvalFn} _eval 用于 REPL 中执行代码的 eval 函数
  */
 async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
