@@ -441,6 +441,10 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             }
         });
     });
+    await inject(page);
+    page.on("framenavigated", async () => {
+        await inject(page);
+    });
 
     if (isLogin) {
         // 支持 node index.js login [url]
@@ -457,13 +461,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         }
         log(`打开登录页面: ${loginUrl}`);
         await page.goto(loginUrl, config.pageloadOptions);
-        await inject(page);
         log("请在浏览器中完成登录操作，完成后关闭页面即可退出");
 
-        // 每次跳转后自动注入
-        page.on("framenavigated", async () => {
-            await inject(page);
-        });
         await startRepl();
     } else {
         // 执行操作脚本（按脚本 id 解析）
@@ -488,10 +487,6 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         }
 
         try {
-            page.on("load", async () => {
-                await inject(page);
-            });
-
             await script({
                 puppeteer,
                 browser,
@@ -511,10 +506,6 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         } catch (e) {
             log("ERROR: 脚本执行出错:", e);
         }
-        // 每次跳转后自动注入
-        page.on("framenavigated", async () => {
-            await inject(page);
-        });
     }
 }
 
