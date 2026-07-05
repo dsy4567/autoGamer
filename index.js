@@ -119,9 +119,9 @@ function runInit(sourceDir, dataDir) {
         }
     }
 
-    // 强制覆盖 README.md、share/、scripts/、autoGamer.d.ts（源=目标时跳过，避免递归）
+    // 强制覆盖（源=目标时跳过，避免递归）
     if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
-        const dirs = ["logs", "scriptData"];
+        const dirs = ["share", "scripts"];
         const files = ["README.md", "autoGamer.d.ts"];
         const items = [...dirs, ...files];
         items.forEach(item => {
@@ -144,29 +144,33 @@ function runInit(sourceDir, dataDir) {
  * @param {string|null} scriptId 当前脚本 id（login 时为 null）
  */
 function ensureDataDir(sourceDir, dataDir, scriptId) {
-    const dirs = ["logs", "scriptData"];
-    const files = ["README.md", "autoGamer.d.ts"];
+    if (config.isDev === 1) return;
+
+    // 仅操作和特定脚本有关的目录和文件
+    const dirs = [
+        "share",
+        ...(scriptId ? [path.join("scripts", scriptId)] : []),
+    ];
+    /** @type {string[]}  */
+    const files = [
+        ...(scriptId
+            ? [
+                  path.join("scripts", scriptId, "main.js"),
+                  path.join("scripts", scriptId, "config.default.js"),
+              ]
+            : []),
+    ];
     const items = [...dirs, ...files];
 
     if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
+        log("WARNING: 相关目录不存在，正在初始化");
         fs.mkdirSync(dataDir, { recursive: true });
         items.forEach(item => {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            files.includes(item)
-                ? copyForce(src, dest)
-                : copyDirForce(src, dest);
+            dirs.includes(item) && copyDirForce(src, dest);
         });
         log("已初始化数据目录:", dataDir);
-    }
-
-    if (scriptId) {
-        dirs.forEach(dir => {
-            fs.mkdirSync(path.join(dataDir, dir, scriptId), {
-                recursive: true,
-            });
-        });
-        log("已初始化脚本相关目录:", scriptId);
     }
 }
 
@@ -245,7 +249,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
     }
 
     // 非开发模式（贡献者）自动初始化：首次运行时创建数据目录并复制内置文件
-    if (config.isDev === 1) {
+    if (config.isDev !== 1) {
         ensureDataDir(sourceDir, dataDir, scriptId);
     }
 
