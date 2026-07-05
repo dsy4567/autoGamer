@@ -178,6 +178,8 @@ async function main() {
     const { values, positionals } = parseArgs({
         options: {
             help: { type: "boolean", short: "h" },
+            dev: { type: "boolean" },
+            "force-run": { type: "boolean" },
             "start-at": { type: "string" },
             "end-at": { type: "string" },
         },
