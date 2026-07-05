@@ -117,6 +117,8 @@ const defaultConfig = {
     logCleanupWarningThreshold: 50,
     /** 游戏版本更新日是否运行脚本 */
     forceRun: false,
+    /** 检查点处理函数，可能被脚本调用 */
+    checkpoint: async (desc, ctx, ...args) => {},
 };
 
 module.exports = { ...defaultConfig, ...userConfig };
