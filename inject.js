@@ -290,7 +290,10 @@
 
     // 隐藏指定元素
     /** @type {string[]} */
-    const selectors = [".toastCommon", ".top-control"];
+    const selectors = [
+        ".toastCommon", // 升画质提示
+        ".top-control", // 时长提示
+    ];
     /** @type {HTMLStyleElement} */
     const style = document.createElement("style");
     style.textContent = selectors
