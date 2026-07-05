@@ -298,6 +298,8 @@ declare global {
             };
             /** 游戏版本更新日是否运行脚本 */
             forceRun: boolean;
+            /** 日志文件夹数量警告阈值，logs/ 下所有脚本子目录中文件夹总数超过此值时，退出时提醒清理 */
+            logCleanupWarningThreshold: number;
         }
     }
 }

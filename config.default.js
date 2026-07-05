@@ -113,6 +113,8 @@ const defaultConfig = {
         /** Chrome 用户数据目录（浏览器自动创建） */
         chromeDataDir: path.join(dataDir, "chromeData"),
     },
+    /** 日志文件夹数量警告阈值，logs/ 下所有脚本子目录中文件夹总数超过此值时，退出时提醒清理 */
+    logCleanupWarningThreshold: 50,
     /** 游戏版本更新日是否运行脚本 */
     forceRun: false,
 };

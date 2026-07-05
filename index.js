@@ -34,6 +34,9 @@ const logRaw = (...args) => {
     _logWriteHtml(str);
 };
 
+/** 退出时要输出的警告消息 @type {string[]} */
+const _exitWarnings = [];
+
 /** 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝 @type {string | null} */
 let _errorLogFile = null;
 
@@ -63,6 +66,25 @@ process.on("unhandledRejection", (reason, promise) => {
             );
         } catch (e) {}
     }
+    process.exit(1);
+});
+
+// 退出时输出警告消息
+function _printExitWarnings() {
+    if (_exitWarnings.length > 0) {
+        for (const warning of _exitWarnings) {
+            log("WARNING:", warning);
+        }
+    }
+}
+
+process.on("exit", _printExitWarnings);
+process.on("SIGINT", () => {
+    _printExitWarnings();
+    process.exit(1);
+});
+process.on("SIGTERM", () => {
+    _printExitWarnings();
     process.exit(1);
 });
 
@@ -285,6 +307,32 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 fs.appendFileSync(logFilePath, `[${now}] ${str}\n`);
             } catch (e) {}
         };
+    }
+
+    // 非开发模式：检查 logs/ 下所有脚本子目录的文件夹总数，超过阈值则提醒清理
+    if (config.isDev !== 1) {
+        const logsDir = path.join(dataDir, "logs");
+        if (fs.existsSync(logsDir)) {
+            let totalFolders = 0;
+            for (const scriptDir of fs.readdirSync(logsDir)) {
+                const scriptDirPath = path.join(logsDir, scriptDir);
+                if (fs.statSync(scriptDirPath).isDirectory()) {
+                    totalFolders += fs
+                        .readdirSync(scriptDirPath)
+                        .filter(name =>
+                            fs
+                                .statSync(path.join(scriptDirPath, name))
+                                .isDirectory(),
+                        ).length;
+                }
+            }
+            const threshold = config.logCleanupWarningThreshold ?? 50;
+            if (totalFolders > threshold) {
+                _exitWarnings.push(
+                    `logs/ 目录下共有 ${totalFolders} 个日志文件夹，超过阈值（${threshold} 个），建议清理旧日志以释放磁盘空间。日志目录: ${logsDir}`,
+                );
+            }
+        }
     }
 
     // 启动 Puppeteer
