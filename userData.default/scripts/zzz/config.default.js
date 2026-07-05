@@ -22,7 +22,6 @@ module.exports = function (ctx) {
      *     initialWait: number,
      *     afterStartGame: number,
      *   },
-     *   isReturn: boolean,
      *   selectPromoterActions: AutoGamer.Operation[],
      *   customCardGroupSpacingOffset: [number, number],
      *   customCardGroupSpacing: number,
@@ -52,8 +51,6 @@ module.exports = function (ctx) {
             /** 点击开始游戏后等待读条 */
             afterStartGame: 30 * 1000,
         },
-        /** （弃用，回归前3天建议自己玩）玩家是否处于回归状态 */
-        isReturn: true,
         /** 录像店-邦布-选择宣传员，要选择的宣传员坐标，默认第一个即邦布 */
         selectPromoterActions: [["tt", 205, 175]],
         /** customCardGroupSpacing 偏移量，单位像素 */

@@ -44,32 +44,6 @@ module.exports = async function (ctx) {
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
-    /** 回归游戏时的操作 TODO: 需要考虑删除 */
-    async function firstReturnGame() {
-        // log("领取首次弹窗奖励");
-        // await tt(358, 305);
-        // await sleep(3000);
-
-        // log("确认");
-        // await tt(319, 321);
-        // await sleep(3000);
-
-        await action("领取第一日奖励", [
-            ["tt", 359, 324],
-            ["sleep", 3000],
-        ]);
-
-        await action("确认", [
-            ["tt", 315, 389],
-            ["sleep", 3000],
-        ]);
-
-        await action("关闭回归活动页面", [
-            ["tt", 38, 84],
-            ["sleep", 5000],
-        ]);
-    }
-
     /** 传送到六分街-咖啡店 */
     async function goSixthStreet() {
         await action("点击首页快捷导航", [
