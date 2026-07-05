@@ -47,6 +47,27 @@ let _actionDbgEnabled = false;
 let _actionDbgQueue = [];
 
 /**
+ * 将 Date 格式化为本地时间字符串（带时区偏移），文件系统安全
+ * 格式示例（Asia/Shanghai）: 2026-07-06_20-34-56-789+08-00
+ * @param {Date} [date=new Date()]
+ * @returns {string}
+ */
+function formatLocalTimeWithTz(date = new Date()) {
+    const d = date;
+    const pad = (/** @type {number} */ n, /** @type {number} */ len = 2) =>
+        String(n).padStart(len, "0");
+    const offset = -d.getTimezoneOffset(); // 东半球为正
+    const sign = offset >= 0 ? "+" : "-";
+    const absOffset = Math.abs(offset);
+    const tz = `${sign}${pad(Math.floor(absOffset / 60))}-${pad(absOffset % 60)}`;
+    return (
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+        `_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}-${pad(d.getMilliseconds(), 3)}` +
+        tz
+    );
+}
+
+/**
  * 使用 Block MSE 算法计算两张 PNG 图片的相似度
  *
  * 注意：两张 PNG 图片的尺寸必须完全相同，否则会抛出异常
@@ -829,7 +850,7 @@ action() 部分用法:
                 return /** @type {Buffer} */ (buffer);
             }
 
-            const timeStr = new Date().toISOString().replace(/[:.]/g, "-");
+            const timeStr = formatLocalTimeWithTz();
             const safeLabel = String(label)
                 .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
                 .substring(0, 80);
@@ -996,4 +1017,4 @@ action() 部分用法:
     };
 }
 
-module.exports = { createUtils };
+module.exports = { createUtils, formatLocalTimeWithTz };

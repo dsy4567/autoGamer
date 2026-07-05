@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const { parseArgs } = require("util");
 const config = require("./config.default.js");
-const { createUtils } = require("./utils.js");
+const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig");
 
 /** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, str: string) => void} */
@@ -289,10 +289,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
 
     // 推导脚本名，用于日志目录
     const scriptName = isLogin ? "_login" : (scriptId ?? "unknown");
-    const startTimeStr = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .replace("T", "_");
+    const startTimeStr = formatLocalTimeWithTz();
     const logDir = config.isDev
         ? path.join(dataDir, "logs", "devTemp")
         : path.join(dataDir, "logs", scriptName, startTimeStr);
