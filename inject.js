@@ -287,4 +287,20 @@
             document.title = ".";
         }, 3000);
     }
+
+    // 隐藏指定元素
+    /** @type {string[]} */
+    const selectors = [".toastCommon", ".top-control"];
+    /** @type {HTMLStyleElement} */
+    const style = document.createElement("style");
+    style.textContent = selectors
+        .map(s => `${s} { display: none !important; }`)
+        .join("\n");
+    document.head.appendChild(style);
+
+    // hook console.log
+    // let originalLog = console.log;
+    // console.log = function (...args) {
+    //     originalLog.apply(console, args);
+    // };
 })();
