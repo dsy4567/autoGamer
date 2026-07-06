@@ -102,23 +102,95 @@ process.on("SIGTERM", () => {
 /**
  * 注入 inject.js 到页面
  * @param {import("puppeteer-core").Page} page
+ * @param {(x: number, y: number) => any} tt
+ * @param {(x: number, y: number, toX: number, toY: number, duration: number | undefined) => any} drag
+ * @param {(x: number, y: number, duration: number | undefined) => any} hold
  */
-async function inject(page) {
-    const injectPath = path.resolve(__dirname, "inject.js");
-    if (fs.existsSync(injectPath)) {
-        try {
-            // 将全局配置注入页面，供 inject.js 读取
+async function inject(page, tt, drag, hold) {
+    try {
+        const injectPath = path.resolve(__dirname, "inject.js");
+        await page.exposeFunction(
+            "__autoGamerSimulateTouch",
+            async (
+                /** @type {{ type: string; x: number; y: number; from: { x: number; y: number; }; to: { x: number; y: number; }; duration: number | undefined; }} */ msg,
+            ) => {
+                if (!msg || typeof msg !== "object" || !msg.type) return;
+                if (msg.type === "auto-gamer-mouse-to-tap") {
+                    log("收到 tap 事件，位置:", msg.x, msg.y);
+                    try {
+                        await tt(msg.x, msg.y);
+                    } catch (e) {
+                        log("ERROR: tap 执行失败:", e);
+                    }
+                } else if (msg.type === "auto-gamer-mouse-to-drag") {
+                    log(
+                        "收到 drag 事件，从:",
+                        msg.from,
+                        "到:",
+                        msg.to,
+                        "持续时间:",
+                        msg.duration,
+                    );
+                    try {
+                        await drag(
+                            msg.from.x,
+                            msg.from.y,
+                            msg.to.x,
+                            msg.to.y,
+                            msg.duration,
+                        );
+                    } catch (e) {
+                        log("ERROR: drag 执行失败:", e);
+                    }
+                } else if (msg.type === "auto-gamer-mouse-to-hold") {
+                    log(
+                        "收到 hold 事件，位置:",
+                        msg.x,
+                        msg.y,
+                        "持续时间:",
+                        msg.duration,
+                    );
+                    try {
+                        await hold(msg.x, msg.y, msg.duration);
+                    } catch (e) {
+                        log("ERROR: hold 执行失败:", e);
+                    }
+                }
+            },
+        );
+        while (fs.existsSync(injectPath)) {
+            // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
+            await page.waitForNavigation({
+                timeout: 0,
+                waitUntil: "domcontentloaded",
+            });
             await page.evaluate(alwaysHideOverlay => {
+                window.addEventListener("message", ev => {
+                    if (
+                        ev &&
+                        ev.data &&
+                        (ev.data.type === "auto-gamer-mouse-to-tap" ||
+                            ev.data.type === "auto-gamer-mouse-to-drag" ||
+                            ev.data.type === "auto-gamer-mouse-to-hold" ||
+                            ev.data.type === "auto-gamer-log")
+                    ) {
+                        // 通过 puppeteer 暴露的函数转发到 Node 端
+                        // @ts-ignore
+                        window.__autoGamerSimulateTouch(ev.data);
+                    }
+                });
+
+                // 将全局配置注入页面，供 inject.js 读取
                 // @ts-ignore
-                window.__autoGamerConfig = { alwaysHideOverlay };
+                window.__autoGamerConfig = {
+                    alwaysHideOverlay,
+                };
             }, config.alwaysHideOverlay ?? false);
-            await page.mainFrame().addScriptTag({ path: injectPath });
+            page.evaluate(fs.readFileSync(injectPath, "utf-8"));
             log("已注入 inject.js");
-        } catch (e) {
-            log("ERROR: inject.js 注入失败:", e);
         }
-    } else {
-        log("ERROR: inject.js 文件不存在，未注入");
+    } catch (e) {
+        log("ERROR: inject.js 注入失败:", e);
     }
 }
 
@@ -434,75 +506,8 @@ Copyright (c) 2025~2026 dsy4567, MIT License
             }, content);
         } catch (e) {}
     };
-    // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
-    await page.exposeFunction(
-        "__autoGamerSimulateTouch",
-        async (
-            /** @type {{ type: string; x: number; y: number; from: { x: number; y: number; }; to: { x: number; y: number; }; duration: number | undefined; }} */ msg,
-        ) => {
-            if (!msg || typeof msg !== "object" || !msg.type) return;
-            if (msg.type === "auto-gamer-mouse-to-tap") {
-                log("收到 tap 事件，位置:", msg.x, msg.y);
-                try {
-                    await tt(msg.x, msg.y);
-                } catch (e) {
-                    log("ERROR: tap 执行失败:", e);
-                }
-            } else if (msg.type === "auto-gamer-mouse-to-drag") {
-                log(
-                    "收到 drag 事件，从:",
-                    msg.from,
-                    "到:",
-                    msg.to,
-                    "持续时间:",
-                    msg.duration,
-                );
-                try {
-                    await drag(
-                        msg.from.x,
-                        msg.from.y,
-                        msg.to.x,
-                        msg.to.y,
-                        msg.duration,
-                    );
-                } catch (e) {
-                    log("ERROR: drag 执行失败:", e);
-                }
-            } else if (msg.type === "auto-gamer-mouse-to-hold") {
-                log(
-                    "收到 hold 事件，位置:",
-                    msg.x,
-                    msg.y,
-                    "持续时间:",
-                    msg.duration,
-                );
-                try {
-                    await hold(msg.x, msg.y, msg.duration);
-                } catch (e) {
-                    log("ERROR: hold 执行失败:", e);
-                }
-            }
-        },
-    );
-    await page.evaluateOnNewDocument(() => {
-        window.addEventListener("message", ev => {
-            if (
-                ev &&
-                ev.data &&
-                (ev.data.type === "auto-gamer-mouse-to-tap" ||
-                    ev.data.type === "auto-gamer-mouse-to-drag" ||
-                    ev.data.type === "auto-gamer-mouse-to-hold")
-            ) {
-                // 通过 puppeteer 暴露的函数转发到 Node 端
-                // @ts-ignore
-                window.__autoGamerSimulateTouch(ev.data);
-            }
-        });
-    });
-    await inject(page);
-    page.on("framenavigated", async () => {
-        await inject(page);
-    });
+
+    inject(page, tt, drag, hold);
 
     if (isLogin) {
         // 支持 node index.js login [url]
