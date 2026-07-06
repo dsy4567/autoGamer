@@ -17,6 +17,12 @@
 const loadScriptConfig = require("./config.default.js");
 const { runGame, eMain } = require("../../share/gameRunner.js");
 
+/** @type {Record<"top" | "middleTop", ["tt", number, number]>} */
+const tapBackBtn = {
+    top: ["tt", 46, 30],
+    middleTop: ["tt", 28, 76],
+};
+
 /**
  * @type {AutoGamer.ScriptFunction} ctx
  */
@@ -62,7 +68,7 @@ module.exports = async function (ctx) {
             ["tt", 539, 118],
             ["sleep", 3000],
             // 如果点到了小地图，再点一次右上角快捷导航
-            ["tt", 484, 77],
+            tapBackBtn.middleTop,
             ["sleep", 3000],
         ]);
 
@@ -84,10 +90,7 @@ module.exports = async function (ctx) {
         ]);
 
         // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭咖啡店页面
-        await action("关闭咖啡店页面", [
-            ["tt", 28, 76],
-            ["sleep", 5000],
-        ]);
+        await action("关闭咖啡店页面", [tapBackBtn.middleTop, ["sleep", 5000]]);
         // 等待用户干预
         if (scriptConfig.coffeeShopInterventionDelay > 0) {
             await action("咖啡店人工干预等待", [
@@ -133,9 +136,11 @@ module.exports = async function (ctx) {
 
         // TODO: 体力达到上限后无法摄取咖啡，在readme提醒 允许自定义咖啡
 
-        await action("点击确认", [
+        await action("点击确认和返回", [
             ["tt", 323, 318],
-            ["sleep", 5000],
+            ["sleep", 3000],
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
         ]);
 
         // 等待用户干预
@@ -167,7 +172,7 @@ module.exports = async function (ctx) {
             ["drag", 142, 365, 141, 319],
             ["sleep", 3000],
             ["tt", 497, 387],
-            ["sleep", 10000],
+            ["sleep", 5000],
         ]);
 
         await action("叫醒狗狗", [
@@ -479,11 +484,11 @@ module.exports = async function (ctx) {
         }
 
         await action("离开副本", [
-            ["tt", 28, 76],
+            tapBackBtn.middleTop,
             ["sleep", 1000],
-            ["tt", 28, 76],
+            tapBackBtn.middleTop,
             ["sleep", 1000],
-            ["tt", 28, 76],
+            tapBackBtn.middleTop,
             ["sleep", 5000],
             ["fn", config.checkpoint],
         ]);
@@ -493,9 +498,9 @@ module.exports = async function (ctx) {
     async function firstEnterMainGame() {
         await action("疯狂关闭弹窗", [
             // 左上角关闭按钮/误触菜单
-            ["tt", 46, 30],
+            tapBackBtn.top,
             ["sleep", 3000],
-            ["tt", 46, 30],
+            tapBackBtn.top,
             ["sleep", 3000],
 
             // 底部空白处
@@ -505,9 +510,9 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
 
             // 左上角靠下关闭按钮
-            ["tt", 28, 76],
+            tapBackBtn.middleTop,
             ["sleep", 5000],
-            ["tt", 28, 76],
+            tapBackBtn.middleTop,
             ["sleep", 5000],
         ]);
         await action("关闭弹窗后等待", [["sleep", 10000]]);
