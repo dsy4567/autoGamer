@@ -1,4 +1,15 @@
+#!/usr/bin/env node
+
+/**
+ * @fileoverview autoGamer 主程序，负责初始化环境、运行脚本等。
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
 // @ts-check
+"use strict";
 
 const path = require("path");
 const fs = require("fs");

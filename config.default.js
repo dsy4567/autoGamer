@@ -1,4 +1,13 @@
+/**
+ * @fileoverview 默认全局配置及加载用户自定义配置
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
 // @ts-check
+"use strict";
 
 // 警告：不建议直接修改此文件，请通过 <数据目录>/globalConfig.js 进行自定义配置。
 // 数据目录：开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/

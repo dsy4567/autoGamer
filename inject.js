@@ -1,4 +1,13 @@
+/**
+ * @fileoverview 注入增强功能到游戏页面
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
 // @ts-check
+"use strict";
 
 (() => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;

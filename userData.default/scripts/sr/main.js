@@ -1,8 +1,19 @@
-// @ts-check
+// ⚠️ 此文件在执行 init 或首次自动初始化时可能会被强制覆盖，请勿直接修改。
+// 如需自定义脚本逻辑，请将整个 scripts/sr/ 目录复制为新的 id（如 scripts/mySr/），在新目录修改并用新 id 运行：node index.js mySr
 
-// ⚠️ 此文件在执行 init 或首次自动初始化时会被强制覆盖，请勿直接修改。
-// 如需自定义脚本逻辑，请将整个 scripts/sr/ 目录复制为新的 id（如 scripts/mySr/），并用新 id 运行：node index.js mySr
+/**
+ * @fileoverview 脚本 崩坏：星穹铁道
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
+// @ts-check
+"use strict";
+
 /// <reference path="../../autoGamer.d.ts" />
+
 const loadScriptConfig = require("./config.default.js");
 const { runGame, eMain } = require("../../share/gameRunner.js");
 

@@ -1,4 +1,8 @@
+// ⚠️ 此文件在执行 init 或首次自动初始化时可能会被强制覆盖，请勿直接修改。
+// 如需自定义脚本逻辑，请将整个 share/gameRunner.js 复制为新的 id（如 share/myGameRunner.js），在新目录修改
+
 /**
+ * @fileoverview
  * autoGamer 项目核心类型声明
  *
  * 此文件为项目核心文件（utils.js / index.js / config.default.js / loadUserConfig.js）
@@ -11,7 +15,13 @@
  *     或相对路径调整后即可使用全局命名空间 AutoGamer 下的类型
  *
  * 注意：本文件不导出 userData.default/ 下脚本的类型，那些脚本继续使用 JSDoc。
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
  */
+
+// @ts-check
 
 import type { Browser, Page, GoToOptions, TouchHandle } from "puppeteer-core";
 

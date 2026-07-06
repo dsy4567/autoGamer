@@ -1,4 +1,13 @@
-//@ts-check
+/**
+ * @fileoverview 加载用户自定义配置文件，不存在则自动创建空配置
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
+// @ts-check
+"use strict";
 
 const fs = require("fs");
 const path = require("path");
@@ -19,13 +28,19 @@ function loadUserConfig(userConfigPath, ctx) {
                 ? `// 全局用户自定义配置
 // @ts-check
 /// <reference path="./autoGamer.d.ts" />
-/** @type {Partial<AutoGamer.GlobalConfig>} */
+/**
+ * @type {Partial<AutoGamer.GlobalConfig>}
+ * @see https://github.com/dsy4567/autoGamer/blob/main/config.default.js
+ */
 const config = {};
 module.exports = config;
 `
                 : `// 脚本id ${ctx.scriptId} 的用户自定义配置，优先于 scripts/${ctx.scriptId}/config.default.js
 // @ts-check
-/** @type {Partial<ReturnType<typeof import("../../scripts/${ctx.scriptId}/config.default.js")>>} */
+/**
+ * @type {Partial<ReturnType<typeof import("../../scripts/${ctx.scriptId}/config.default.js")>>}
+ * @see https://github.com/dsy4567/autoGamer/blob/main/userData.default/scripts/${ctx.scriptId}/config.default.js
+ */
 const config = {};
 module.exports = config;
 `,

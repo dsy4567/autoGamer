@@ -1,7 +1,18 @@
-// userData.default/share/gameRunner.js
-// 游戏启动/收尾通用流程共享库
-// 所有游戏脚本通过调用此函数完成页面跳转、miguInit、main执行、签到退出、REPL 等通用流程
-/// <reference path="../autoGamer.d.ts" />
+// ⚠️ 此文件在执行 init 或首次自动初始化时可能会被强制覆盖，请勿直接修改。
+// 如需自定义脚本逻辑，请将 share/gameRunner.js 复制为新的文件（如 share/myGameRunner.js）
+
+/**
+ * @fileoverview 游戏启动/收尾通用流程共享库
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
+// @ts-check
+"use strict";
+
+/// <reference path="../../autoGamer.d.ts" />
 
 const { miguInit, actionsInCloudGameBallAndExit } = require("./migu.js");
 

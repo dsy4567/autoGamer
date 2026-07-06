@@ -1,8 +1,18 @@
-// userData.default/share/migu.js
-// 咪咕快游云游戏平台通用操作集合
-// 提供悬浮球签到、退出等跨脚本复用的功能
+// ⚠️ 此文件在执行 init 或首次自动初始化时可能会被强制覆盖，请勿直接修改。
+// 如需自定义脚本逻辑，请将 share/migu.js 复制为新的文件（如 share/myMigu.js）
 
-/// <reference path="../autoGamer.d.ts" />
+/**
+ * @fileoverview 咪咕快游云游戏平台通用操作集合
+ * @author dsy4567
+ * @license
+ * Copyright (c) 2025~2026 dsy4567
+ * SPDX-License-Identifier: MIT
+ */
+
+// @ts-check
+"use strict";
+
+/// <reference path="../../autoGamer.d.ts" />
 
 /**
  * @param {AutoGamer.ScriptCtx} ctx
