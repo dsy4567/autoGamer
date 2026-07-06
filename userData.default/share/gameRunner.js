@@ -88,7 +88,7 @@ function checkUpdateDate(updateDates) {
  * @param {AutoGamer.EvalFn} _eval 用于 REPL 中执行代码的 eval 函数
  */
 async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
-    const { page, log, getGlobalConfig, createUtils } = ctx;
+    const { page, log, getGlobalConfig, createUtils, browser } = ctx;
     const { startAutoScreenshot, setTaskTimeout, startRepl } = createUtils(
         ctx,
         _eval,
@@ -114,15 +114,17 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
   - 或在命令行中添加参数: --force-run
 注意监控程序是否操作异常
   `);
+        await browser.close();
         process.exit(1);
     }
 
     log(`游戏：${gameName}`);
     log("等待页面加载");
     await page.goto(scriptConfig.gameUrl, config.pageloadOptions);
-    page.on("load", () => {
+    page.on("load", async () => {
         if (page.url() !== "about:blank") return;
         log("游戏已退出，程序退出");
+        await browser.close();
         process.exit(0);
     });
 

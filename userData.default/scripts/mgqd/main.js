@@ -89,6 +89,7 @@ module.exports = async function (ctx) {
         await action("领取额外云豆完成", [["sleep", 5000 + length * 3000]]);
 
         log("签到完成，程序退出");
+        await browser.close();
         process.exit(0);
     }
 

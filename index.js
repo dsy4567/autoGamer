@@ -23,6 +23,23 @@ let _logWriteFile = () => {};
 /** 日志增强钩子，初始为空函数，后续赋值在网页展示日志 @type {(str: string) => void} */
 let _logWriteHtml = () => {};
 
+/** 浏览器实例引用，用于退出前关闭 @type {import("puppeteer-core").Browser | null} */
+let _browser = null;
+/** 是否正在主动关闭浏览器，防止 disconnected 事件重复退出 @type {boolean} */
+let _isExiting = false;
+
+/** 关闭浏览器后退出进程 @param {number} code */
+async function _closeBrowserAndExit(code, exit = true) {
+    _isExiting = true;
+    try {
+        log("尝试正常关闭浏览器");
+        await _browser?.close();
+    } catch (e) {
+        log("浏览器似乎已经关闭，直接退出");
+    }
+    exit && process.exit(code);
+}
+
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
 /** 输出日志并触发写文件钩子 @param {...any} args */
 const log = (...args) => {
@@ -51,7 +68,7 @@ const _exitWarnings = [];
 /** 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝 @type {string | null} */
 let _errorLogFile = null;
 
-process.on("uncaughtException", err => {
+process.on("uncaughtException", async err => {
     // 例外：允许使用 console.error 而不是 log/logRaw
     console.error("ERROR: 未捕获的异常:", err);
     if (_errorLogFile) {
@@ -62,10 +79,10 @@ process.on("uncaughtException", err => {
             );
         } catch (e) {}
     }
-    process.exit(1);
+    await _closeBrowserAndExit(1);
 });
 
-process.on("unhandledRejection", (reason, promise) => {
+process.on("unhandledRejection", async (reason, promise) => {
     // 例外：允许使用 console.error 而不是 log/logRaw
     console.error("ERROR: 未处理的 Promise 拒绝:", reason);
     if (_errorLogFile) {
@@ -77,7 +94,7 @@ process.on("unhandledRejection", (reason, promise) => {
             );
         } catch (e) {}
     }
-    process.exit(1);
+    await _closeBrowserAndExit(1);
 });
 
 // 退出时输出警告消息
@@ -90,13 +107,15 @@ function _printExitWarnings() {
 }
 
 process.on("exit", _printExitWarnings);
-process.on("SIGINT", () => {
+process.on("beforeExit", () => _closeBrowserAndExit(0, false));
+
+process.on("SIGINT", async () => {
     _printExitWarnings();
-    process.exit(1);
+    await _closeBrowserAndExit(0);
 });
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
     _printExitWarnings();
-    process.exit(1);
+    await _closeBrowserAndExit(1);
 });
 
 /**
@@ -461,14 +480,16 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         userDataDir,
         args: config.puppeteerArgs,
     });
+    _browser = browser;
     browser.on("disconnected", () => {
+        if (_isExiting) return;
         log("所有浏览器窗口已关闭，程序退出");
         process.exit(0);
     });
+    const page = await browser.newPage();
     const pages = await browser.pages();
-    const [page] = pages;
-    for (const p of pages.slice(1)) {
-        await p.close();
+    for (const p of pages) {
+        if (p !== page) await p.close();
     }
     await page.bringToFront();
     await page.setUserAgent(config.mobileUA);
@@ -550,13 +571,13 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         // 执行操作脚本（按脚本 id 解析）
         if (!scriptId) {
             log("ERROR: 脚本 id 无效");
-            process.exit(1);
+            return await _closeBrowserAndExit(1);
         }
 
         const scriptPath = path.join(dataDir, "scripts", scriptId, "main.js");
         if (!fs.existsSync(scriptPath)) {
             log("ERROR: 找不到脚本:", scriptPath);
-            process.exit(1);
+            return await _closeBrowserAndExit(1);
         }
 
         log("加载操作脚本:", scriptPath);
@@ -565,7 +586,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         const script = require(scriptPath);
         if (typeof script !== "function") {
             log("ERROR: 脚本文件需导出一个 async function");
-            process.exit(1);
+            return await _closeBrowserAndExit(1);
         }
 
         try {
