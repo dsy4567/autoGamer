@@ -418,6 +418,33 @@ function createUtils(ctx, _eval = eval) {
                         Math.max(0, Number(wscOpts.threshold) || 0.9),
                     );
                     const inverse = Boolean(wscOpts.inverse);
+                    const referenceFile = wscOpts.referenceFile
+                        ? path.resolve(String(wscOpts.referenceFile))
+                        : null;
+
+                    // clip 校验：提供时必须包含完整属性
+                    /** @type {{x: number, y: number, width: number, height: number} | undefined} */
+                    let clip;
+                    if (wscOpts.clip !== undefined && wscOpts.clip !== null) {
+                        const c = wscOpts.clip;
+                        if (
+                            typeof c !== "object" ||
+                            c.x === undefined ||
+                            c.y === undefined ||
+                            c.width === undefined ||
+                            c.height === undefined
+                        ) {
+                            throw new Error(
+                                "waitSceneChange 的 clip 属性不完整，需包含 x, y, width, height",
+                            );
+                        }
+                        clip = {
+                            x: Number(c.x),
+                            y: Number(c.y),
+                            width: Number(c.width),
+                            height: Number(c.height),
+                        };
+                    }
 
                     if (timeout <= 0) {
                         if (shouldPassAfterThis) _actionEndAtPassed = true;
@@ -425,28 +452,47 @@ function createUtils(ctx, _eval = eval) {
                     }
 
                     const startTime = Date.now();
+
+                    /**
+                     * 截图（应用 clip 裁剪区域）
+                     * @param {string} label 截图标签
+                     * @returns {Promise<Buffer>}
+                     */
+                    const takeScreenshot = async label => {
+                        return await screenshot(label, {
+                            returnBuffer: true,
+                            ...(clip ? { clip } : {}),
+                        });
+                    };
+
                     /** @type {Buffer | null} */
                     let prevBuffer = null;
 
-                    // 首次截图
-                    while (true) {
-                        try {
-                            prevBuffer = await screenshot(
-                                "waitSceneChange-基准",
-                                {
-                                    returnBuffer: true,
-                                },
-                            );
-                            break;
-                        } catch (e) {
-                            if (Date.now() - startTime >= timeout) {
-                                throw new Error("等待场景变化超时");
+                    if (referenceFile) {
+                        prevBuffer = fs.readFileSync(referenceFile);
+                        log(
+                            "waitSceneChange 使用指定文件作为基准图:",
+                            referenceFile,
+                        );
+                    } else {
+                        // 首次截图
+                        while (true) {
+                            try {
+                                prevBuffer =
+                                    await takeScreenshot(
+                                        "waitSceneChange-基准",
+                                    );
+                                break;
+                            } catch (e) {
+                                if (Date.now() - startTime >= timeout) {
+                                    throw new Error("等待场景变化超时");
+                                }
+                                log(
+                                    "WARNING: waitSceneChange 首次截图失败，3秒后重试:",
+                                    e,
+                                );
+                                await sleep(3000);
                             }
-                            log(
-                                "WARNING: waitSceneChange 首次截图失败，3秒后重试:",
-                                e,
-                            );
-                            await sleep(3000);
                         }
                     }
 
@@ -510,10 +556,8 @@ function createUtils(ctx, _eval = eval) {
 
                         let currentBuffer;
                         try {
-                            currentBuffer = await screenshot(
-                                "waitSceneChange-比对",
-                                { returnBuffer: true },
-                            );
+                            currentBuffer =
+                                await takeScreenshot("waitSceneChange-比对");
                         } catch (e) {
                             if (Date.now() - startTime >= timeout) {
                                 throw new Error("等待场景变化超时");
@@ -527,7 +571,7 @@ function createUtils(ctx, _eval = eval) {
                         }
 
                         const similarity = calculateSimilarity(
-                            prevBuffer,
+                            /** @type {Buffer} */ (prevBuffer),
                             currentBuffer,
                         );
                         log(`场景相似度: ${similarity.toFixed(4)}`);
