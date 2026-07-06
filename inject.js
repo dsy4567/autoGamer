@@ -137,7 +137,10 @@
         if (_x !== null && _x !== undefined && _x !== "") mousePos.x = +_x;
         if (_y !== null && _y !== undefined && _y !== "") mousePos.y = +_y;
         if (_extraHtml) extraHtml = _extraHtml;
-        if (_extraContent) extraContent = _extraContent;
+        if (_extraContent)
+            extraContent =
+                _extraContent.substring(0, 50) +
+                (_extraContent.length > 50 ? "..." : "");
         indicator.textContent = `X: ${mousePos.x}, Y: ${mousePos.y}${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
         }${extraContent}`;
