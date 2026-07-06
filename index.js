@@ -159,6 +159,7 @@ async function inject(page, tt, drag, hold) {
             },
         );
         while (fs.existsSync(injectPath)) {
+            if (page.isClosed()) break;
             // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
             await page.waitForNavigation({
                 timeout: 0,
