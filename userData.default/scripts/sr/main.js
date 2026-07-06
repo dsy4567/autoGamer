@@ -99,6 +99,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 196, 155],
             ["sleep", 1000],
+            ["fn", config.checkpoint],
         ]);
 
         await action("关闭每日实训页面", [
@@ -205,6 +206,10 @@ module.exports = async function (ctx) {
                 }
             }
 
+            action("检查点", [["fn", config.checkpoint]], {
+                screenshot: false,
+            });
+
             await action("退出关卡", [
                 ["tt", 215, 435],
                 ["sleep", 10000],
@@ -232,6 +237,7 @@ module.exports = async function (ctx) {
                     ["sleep", 1000],
                     ["tt", 377, 154],
                     ["sleep", 1000],
+                    ["fn", config.checkpoint],
                 ]);
 
                 await action("关闭每日实训", [
@@ -269,6 +275,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 433, 396],
             ["sleep", 1000],
+            ["fn", config.checkpoint],
         ]);
 
         await action("关闭纪行页面", [

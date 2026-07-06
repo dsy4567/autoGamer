@@ -85,6 +85,16 @@ module.exports = async function (ctx) {
             ["tt", 28, 76],
             ["sleep", 5000],
         ]);
+        // 等待用户干预
+        if (scriptConfig.coffeeShopInterventionDelay > 0) {
+            log(
+                `----------请在 ${scriptConfig.coffeeShopInterventionDelay}ms 内完成人工干预----------`,
+            );
+            await action("咖啡店人工干预等待", [
+                ["sleep", scriptConfig.coffeeShopInterventionDelay],
+                ["fn", config.checkpoint],
+            ]);
+        }
     }
 
     /** 前往咖啡店 */
@@ -107,9 +117,10 @@ module.exports = async function (ctx) {
         await action("点击点单按钮（默认汀曼特调）", [
             ["tt", 580, 381],
             ["sleep", 20 * 1000],
+            ["fn", config.checkpoint],
         ]);
 
-        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒
+        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒 允许自定义咖啡
 
         await action("点击确认", [
             ["tt", 323, 318],
@@ -123,6 +134,7 @@ module.exports = async function (ctx) {
             );
             await action("咖啡店人工干预等待", [
                 ["sleep", scriptConfig.coffeeShopInterventionDelay],
+                ["fn", config.checkpoint],
             ]);
         }
     }
@@ -170,6 +182,7 @@ module.exports = async function (ctx) {
         await action("点击确认", [
             ["tt", 323, 318],
             ["sleep", 1000],
+            ["fn", config.checkpoint],
         ]);
 
         await action("关闭刮刮卡、报刊亭页面", [
@@ -255,6 +268,8 @@ module.exports = async function (ctx) {
         await action("点击确定", [
             ["tt", 379, 279],
             ["sleep", 1000],
+            // 开业大吉
+            ["fn", config.checkpoint],
             ["tt", 318, 276],
             ["sleep", 3000],
         ]);
@@ -287,6 +302,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 400, 395],
             ["sleep", 1000],
+            ["fn", config.checkpoint],
         ]);
 
         await action("关闭纪行奖励页面", [
@@ -310,6 +326,7 @@ module.exports = async function (ctx) {
         await action("点击确认", [
             ["tt", 327, 322],
             ["sleep", 1000],
+            ["fn", config.checkpoint],
         ]);
 
         await action("关闭手册", [
@@ -439,6 +456,7 @@ module.exports = async function (ctx) {
             await action("点击完成/开始战斗", [
                 ["tt", 556, 398],
                 ["sleep", 20000],
+                ["fn", config.checkpoint],
             ]);
         }
 
@@ -449,6 +467,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 28, 76],
             ["sleep", 5000],
+            ["fn", config.checkpoint],
         ]);
     }
 
