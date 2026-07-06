@@ -112,6 +112,8 @@
     let altPressed = false;
     /** 人工干预激活时为 true，使指示器保持可见 */
     let miActive = false;
+    /** 是否将生成的操作代码写入剪贴板（默认关，Alt+C 切换） */
+    let clipboardEnabled = false;
 
     let mousePos = {
             x: 0,
@@ -151,7 +153,7 @@
         }
         indicator.textContent = `X: ${mousePos.x}, Y: ${mousePos.y}${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
-        }${extraContent}`;
+        }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
         indicator.innerHTML += extraHtml;
     };
     const showIndicator = () => {
@@ -225,8 +227,9 @@
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
+Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
 Alt + m       人工干预后继续（仅干预期间生效）<br>
-Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
+Alt + 鼠标左键 模拟 tap/drag/hold`,
             );
         }
         if (e.key === "b" && e.altKey) {
@@ -239,6 +242,11 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
                 alwaysHideOverlay ? "none" : "block",
                 "important",
             );
+        }
+        if (e.key === "c" && e.altKey) {
+            clipboardEnabled = !clipboardEnabled;
+            updateIndicator();
+            showIndicator();
         }
     });
     window.addEventListener("keyup", e => {
@@ -377,7 +385,9 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
                     cmd = `await action("", [["tt", ${e.clientX}, ${e.clientY}], ["sleep", 3000]]);`;
                 }
 
-                navigator.clipboard.writeText(cmd).catch(() => {});
+                if (clipboardEnabled) {
+                    navigator.clipboard.writeText(cmd).catch(() => {});
+                }
                 dragStart = {
                     x: 0,
                     y: 0,
