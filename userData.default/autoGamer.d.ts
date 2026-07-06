@@ -52,8 +52,20 @@ declare global {
             | ["sleep", number]
             | [
                   "fn",
-                  (desc: string, ctx: UtilsCtx, ...args: any[]) => any,
+                  (
+                      desc: string,
+                      ctx: ScriptCtx | UtilsCtx,
+                      ...args: any[]
+                  ) => any,
                   any[],
+              ]
+            | [
+                  "fn",
+                  (
+                      desc: string,
+                      ctx: ScriptCtx | UtilsCtx,
+                      ...args: any[]
+                  ) => any,
               ];
 
         /** 操作数组 */
@@ -377,7 +389,11 @@ declare global {
             /** 日志文件夹数量警告阈值，logs/ 下所有脚本子目录中文件夹总数超过此值时，退出时提醒清理 */
             logCleanupWarningThreshold: number;
             /** 检查点处理函数，可能被脚本调用 */
-            checkpoint: (desc: string, ctx: ScriptCtx, ...args: any[]) => any;
+            checkpoint: (
+                desc: string,
+                ctx: ScriptCtx | UtilsCtx,
+                ...args: any[]
+            ) => any;
         }
     }
 }

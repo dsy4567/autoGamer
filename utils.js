@@ -143,7 +143,7 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
 }
 
 /**
- * @param {AutoGamer.UtilsCtx} ctx
+ * @param {AutoGamer.UtilsCtx | AutoGamer.ScriptCtx} ctx
  * @param {AutoGamer.EvalFn} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
 function createUtils(ctx, _eval = eval) {
@@ -388,13 +388,51 @@ function createUtils(ctx, _eval = eval) {
 
         /** action 核心执行逻辑 */
         const _runActionCore = async () => {
-            // 特殊操作：等待场景大幅变化
+            const doOpsArray = async (
+                /** @type {AutoGamer.OperationArray | string[] | string | undefined} */ ops,
+            ) => {
+                if (!ops || !Array.isArray(ops)) return;
+                for (const op of ops || []) {
+                    if (!Array.isArray(op)) continue;
+                    if (op[0] === "fn") {
+                        // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
+                        // 通过 await 执行，不处理抛错
+                        const userFn = op[1];
+                        const userArgs = op[2] || [];
+                        await userFn(description, ctx, ...userArgs);
+                        continue;
+                    }
+                    const [fnName, ...args] = op;
+                    const fn =
+                        /** @type {Record<string, (...args: any[]) => any>} */ ({
+                            ts,
+                            te,
+                            tm,
+                            tt,
+                            pc,
+                            hold,
+                            sleep,
+                            drag,
+                        })[fnName];
+                    if (!fn) {
+                        log(
+                            `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
+                        );
+                        continue;
+                    }
+                    await fn(...args);
+                }
+            };
+
+            // 特殊操作：等待场景大幅变化，里面有 return 语句
             if (description === "waitSceneChange") {
                 if (_waitSceneChangeInProgress) {
                     throw new Error("waitSceneChange 已有实例正在执行中");
                 }
                 _waitSceneChangeInProgress = true;
+
                 try {
+                    // 处理边界情况
                     /** @type {AutoGamer.WaitSceneChangeOptions} */
                     const wscOpts =
                         typeof options === "object" && options !== null
@@ -516,38 +554,7 @@ function createUtils(ctx, _eval = eval) {
 
                         // 复查阶段为纯观察阶段，暂停执行 operations 数组，避免干扰验证
                         if (!inRecheckPhase) {
-                            for (const op of operations || []) {
-                                if (op[0] === "fn") {
-                                    // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
-                                    // 通过 await 执行，不处理抛错
-                                    const fnOp = /** @type {any} */ (op);
-                                    /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
-                                    const userFn = fnOp[1];
-                                    /** @type {any[]} */
-                                    const userArgs = fnOp[2] || [];
-                                    await userFn(description, ctx, ...userArgs);
-                                    continue;
-                                }
-                                const [fnName, ...args] = op;
-                                const fn =
-                                    /** @type {Record<string, (...args: any[]) => any>} */ ({
-                                        ts,
-                                        te,
-                                        tm,
-                                        tt,
-                                        pc,
-                                        hold,
-                                        sleep,
-                                        drag,
-                                    })[fnName];
-                                if (!fn) {
-                                    log(
-                                        `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
-                                    );
-                                    continue;
-                                }
-                                await fn(...args);
-                            }
+                            await doOpsArray(operations);
                         }
 
                         if (Date.now() - startTime >= timeout) {
@@ -633,36 +640,7 @@ function createUtils(ctx, _eval = eval) {
 
             log("ACTION:", description);
 
-            for (const op of operations || []) {
-                if (op[0] === "fn") {
-                    // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
-                    // 通过 await 执行，不处理抛错
-                    const fnOp = /** @type {any} */ (op);
-                    /** @type {(desc: string, ctx: any, ...args: any[]) => any} */
-                    const userFn = fnOp[1];
-                    /** @type {any[]} */
-                    const userArgs = fnOp[2] || [];
-                    await userFn(description, ctx, ...userArgs);
-                    continue;
-                }
-                const [fnName, ...args] = op;
-                const fn =
-                    /** @type {Record<string, (...args: any[]) => any>} */ ({
-                        ts,
-                        te,
-                        tm,
-                        tt,
-                        pc,
-                        hold,
-                        sleep,
-                        drag,
-                    })[fnName];
-                if (!fn) {
-                    log(`WARNING: action 中存在未知操作 "${fnName}"，已跳过`);
-                    continue;
-                }
-                await fn(...args);
-            }
+            await doOpsArray(operations);
 
             /** @type {AutoGamer.ActionOptions} */
             const aOpts =
