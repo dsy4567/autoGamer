@@ -71,11 +71,11 @@ module.exports = function (ctx) {
         /** 自定义卡组选项的间隔，单位像素 */
         customCardGroupSpacing: 115,
         /** 进入副本前预留人工干预时间（毫秒） */
-        manualInterventionDelay: 0 * 1000,
+        manualInterventionDelay: 15 * 1000,
         /** 咖啡店操作完成后预留人工干预时间（毫秒） */
-        coffeeShopInterventionDelay: 0 * 1000,
+        coffeeShopInterventionDelay: 15 * 1000,
         /** 报刊亭操作完成后预留人工干预时间（毫秒） */
-        magazineShopInterventionDelay: 0 * 1000,
+        magazineShopInterventionDelay: 15 * 1000,
         /** 副本预计战斗时长（毫秒） */
         dungeonFightTimeout: 10 * 60 * 1000,
         /** 材料本-自定义模板序号，范围 [0, 4] */
