@@ -35,6 +35,7 @@ module.exports = function (ctx) {
      *     initialWait: number,
      *     afterStartGame: number,
      *   },
+     *   coffeeIndex: 0 | 1 | 2 | 3 | 4,
      *   selectPromoterActions: AutoGamer.Operation[],
      *   customCardGroupSpacingOffset: [number, number],
      *   customCardGroupSpacing: number,
@@ -42,7 +43,7 @@ module.exports = function (ctx) {
      *   coffeeShopInterventionDelay: number,
      *   magazineShopInterventionDelay: number,
      *   dungeonFightTimeout: number,
-     *   customTemplateIndex: number,
+     *   customTemplateIndex: 0 | 1 | 2 | 3 | 4,
      *   dungeonRunCount: number,
      *   customFightActions: any[],
      * }}
@@ -64,6 +65,8 @@ module.exports = function (ctx) {
             /** 点击开始游戏后等待读条 */
             afterStartGame: 30 * 1000,
         },
+        /** 材料本-自定义模板序号，从0开始计数，范围 [0, 4]，默认浓缩咖啡 */
+        coffeeIndex: 1,
         /** 录像店-邦布-选择宣传员，要选择的宣传员坐标，默认第一个即邦布 */
         selectPromoterActions: [["tt", 205, 175]],
         /** customCardGroupSpacing 偏移量，单位像素 */
@@ -78,7 +81,7 @@ module.exports = function (ctx) {
         magazineShopInterventionDelay: 15 * 1000,
         /** 副本预计战斗时长（毫秒） */
         dungeonFightTimeout: 10 * 60 * 1000,
-        /** 材料本-自定义模板序号，范围 [0, 4] */
+        /** 材料本-自定义模板序号，从0开始计数，范围 [0, 4] */
         customTemplateIndex: 0,
         /** 刷本次数，默认 3 次 */
         dungeonRunCount: 3,

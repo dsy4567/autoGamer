@@ -118,9 +118,16 @@ module.exports = async function (ctx) {
             ["sleep", 5000],
         ]);
 
-        await action("点击点单按钮（默认汀曼特调）", [
+        await action("选择咖啡", [
+            ["tt", 45 + scriptConfig.coffeeIndex * 85, 340],
+            ["sleep", 3000],
+        ]);
+
+        await action("点击点单按钮", [
             ["tt", 580, 381],
-            ["sleep", 20 * 1000],
+            ["sleep", 5 * 1000],
+            ["tt", 544, 80],
+            ["sleep", 3000],
             ["fn", config.checkpoint],
         ]);
 
