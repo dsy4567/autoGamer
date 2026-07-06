@@ -463,7 +463,12 @@ Copyright (c) 2025~2026 dsy4567, MIT License
         log("所有浏览器窗口已关闭，程序退出");
         process.exit(0);
     });
-    const [page] = await browser.pages();
+    const pages = await browser.pages();
+    const [page] = pages;
+    for (const p of pages.slice(1)) {
+        await p.close();
+    }
+    await page.bringToFront();
     await page.setUserAgent(config.mobileUA);
     log("已设置移动端UA");
     const pageOpenTime = Date.now();
