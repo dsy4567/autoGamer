@@ -354,6 +354,9 @@ module.exports = async function (ctx) {
         await action("点击首页快捷导航", [
             ["tt", 539, 118],
             ["sleep", 3000],
+            // 如果点到了小地图，再点一次右上角快捷导航
+            ["tt", 484, 77],
+            ["sleep", 3000],
         ]);
 
         await action("选择HIA俱乐部", [
