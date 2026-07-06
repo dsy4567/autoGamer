@@ -141,6 +141,14 @@
             extraContent =
                 _extraContent.substring(0, 50) +
                 (_extraContent.length > 50 ? "..." : "");
+        // 鼠标距页面顶部 <= 50px 时，指示器靠下显示，避免遮挡
+        if (mousePos.y <= 64) {
+            indicator.style.setProperty("top", "auto", "important");
+            indicator.style.setProperty("bottom", "10px", "important");
+        } else {
+            indicator.style.setProperty("bottom", "auto", "important");
+            indicator.style.setProperty("top", "10px", "important");
+        }
         indicator.textContent = `X: ${mousePos.x}, Y: ${mousePos.y}${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
         }${extraContent}`;
