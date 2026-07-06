@@ -78,4 +78,4 @@ node index.js example
 
 Copyright (c) 2025~2026 dsy4567
 
-MIT License, 见 LICENSE 文件。
+GPL-3.0-or-later, 见 COPYING 文件。
