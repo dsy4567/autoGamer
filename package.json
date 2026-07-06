@@ -4,7 +4,7 @@
     "description": "专为第三方云游戏平台而生的自动化游戏工具，基于 Puppeteer",
     "main": "index.js",
     "author": "dsy4567",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
     "scripts": {
         "login": "node index.js login"
     },

@@ -5,7 +5,7 @@
  * @author dsy4567
  * @license
  * Copyright (c) 2025~2026 dsy4567
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier:GPL-3.0-or-later
  */
 
 // @ts-check
@@ -333,7 +333,7 @@ async function main() {
         // 例外：允许使用 console.log 而不是 log/logRaw
         console.log(`
 autoGamer - 基于 Puppeteer 的自动化游戏工具
-Copyright (c) 2025~2026 dsy4567, MIT License
+Copyright (c) 2025~2026 dsy4567,GPL-3.0-or-later License
 版本 1.0.0
 
 用法: node index.js [选项] <命令>
