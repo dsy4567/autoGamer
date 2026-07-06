@@ -472,7 +472,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
      *
      * @param {string} [msg=""] 干预说明
      * @param {number} [timeout=15000] 超时毫秒
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false
      */
     // @ts-ignore
     window.__autoGamer.requestManualIntervention = (
@@ -503,11 +503,11 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
                 showIndicator();
             };
 
-            const finish = () => {
+            const finish = /** @param {boolean} value */ value => {
                 if (resolved) return;
                 resolved = true;
                 cleanup();
-                resolve();
+                resolve(value);
             };
 
             const renderMiHtml = (/** @type {string} */ extraMsg) =>
@@ -524,7 +524,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
                 if (e.key === "m" && e.altKey) {
                     e.preventDefault();
                     e.stopPropagation();
-                    finish();
+                    finish(true);
                 }
             };
 
@@ -553,7 +553,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
                 remaining -= 1000;
 
                 if (remaining <= 0) {
-                    finish();
+                    finish(false);
                     return;
                 }
 

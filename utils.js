@@ -236,7 +236,7 @@ function createUtils(ctx, _eval = eval) {
      *
      * @param {string} [msg=""] 干预说明
      * @param {number} [timeout=15000] 超时毫秒
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false；调用失败时返回 false
      */
     const mi = async (msg = "", timeout = 15000) => {
         try {
@@ -247,7 +247,7 @@ function createUtils(ctx, _eval = eval) {
                 msg,
                 "==========",
             );
-            await page.evaluate(
+            const result = await page.evaluate(
                 (m, t) => {
                     // @ts-ignore window.__autoGamer 由 inject.js 注入，TS 无法识别
                     return window.__autoGamer.requestManualIntervention(m, t);
@@ -255,8 +255,10 @@ function createUtils(ctx, _eval = eval) {
                 msg,
                 timeout,
             );
+            return Boolean(result);
         } catch (/** @type {any} */ e) {
             log("WARNING: 人工干预调用失败，已跳过:", e?.message ?? e);
+            return false;
         }
     };
 

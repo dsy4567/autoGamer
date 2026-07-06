@@ -154,8 +154,9 @@ declare global {
              * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
              * @param [msg=""] 干预说明
              * @param [timeout=15000] 超时毫秒
+             * @returns 用户按 Alt+M 手动结束时返回 true，超时返回 false；调用失败时返回 false
              */
-            mi(msg?: string, timeout?: number): Promise<void>;
+            mi(msg?: string, timeout?: number): Promise<boolean>;
             /** 启动定时自动截图（默认间隔 30000ms），返回停止定时器的函数 */
             startAutoScreenshot(interval?: number): () => void;
             /**
