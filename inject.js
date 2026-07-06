@@ -159,7 +159,7 @@
         window.clearTimeout(setOpacityTimer);
         if (altPressed || miActive) return;
         setOpacityTimer = window.setTimeout(() => {
-            indicator.style.setProperty("opacity", "0", "important");
+            indicator.style.setProperty("opacity", "0.3", "important");
         }, 3000);
     };
     updateIndicator();
