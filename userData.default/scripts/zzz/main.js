@@ -102,7 +102,7 @@ module.exports = async function (ctx) {
     }
 
     /** 前往咖啡店 */
-    async function goCoffeeCoffeeShop() {
+    async function goCoffeeShop() {
         // await action("打开手册", [
         //     ["tt", 484, 30],
         //     ["sleep", 3000],
@@ -503,7 +503,7 @@ module.exports = async function (ctx) {
         await action("关闭弹窗后等待", [["sleep", 10000]]);
 
         await goSixthStreet();
-        await goCoffeeCoffeeShop();
+        await goCoffeeShop();
         await goMagazineShop();
         await goVideoShop();
         await getManualReward();
