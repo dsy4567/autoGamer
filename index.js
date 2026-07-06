@@ -450,7 +450,9 @@ Copyright (c) 2025~2026 dsy4567, MIT License
                 isLandscape: true,
             }),
         },
-        channel: "chrome",
+        ...(config.chromeExecPath
+            ? { executablePath: config.chromeExecPath }
+            : { channel: "chrome" }),
         userDataDir,
         args: config.puppeteerArgs,
     });

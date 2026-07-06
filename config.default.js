@@ -49,6 +49,8 @@ const defaultConfig = {
     useStealth: true,
     /** 数据目录（开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/） */
     dataDir,
+    /** Chrome 可执行文件路径（默认自动寻找已安装的 Chrome 浏览器） */
+    chromeExecPath: null,
     /** Puppeteer 启动参数 */
     puppeteerArgs: [
         "--no-sandbox",

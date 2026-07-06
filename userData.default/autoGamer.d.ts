@@ -358,6 +358,9 @@ declare global {
             /** 数据目录绝对路径 */
             /** 是否使用 Stealth 反检测插件 */
             useStealth: boolean;
+            /** Chrome 可执行文件路径（默认自动寻找已安装的 Chrome 浏览器） */
+            chromeExecPath: string | null;
+            /** 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/ */
             dataDir: string;
             /** Puppeteer 启动参数 */
             puppeteerArgs: string[];
