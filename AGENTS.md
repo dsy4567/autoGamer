@@ -5,13 +5,19 @@
 autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟触摸事件（tap/drag/hold等）驱动游戏操作，支持脚本化执行日常任务、自动截图和日志记录。
 
 ### 📁 目录结构
-- `index.js`             主入口
-- `inject.js`            注入脚本
-- `utils.js`             工具函数
-- `userData.default/scripts/*/*.js`   自动化脚本（每脚本一个子目录，含 .js 与 .config.default.js）
-- `userData.default/share/*.js`       共享函数
-- `**/*.config.default.js`  全局配置
-- `**/*.config.user.js`     用户配置
+- `index.js`                          主入口
+- `inject.js`                         注入脚本
+- `utils.js`                          工具函数
+- `config.default.js`                 全局默认配置
+- `loadUserConfig.js`                 用户配置加载器（不存在时自动创建空配置）
+- `jsconfig.json`                     TS 语言服务配置
+- `<dataDir>/scripts/<id>/main.js`          脚本入口
+- `<dataDir>/scripts/<id>/config.default.js` 脚本默认配置
+- `<dataDir>/scriptData/<id>/config.js` 脚本用户配置（覆盖 scripts/<id>/config.default.js，运行时生成）
+- `<dataDir>/logs/`            日志目录（按脚本 id 分子目录）
+- `<dataDir>/share/*.js`       共享函数
+- `<dataDir>/autoGamer.d.ts`   类型声明（供核心文件与 userData.default/ 下脚本消费）
+- `<dataDir>/globalConfig.js`         全局用户配置（覆盖 config.default.js，运行时生成）
 
 ---
 
@@ -60,100 +66,92 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 
 > Note: 允许随时编辑`AGENTS.md`文件的此部分，以完善避坑指南。
 
-### 1. 日志钩子与截图函数的递归调用
+### 1. 修改代码签名时同步更新 autoGamer.d.ts
 
-**场景**：`log()` 函数通过钩子 `_logScreenshot` 触发截图，截图函数内部又调用 `log()` 输出结果。
+**场景**：修改核心文件（utils.js / index.js / config.default.js / loadUserConfig.js）或 `userData.default/share/*.js` 中的函数参数、返回值、导出对象结构时，仅改了实现而忘了更新类型声明。
 
-**现象**：程序运行后截图调用堆积，函数在预期时间内无法正常完成，事件循环被大量异步调用阻塞。
+**现象**：脚本作者依据过时的 `autoGamer.d.ts` 拿到错误的补全与类型检查结果，调用签名对不上实际实现，运行时抛错或行为异常；后续维护者难以判断是类型声明错还是实现错。
 
-**根本原因**：形成递归调用链 `log() → _logScreenshot() → screenshot() → log("截图已保存:") → _logScreenshot() → ...`。虽然节流机制会在1秒后打断直接递归，但每次 `log()` 都产生一次 `screenshot()` 调用尝试，造成大量无效异步操作排队。
+**根本原因**：`autoGamer.d.ts` 是手写维护的，与实现没有自动同步机制；编辑器只看类型声明，不会警告实现与声明不一致。
 
-**错误示例**：
-
-```js
-// log 钩子无条件触发截图
-_logScreenshot = args => {
-    screenshot(label).catch(() => {});
-};
-
-// screenshot 内部调用 log，再次触发钩子
-const screenshot = async (label = "") => {
-    await page.screenshot({ path: filePath });
-    log("截图已保存:", filename);  // ← 再次触发 _logScreenshot
-};
-```
-
-**正确做法**：提供一个不触发截图钩子的 `logRaw` 函数，截图内部使用 `logRaw` 输出结果，打断递归链。
-
-```js
-// log 触发截图钩子
-const log = (...args) => {
-    console.log(...args);
-    _logScreenshot(args);
-};
-
-// 原始日志，不触发截图钩子，供截图函数自身使用以避免递归
-const logRaw = (...args) => {
-    console.log(...args);
-};
-
-const screenshot = async (label = "") => {
-    await page.screenshot({ path: filePath });
-    logRaw("截图已保存:", filename);  // ← 使用 logRaw，不会再次触发 _logScreenshot
-};
-```
+**正确做法**：每次改动涉及以下任一情况，都必须同步修改 `userData.default/autoGamer.d.ts`：
+- 函数参数个数、类型、可选性
+- 函数返回值类型（包括 Promise 包装）
+- 导出对象/接口的属性增删
+- `Operation` 元组、`Options` 接口等被脚本依赖的类型
 
 **预防措施**：
 
-- 任何通过钩子/回调连接的双向调用链，必须在一侧设置明确的终止条件
-- 设计钩子时考虑"自身输出是否会再次触发钩子"的问题
-- 需要日志输出时，注意合理选择 `log()` 或 `logRaw()`，避免无限递归。
-
-`***
-
-### 2. 异步函数的并发节流失效
-
-**场景**：`screenshot` 函数使用时间戳节流（1秒内限一张），但函数本身是 `async`，内部有 `await` 操作。
-
-**现象**：多个 `screenshot()` 调用同时通过节流检查，导致多个 `page.screenshot()` 并发执行，争抢 CDP 连接。
-
-**根本原因**：时间戳在函数入口更新，但 `await page.screenshot()` 期间其他调用也能通过节流检查（因为时间戳已经更新，间隔超过1秒），实际上多个截图操作同时在执行。
-
-**错误示例**：
-
-```js
-const screenshot = async (label = "") => {
-    if (now - _lastScreenshotTime < 1000) return;
-    _lastScreenshotTime = now;       // 时间戳已更新
-    await page.screenshot(...);      // 执行期间，其他调用可能也通过了节流检查
-};
-```
-
-**正确做法**：增加进行中标志（互斥锁），防止并发执行。
-
-```js
-let _screenshotInProgress = false;
-
-const screenshot = async (label = "") => {
-    if (now - _lastScreenshotTime < 1000) return;
-    if (_screenshotInProgress) return;   // 并发锁
-    _screenshotInProgress = true;
-    try {
-        await page.screenshot(...);
-    } finally {
-        _screenshotInProgress = false;   // 确保异常时也释放
-    }
-};
-```
-
-**预防措施**：
-
-- 对含 `await` 的异步函数，仅靠时间戳节流无法防止并发，必须配合互斥锁
-- 异步函数中的锁必须放在 `try/finally` 中确保释放
+- 把 `autoGamer.d.ts` 视作核心文件的"公共契约"，修改实现 = 修改契约
+- 提交前检查一下被改动的函数名/属性名是否出现在 `autoGamer.d.ts`
 
 ***
 
-### 3. 模块作用域 vs 函数作用域的状态变量
+### 2. 退出进程前必须先正常关闭浏览器
+
+**场景**：脚本运行结束、捕获到致命错误、收到退出信号、游戏页面跳转到 `about:blank` 等需要结束进程的分支，直接调用 `process.exit()`。
+
+**现象**：Chrome 进程残留、CDP 连接未正常断开、用户数据目录锁未释放，下一次启动可能因 `Profile` 锁占用而失败；日志/截图未完整落盘。
+
+**根本原因**：`process.exit()` 立即终止 Node 进程，puppeteer 没有机会向 Chrome 发送关闭命令，Chrome 子进程成为孤儿。
+
+**正确做法**：退出前 `await browser.close()` 再 `process.exit(code)`，即：
+
+```js
+await browser.close();
+process.exit(0);
+```
+
+主入口 `index.js` 已封装 `_closeBrowserAndExit(code)` 工具函数，优先使用它；在脚本/共享函数中如需自行退出，也必须遵循"先关浏览器再退出"的顺序。
+
+**预防措施**：
+
+- 任何 `process.exit()` 调用前，确保 `await browser.close()` 已经完成（注意 `await` 不能漏）
+- 捕获异常时也走关闭流程，可用 `try/finally` 保证浏览器被关闭
+
+***
+
+### 3. 使用 `===` 比较用户传参前先做类型转换
+
+**场景**：用户配置或命令行参数虽然语义上是布尔/数字，但实际可能传入字符串、数字等可转换但类型不一致的值，代码用 `===` 严格比较导致判断失败。
+
+**现象**：用户在配置文件里写 `forceRun: 1` 期望表示 `true`，代码中 `if (config.forceRun === true)` 不成立，逻辑被错误跳过；又如 `updateDates` 里写入数字 `20260707` 与字符串 `"20260707"` 比较。
+
+**根本原因**：`===` 不做隐式类型转换，用户输入（来自 JSON / 命令行 / 表单）默认是字符串或弱类型，与代码中字面量类型不一致时严格相等比较直接返回 `false`。
+
+**错误示例**：
+
+```js
+// 用户配置：{ forceRun: 1 }
+if (config.forceRun === true) { ... }   // 不成立，分支不执行
+
+// 用户配置：{ threshold: "0.9" }
+if (options.threshold === 0.9) { ... }  // 不成立
+```
+
+**正确做法**：对"类型极可能非预期但可转换"的参数，先显式转换再比较：
+
+```js
+// 布尔型参数：接受 true/false/1/0/"1"/"0"/"true"/"false" 等
+const forceRun = [true, 1, "1", "true"].includes(config.forceRun);
+
+// 数字型参数：先 Number() 再判断 NaN
+const threshold = Number(options.threshold);
+if (!Number.isNaN(threshold) && threshold >= 0.9) { ... }
+
+// 日期/字符串：统一 String() 后比较
+if (String(updateDate) === String(target)) { ... }
+```
+
+**预防措施**：
+
+- 在 `config.default.js` / 各 `config.default.js` 加载用户配置后，统一做归一化处理（字符串→数字、弱布尔→强布尔）
+- 自定义函数接收外部参数时，第一行先做类型归一化，再进入业务逻辑
+- 仅在能保证类型一致的内部代码（如已归一化的变量之间）使用 `===`；边界处先转换再比较
+
+***
+
+### 4. 模块作用域 vs 函数作用域的状态变量
 
 **场景**：`createUtils()` 可能被多次调用（不同脚本文件各自 `require("../utils.js")` 并调用 `createUtils(ctx)`）。
 
