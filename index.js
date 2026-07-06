@@ -161,10 +161,12 @@ async function inject(page, tt, drag, hold) {
         while (fs.existsSync(injectPath)) {
             if (page.isClosed()) break;
             // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
-            await page.waitForNavigation({
-                timeout: 0,
-                waitUntil: "domcontentloaded",
-            });
+            try {
+                await page.waitForNavigation({
+                    timeout: 0,
+                    waitUntil: "domcontentloaded",
+                });
+            } catch (e) {}
             await page.evaluate(alwaysHideOverlay => {
                 // @ts-ignore
                 window.__autoGamer = {
@@ -425,6 +427,7 @@ Copyright (c) 2025~2026 dsy4567, MIT License
     // 启动 Puppeteer
     log("启动浏览器...");
 
+    process.env.PUPPETEER_SKIP_DOWNLOAD = "true";
     /** @type {import("puppeteer-core")} */
     let puppeteer;
     if (config.useStealth) {
