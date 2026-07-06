@@ -195,11 +195,13 @@ async function inject(page, tt, drag, hold) {
                     alwaysHideOverlay,
                 };
             }, config.alwaysHideOverlay ?? false);
-            page.evaluate(fs.readFileSync(injectPath, "utf-8"));
+            page.evaluate(fs.readFileSync(injectPath, "utf-8")).catch(e =>
+                log("WARNING: inject.js 注入失败:", e),
+            );
             log("已注入 inject.js");
         }
     } catch (e) {
-        log("ERROR: inject.js 注入失败:", e);
+        log("WARNING: inject.js 注入失败:", e);
     }
 }
 
