@@ -165,6 +165,7 @@ module.exports = async function (ctx) {
 
                 await action("拉满挑战次数至24次", [
                     ["tt", 563, 398],
+                    ["sleep", 200],
                     ["tt", 564, 379],
                     ["sleep", 1000],
                 ]);
