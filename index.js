@@ -219,9 +219,7 @@ async function inject(page, tt, drag, hold) {
             );
             log("已注入 inject.js");
         }
-    } catch (e) {
-        log("WARNING: inject.js 注入失败:", e);
-    }
+    } catch (e) {}
 }
 
 /**
