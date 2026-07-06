@@ -90,11 +90,12 @@ module.exports = async function (ctx) {
         ]);
         // 等待用户干预
         if (scriptConfig.coffeeShopInterventionDelay > 0) {
-            log(
-                `----------请在 ${scriptConfig.coffeeShopInterventionDelay}ms 内完成人工干预----------`,
-            );
             await action("咖啡店人工干预等待", [
-                ["sleep", scriptConfig.coffeeShopInterventionDelay],
+                [
+                    "mi",
+                    "请及时完成人工干预（例如完成信赖任务），随后靠近咖啡店并结束干预",
+                    scriptConfig.coffeeShopInterventionDelay,
+                ],
                 ["fn", config.checkpoint],
             ]);
         }
@@ -132,11 +133,12 @@ module.exports = async function (ctx) {
 
         // 等待用户干预
         if (scriptConfig.coffeeShopInterventionDelay > 0) {
-            log(
-                `----------请在 ${scriptConfig.coffeeShopInterventionDelay}ms 内完成人工干预----------`,
-            );
             await action("咖啡店人工干预等待", [
-                ["sleep", scriptConfig.coffeeShopInterventionDelay],
+                [
+                    "mi",
+                    "请及时完成人工干预（例如完成信赖任务），随后在咖啡店附近结束干预",
+                    scriptConfig.coffeeShopInterventionDelay,
+                ],
                 ["fn", config.checkpoint],
             ]);
         }
@@ -197,11 +199,13 @@ module.exports = async function (ctx) {
 
         // 等待用户干预
         if (scriptConfig.magazineShopInterventionDelay > 0) {
-            log(
-                `----------请在 ${scriptConfig.magazineShopInterventionDelay}ms 内完成人工干预----------`,
-            );
             await action("报刊亭人工干预等待", [
-                ["sleep", scriptConfig.magazineShopInterventionDelay],
+                [
+                    "mi",
+                    "请及时完成人工干预（例如完成信赖任务），随后在报刊亭附近结束干预",
+                    scriptConfig.magazineShopInterventionDelay,
+                ],
+                ["fn", config.checkpoint],
             ]);
         }
     }
@@ -369,11 +373,12 @@ module.exports = async function (ctx) {
             return log("WARN: 自定义战斗操作为空，无法刷本");
         if (needGoHIA) await goHIA();
 
-        log(
-            `----------请在 ${scriptConfig.manualInterventionDelay / 1000}ms 内完成人工干预，并回到主界面，靠近柏莎----------`,
-        );
         await action("等待人工干预", [
-            ["sleep", scriptConfig.manualInterventionDelay],
+            [
+                "mi",
+                `请及时完成人工干预（例如 补充足够体力，预计战斗次数${scriptConfig.dungeonRunCount}），随后回到主界面，靠近柏莎 NPC并结束干预`,
+                scriptConfig.manualInterventionDelay,
+            ],
         ]);
 
         await action("与柏莎-材料本交互", [
