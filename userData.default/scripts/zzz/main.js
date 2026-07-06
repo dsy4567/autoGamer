@@ -129,12 +129,13 @@ module.exports = async function (ctx) {
         await action("点击点单按钮", [
             ["tt", 580, 381],
             ["sleep", 5 * 1000],
-            ["tt", 544, 80],
+            // 跳过
+            ["tt", 538, 105],
             ["sleep", 3000],
             ["fn", config.checkpoint],
         ]);
 
-        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒 允许自定义咖啡
+        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒 关闭特效提示
 
         await action("点击确认和返回", [
             ["tt", 323, 318],
