@@ -165,6 +165,12 @@ async function inject(page, tt, drag, hold) {
                 waitUntil: "domcontentloaded",
             });
             await page.evaluate(alwaysHideOverlay => {
+                // @ts-ignore
+                window.__autoGamer = {
+                    // @ts-ignore
+                    simulateTouch: window.__autoGamerSimulateTouch,
+                };
+
                 window.addEventListener("message", ev => {
                     if (
                         ev &&
@@ -176,13 +182,13 @@ async function inject(page, tt, drag, hold) {
                     ) {
                         // 通过 puppeteer 暴露的函数转发到 Node 端
                         // @ts-ignore
-                        window.__autoGamerSimulateTouch(ev.data);
+                        window.__autoGamer.simulateTouch(ev.data);
                     }
                 });
 
                 // 将全局配置注入页面，供 inject.js 读取
                 // @ts-ignore
-                window.__autoGamerConfig = {
+                window.__autoGamer.config = {
                     alwaysHideOverlay,
                 };
             }, config.alwaysHideOverlay ?? false);

@@ -9,12 +9,14 @@
 // @ts-check
 "use strict";
 
-(() => {
+(window => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
+    // @ts-ignore
+    window.__autoGamer = window.__autoGamer || {};
     /** @type {{ alwaysHideOverlay: boolean }} */
     // @ts-ignore
-    const autoGamerConfig = window.__autoGamerConfig || {};
+    const autoGamerConfig = window.__autoGamer.config || {};
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
     // 创建透明度为 0.01 的全屏遮罩
@@ -108,6 +110,8 @@
     document.documentElement.appendChild(indicator);
 
     let altPressed = false;
+    /** 人工干预激活时为 true，使指示器保持可见 */
+    let miActive = false;
 
     let mousePos = {
             x: 0,
@@ -142,7 +146,7 @@
     const showIndicator = () => {
         indicator.style.setProperty("opacity", "0.8", "important");
         window.clearTimeout(setOpacityTimer);
-        if (altPressed) return;
+        if (altPressed || miActive) return;
         setOpacityTimer = window.setTimeout(() => {
             indicator.style.setProperty("opacity", "0", "important");
         }, 3000);
@@ -210,6 +214,7 @@
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
+Alt + m       人工干预后继续（仅干预期间生效）<br>
 Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
             );
         }
@@ -405,9 +410,183 @@ Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
         .join("\n");
     document.head.appendChild(style);
 
+    /**
+     * 播放警告音
+     */
+    const playWarningSound = () => {
+        // 创建或复用 AudioContext（兼容写法）
+        // @ts-ignore
+        if (!window._warningAudioCtx) {
+            // @ts-ignore
+            window._warningAudioCtx = new // @ts-ignore
+            (window.AudioContext || window.webkitAudioContext)();
+        }
+        // @ts-ignore
+        const ctx = window._warningAudioCtx;
+
+        // 如果浏览器自动暂停了音频上下文，恢复它
+        if (ctx.state === "suspended") {
+            ctx.resume();
+        }
+
+        const now = ctx.currentTime;
+
+        // 播放三声急促警告音
+        for (let i = 0; i < 3; i++) {
+            const startTime = now + i * 0.15; // 每声间隔 0.15 秒
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            // 方波 + 1200Hz 高频，听起来很有紧迫感
+            osc.type = "square";
+            osc.frequency.setValueAtTime(1200, startTime);
+
+            // 音量设置并快速淡出，避免爆音
+            gain.gain.setValueAtTime(0.3, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.08);
+        }
+    };
+    // @ts-ignore
+    window.__autoGamer.playWarningSound = playWarningSound;
+
+    /**
+     * 请求人工干预
+     *
+     * 行为：
+     *  - 立即通过指示器显示 msg 与操作说明，并启动倒计时
+     *  - 倒计时期间每秒更新剩余时间，并调用 playWarningSound()
+     *  - 监听到 touchstart 后，取消倒计时，切换提示为"按 Alt+M 继续"
+     *  - 倒计时结束 / 用户按下 Alt+M -> 兑现 promise，并清理监听
+     *
+     * Node.js 端通过 page.evaluate 调用并 await 返回的 Promise
+     *
+     * @param {string} [msg=""] 干预说明
+     * @param {number} [timeout=15000] 超时毫秒
+     * @returns {Promise<void>}
+     */
+    // @ts-ignore
+    window.__autoGamer.requestManualIntervention = (
+        msg = "",
+        timeout = 15000,
+    ) => {
+        return new Promise(resolve => {
+            let resolved = false;
+            /** @type {number | undefined} */
+            let interval = undefined;
+            let touched = false;
+            let remaining = timeout;
+
+            const cleanup = () => {
+                if (interval !== undefined) {
+                    window.clearInterval(interval);
+                    interval = undefined;
+                }
+                window.removeEventListener(
+                    "touchstart",
+                    onTouchStartOrMouseDown,
+                    true,
+                );
+                window.removeEventListener("keydown", onKeyDown, true);
+                miActive = false;
+                // 传 " " 以覆盖并清空旧的 extraHtml（updateIndicator 仅在 truthy 时覆盖）
+                updateIndicator(null, null, "", " ");
+                showIndicator();
+            };
+
+            const finish = () => {
+                if (resolved) return;
+                resolved = true;
+                cleanup();
+                resolve();
+            };
+
+            const renderMiHtml = (/** @type {string} */ extraMsg) =>
+                `<br>${msg}<br><span style="color: red;">${extraMsg}</span><br>如不需要人工干预功能，请编辑脚本配置`;
+
+            const onTouchStartOrMouseDown = () => {
+                if (resolved || touched) return;
+                touched = true;
+                showIndicator();
+            };
+
+            const onKeyDown = /** @param {KeyboardEvent} e */ e => {
+                if (resolved) return;
+                if (e.key === "m" && e.altKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    finish();
+                }
+            };
+
+            window.addEventListener("mousedown", onTouchStartOrMouseDown, true);
+            window.addEventListener(
+                "touchstart",
+                onTouchStartOrMouseDown,
+                true,
+            );
+            window.addEventListener("keydown", onKeyDown, true);
+
+            miActive = true;
+            updateIndicator(
+                null,
+                null,
+                " [人工干预中]",
+                renderMiHtml(
+                    `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
+                        remaining / 1000,
+                    )}s，执行操作以停止计时)`,
+                ),
+            );
+            showIndicator();
+
+            interval = window.setInterval(() => {
+                remaining -= 1000;
+
+                if (remaining <= 0) {
+                    finish();
+                    return;
+                }
+
+                playWarningSound();
+
+                if (touched) {
+                    clearInterval(interval);
+                    updateIndicator(
+                        null,
+                        null,
+                        " [人工干预中]",
+                        renderMiHtml(
+                            `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (已停止计时，请尽快操作)`,
+                        ),
+                    );
+                    showIndicator();
+                } else {
+                    updateIndicator(
+                        null,
+                        null,
+                        " [人工干预中]",
+                        renderMiHtml(
+                            `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
+                                remaining / 1000,
+                            )}s，执行操作以停止计时)`,
+                        ),
+                    );
+                    showIndicator();
+                }
+            }, 1000);
+        });
+    };
+
     // hook console.log
     // let originalLog = console.log;
     // console.log = function (...args) {
     //     originalLog.apply(console, args);
     // };
-})();
+})(window);

@@ -40,6 +40,7 @@ declare global {
          * - ["drag", fx, fy, tx, ty, dur?]  拖拽（dur 默认 500ms）
          * - ["sleep", ms]           延时
          * - ["fn", fn, args]        自定义函数，fn(desc, ctx, ...args) 通过 await 执行，不处理抛错
+         * - ["mi", msg, ms]         请求人工干预，ms 为超时毫秒，默认 15000
          */
         type Operation =
             | ["ts", number, number]
@@ -66,7 +67,8 @@ declare global {
                       ctx: ScriptCtx | UtilsCtx,
                       ...args: any[]
                   ) => any,
-              ];
+              ]
+            | ["mi", string?, number?];
 
         /** 操作数组 */
         type OperationArray = Operation[];
@@ -148,6 +150,12 @@ declare global {
             ): Promise<void>;
             /** 延时等待 */
             sleep(ms: number): Promise<void>;
+            /**
+             * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
+             * @param [msg=""] 干预说明
+             * @param [timeout=15000] 超时毫秒
+             */
+            mi(msg?: string, timeout?: number): Promise<void>;
             /** 启动定时自动截图（默认间隔 30000ms），返回停止定时器的函数 */
             startAutoScreenshot(interval?: number): () => void;
             /**
@@ -214,6 +222,7 @@ declare global {
              *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
              *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
              *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
+             *  - `action('<操作描述>',[['mi', msg?:string, ms:number?], ...])` — 请求人工干预，ms 为超时毫秒，默认 15000
              *
              * 特殊操作：
              *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?, clip?, referenceFile?})` — 等待场景大幅变化，每次循环执行一次操作数组（复查阶段暂停执行操作数组）

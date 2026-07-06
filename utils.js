@@ -225,6 +225,38 @@ function createUtils(ctx, _eval = eval) {
      * @returns {Promise<void>}
      */
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+    /**
+     * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
+     *
+     * 通过 page.evaluate 调用页面端 window.__autoGamer.requestManualIntervention
+     * 并 await 其返回的 Promise。如果页面端调用失败，会打印 WARNING 并静默返回，
+     * 避免脚本因页面未注入或执行异常而中断。
+     *
+     * @param {string} [msg=""] 干预说明
+     * @param {number} [timeout=15000] 超时毫秒
+     * @returns {Promise<void>}
+     */
+    const mi = async (msg = "", timeout = 15000) => {
+        try {
+            log(
+                "请求人工干预，超时毫秒:",
+                timeout,
+                "\n==========",
+                msg,
+                "==========",
+            );
+            await page.evaluate(
+                (m, t) => {
+                    // @ts-ignore window.__autoGamer 由 inject.js 注入，TS 无法识别
+                    return window.__autoGamer.requestManualIntervention(m, t);
+                },
+                msg,
+                timeout,
+            );
+        } catch (/** @type {any} */ e) {
+            log("WARNING: 人工干预调用失败，已跳过:", e?.message ?? e);
+        }
+    };
 
     /**
      * 统一的自动化操作函数，自动处理流程控制、日志、截图
@@ -413,6 +445,7 @@ function createUtils(ctx, _eval = eval) {
                             hold,
                             sleep,
                             drag,
+                            mi,
                         })[fnName];
                     if (!fn) {
                         log(
@@ -752,6 +785,7 @@ action() 部分用法:
   hold(x, y, duration?) - 长按(duration默认100ms)
   drag(fromX, fromY, toX, toY, duration?) - 拖拽(duration默认500ms)
   sleep(ms) - 延时等待
+  mi(msg, timeout?) - 请求人工干预，触摸后按 Alt+M 继续 (timeout默认60000ms)
   ts(x, y) - 触摸开始; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
   te() - 触摸结束; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
   tm(x, y) - 触摸移动; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
@@ -1081,6 +1115,7 @@ action() 部分用法:
         pc,
         hold,
         sleep,
+        mi,
         startRepl,
         drag,
         setTaskTimeout,

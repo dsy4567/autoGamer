@@ -58,7 +58,7 @@ const defaultConfig = {
         "--use-gl=swiftshader",
         "--disable-gpu-compositing",
 
-        "--mute-audio",
+        // "--mute-audio",
         "--password-store=basic",
 
         "--deny-permission-prompts", // 自动拒绝权限请求，不弹出确认框
