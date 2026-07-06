@@ -68,7 +68,7 @@ module.exports = async function (ctx) {
             ["tt", 539, 118],
             ["sleep", 3000],
             // 如果点到了小地图，再点一次右上角快捷导航
-            tapBackBtn.middleTop,
+            ["tt", 484, 77],
             ["sleep", 3000],
         ]);
 
