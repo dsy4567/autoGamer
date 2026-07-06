@@ -6,7 +6,7 @@
  * @author dsy4567
  * @license
  * Copyright (c) 2025~2026 dsy4567
- * SPDX-License-Identifier:GPL-3.0-or-later
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 // @ts-check
