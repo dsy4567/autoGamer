@@ -12,11 +12,10 @@
 (() => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
-    let devMode = false;
     /** @type {{ alwaysHideOverlay: boolean }} */
     // @ts-ignore
     const autoGamerConfig = window.__autoGamerConfig || {};
-    const alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
+    let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
     // 创建透明度为 0.01 的全屏遮罩
     const overlay = document.createElement("div");
@@ -26,7 +25,7 @@
     overlay.style.setProperty("left", "0", "important");
     overlay.style.setProperty("width", "100vw", "important");
     overlay.style.setProperty("height", "100vh", "important");
-    overlay.style.setProperty("background", "rgba(0,0,0,0.99)", "important");
+    overlay.style.setProperty("background", "rgba(0,0,0,0.999)", "important");
     overlay.style.setProperty("z-index", "1000001", "important");
     overlay.style.setProperty("pointer-events", "none", "important");
     if (alwaysHideOverlay) {
@@ -41,7 +40,7 @@
 
     // 鼠标离开遮罩时重新显示
     document.documentElement.addEventListener("mouseleave", function () {
-        if (devMode || alwaysHideOverlay) return;
+        if (alwaysHideOverlay) return;
         overlay.style.setProperty("display", "block", "important");
     });
 
@@ -198,7 +197,9 @@
                 "rgb(255,100,0)",
                 "important",
             );
-            devMode = true;
+
+            e.preventDefault();
+            e.stopPropagation();
         }
         if (e.key === "h" && e.altKey) {
             updateIndicator(
@@ -208,15 +209,20 @@
                 `<br>
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
+Alt + o       隐藏/显示遮罩<br>
 Alt + 鼠标左键 模拟 tap/drag/hold，并复制代码到剪贴板`,
             );
-            e.preventDefault();
-            e.stopPropagation();
         }
         if (e.key === "b" && e.altKey) {
             toggleBallVisible();
-            e.preventDefault();
-            e.stopPropagation();
+        }
+        if (e.key === "o" && e.altKey) {
+            alwaysHideOverlay = !alwaysHideOverlay;
+            overlay.style.setProperty(
+                "display",
+                alwaysHideOverlay ? "none" : "block",
+                "important",
+            );
         }
     });
     window.addEventListener("keyup", e => {

@@ -893,10 +893,18 @@ action() 部分用法:
         try {
             logRaw("准备截图");
             overlayWasVisible = await page.evaluate(() => {
-                const el = document.getElementById("auto-gamer-overlay");
-                if (!el) return false;
-                const visible = el.style.getPropertyValue("display") !== "none";
-                el.style.setProperty("display", "none", "important");
+                const overlay = document.getElementById("auto-gamer-overlay");
+                if (!overlay) return false;
+
+                const visible =
+                    overlay.style.getPropertyValue("display") !== "none";
+                overlay.style.setProperty("display", "none", "important");
+
+                const indicator = document.getElementById(
+                    "auto-gamer-mouse-indicator",
+                );
+                indicator?.style.setProperty("display", "none", "important");
+
                 return visible;
             });
 
@@ -949,11 +957,21 @@ action() 部分用法:
         } finally {
             try {
                 await page.evaluate(wasVisible => {
-                    const el = document.getElementById("auto-gamer-overlay");
-                    if (el) {
-                        el.style.setProperty(
+                    const overlay =
+                        document.getElementById("auto-gamer-overlay");
+                    if (overlay) {
+                        overlay.style.setProperty(
                             "display",
                             wasVisible ? "block" : "none",
+                            "important",
+                        );
+
+                        const indicator = document.getElementById(
+                            "auto-gamer-mouse-indicator",
+                        );
+                        indicator?.style.setProperty(
+                            "display",
+                            "block",
                             "important",
                         );
                     }
