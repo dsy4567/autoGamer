@@ -76,6 +76,7 @@ const defaultConfig = {
         "--disable-hang-monitor", // 禁用无响应监控，防止长时间脚本被终止
         "--disable-plugins", // 禁用NPAPI插件
         "--disable-renderer-backgrounding", // 禁用渲染器后台化
+        "--disable-restore-session-state", // 禁用会话恢复
         "--disable-sync", // 禁用Chrome同步功能
     ],
     /** 默认登录页 */
