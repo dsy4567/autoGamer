@@ -88,8 +88,10 @@ function formatLocalTimeWithTz(date = new Date()) {
  * @throws {Error} 当两张图片尺寸不一致时抛出
  */
 function calculateSimilarity(buf1, buf2, blockSize = 16) {
-    const png1 = PNG.sync.read(buf1);
-    const png2 = PNG.sync.read(buf2);
+    const b1 = Buffer.isBuffer(buf1) ? buf1 : Buffer.from(buf1);
+    const b2 = Buffer.isBuffer(buf2) ? buf2 : Buffer.from(buf2);
+    const png1 = PNG.sync.read(b1);
+    const png2 = PNG.sync.read(b2);
 
     if (png1.width !== png2.width || png1.height !== png2.height) {
         throw new Error(
@@ -945,7 +947,7 @@ action() 部分用法:
                     raceTimeout,
                 ]);
                 logRaw("截图已获取(buffer)");
-                return /** @type {Buffer} */ (buffer);
+                return Buffer.from(/** @type {Buffer} */ (buffer));
             }
 
             const timeStr = formatLocalTimeWithTz();
