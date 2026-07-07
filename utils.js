@@ -426,9 +426,13 @@ function createUtils(ctx, _eval = eval) {
         const _runActionCore = async () => {
             const doOpsArray = async (
                 /** @type {AutoGamer.OperationArray | string[] | string | undefined} */ ops,
+                /** @type {() => boolean} */ shouldPauseCheck = () => false,
             ) => {
                 if (!ops || !Array.isArray(ops)) return;
                 for (const op of ops || []) {
+                    // 检查是否需要暂停，如需要则立即退出循环
+                    if (shouldPauseCheck()) break;
+
                     if (!Array.isArray(op)) continue;
                     if (op[0] === "fn") {
                         // 自定义函数操作：["fn", (desc, ctx, ...args) => any, [...args]]
@@ -496,6 +500,23 @@ function createUtils(ctx, _eval = eval) {
                     const referenceFile = wscOpts.referenceFile
                         ? path.resolve(String(wscOpts.referenceFile))
                         : null;
+
+                    // 检测 operations 是否包含 sleep 操作
+                    const hasSleep =
+                        Array.isArray(operations) &&
+                        operations.some(
+                            /** @type {(op: any) => boolean} */ op =>
+                                Array.isArray(op) && op[0] === "sleep",
+                        );
+                    if (
+                        !hasSleep &&
+                        Array.isArray(operations) &&
+                        operations.length > 0
+                    ) {
+                        log(
+                            "WARNING: waitSceneChange 的 operations 数组未包含 sleep 操作，可能导致高频循环，已跳过 operations 执行",
+                        );
+                    }
 
                     // clip 校验：提供时必须包含完整属性
                     /** @type {{x: number, y: number, width: number, height: number} | undefined} */
@@ -574,102 +595,143 @@ function createUtils(ctx, _eval = eval) {
                     let recheckPassed = 0; // 已通过的复查次数
                     let inRecheckPhase = false; // 是否进入复查阶段
 
-                    while (true) {
-                        const elapsed = Date.now() - startTime;
-                        if (elapsed >= timeout) {
-                            throw new Error("等待场景变化超时");
-                        }
+                    // 并行执行模式：使用共享状态变量协调并行流程
+                    let pauseOpsLoop = false; // 是否暂停 operations 循环
+                    let shouldStop = false; // 是否停止所有流程
 
-                        const currentInterval = inRecheckPhase
-                            ? recheckInterval
-                            : normalInterval;
-                        const waitTime = Math.min(
-                            currentInterval,
-                            timeout - elapsed,
-                        );
-                        await sleep(waitTime);
+                    // 流程A：截图比对流程
+                    const sceneChangeDetector = (async () => {
+                        while (Date.now() - startTime < timeout) {
+                            const elapsed = Date.now() - startTime;
 
-                        // 复查阶段为纯观察阶段，暂停执行 operations 数组，避免干扰验证
-                        if (!inRecheckPhase) {
-                            await doOpsArray(operations);
-                        }
+                            // 等待下一个截图时间点
+                            const currentInterval = inRecheckPhase
+                                ? recheckInterval
+                                : normalInterval;
+                            const waitTime = Math.min(
+                                currentInterval,
+                                timeout - elapsed,
+                            );
+                            await sleep(waitTime);
 
-                        if (Date.now() - startTime >= timeout) {
-                            throw new Error("等待场景变化超时");
-                        }
-
-                        let currentBuffer;
-                        try {
-                            currentBuffer =
-                                await takeScreenshot("waitSceneChange-比对");
-                        } catch (e) {
                             if (Date.now() - startTime >= timeout) {
+                                shouldStop = true;
                                 throw new Error("等待场景变化超时");
                             }
-                            log(
-                                "WARNING: waitSceneChange 截图失败，3秒后重试:",
-                                /** @type {any} */ (e).message,
-                            );
-                            await sleep(3000);
-                            continue;
-                        }
 
-                        const similarity = calculateSimilarity(
-                            /** @type {Buffer} */ (prevBuffer),
-                            currentBuffer,
-                        );
-                        log(`场景相似度: ${similarity.toFixed(4)}`);
-
-                        const conditionMet = inverse
-                            ? similarity >= threshold
-                            : similarity < threshold;
-
-                        if (conditionMet) {
-                            if (recheckCount >= 1) {
-                                if (!inRecheckPhase) {
-                                    inRecheckPhase = true;
-                                    log(
-                                        "条件首次满足，进入复查阶段（间隔强制3秒，暂停执行操作数组）",
+                            let currentBuffer;
+                            try {
+                                currentBuffer =
+                                    await takeScreenshot(
+                                        "waitSceneChange-比对",
                                     );
+                            } catch (e) {
+                                if (Date.now() - startTime >= timeout) {
+                                    shouldStop = true;
+                                    throw new Error("等待场景变化超时");
                                 }
-                                recheckPassed++;
                                 log(
-                                    `条件满足，复查进度: ${recheckPassed}/${recheckCount}`,
+                                    "WARNING: waitSceneChange 截图失败，3秒后重试:",
+                                    /** @type {any} */ (e).message,
                                 );
-                                if (recheckPassed >= recheckCount) {
+                                await sleep(3000);
+                                continue;
+                            }
+
+                            const similarity = calculateSimilarity(
+                                /** @type {Buffer} */ (prevBuffer),
+                                currentBuffer,
+                            );
+                            log(`场景相似度: ${similarity.toFixed(4)}`);
+
+                            const conditionMet = inverse
+                                ? similarity >= threshold
+                                : similarity < threshold;
+
+                            if (conditionMet) {
+                                if (recheckCount >= 1) {
+                                    if (!inRecheckPhase) {
+                                        inRecheckPhase = true;
+                                        pauseOpsLoop = true; // 暂停 operations 循环
+                                        log(
+                                            "条件首次满足，进入复查阶段（暂停 operations 循环）",
+                                        );
+                                    }
+                                    recheckPassed++;
+                                    log(
+                                        `条件满足，复查进度: ${recheckPassed}/${recheckCount}`,
+                                    );
+                                    if (recheckPassed >= recheckCount) {
+                                        shouldStop = true; // 停止所有流程
+                                        log(
+                                            inverse
+                                                ? "场景未发生变化（已复查确认），继续执行"
+                                                : "场景已发生大幅变化（已复查确认），继续执行",
+                                        );
+                                        if (shouldPassAfterThis)
+                                            _actionEndAtPassed = true;
+                                        return;
+                                    }
+                                    // 继续下一次循环进行复查
+                                } else {
+                                    shouldStop = true; // 停止所有流程
                                     log(
                                         inverse
-                                            ? "场景未发生变化（已复查确认），继续执行"
-                                            : "场景已发生大幅变化（已复查确认），继续执行",
+                                            ? "场景未发生变化，继续执行"
+                                            : "场景已发生大幅变化，继续执行",
                                     );
                                     if (shouldPassAfterThis)
                                         _actionEndAtPassed = true;
                                     return;
                                 }
-                                // 继续下一次循环进行复查
                             } else {
-                                log(
-                                    inverse
-                                        ? "场景未发生变化，继续执行"
-                                        : "场景已发生大幅变化，继续执行",
-                                );
-                                if (shouldPassAfterThis)
-                                    _actionEndAtPassed = true;
-                                return;
+                                // 条件不满足，重置复查计数和复查阶段
+                                if (recheckPassed > 0) {
+                                    pauseOpsLoop = false; // 恢复 operations 循环
+                                    log(
+                                        `条件不再满足，复查计数已重置 (${recheckPassed} → 0)，退出复查阶段`,
+                                    );
+                                    recheckPassed = 0;
+                                    inRecheckPhase = false;
+                                }
                             }
-                        } else {
-                            // 条件不满足，重置复查计数和复查阶段
-                            if (recheckPassed > 0) {
-                                log(
-                                    `条件不再满足，复查计数已重置 (${recheckPassed} → 0)，退出复查阶段`,
-                                );
-                                recheckPassed = 0;
-                                inRecheckPhase = false;
-                            }
+
+                            prevBuffer = currentBuffer;
                         }
 
-                        prevBuffer = currentBuffer;
-                    }
+                        // 超时
+                        shouldStop = true;
+                        throw new Error("等待场景变化超时");
+                    })();
+
+                    // 流程B：operations 循环流程（仅在有 sleep 且有 operations 时启动）
+                    const opsLoop =
+                        hasSleep &&
+                        Array.isArray(operations) &&
+                        operations.length > 0
+                            ? (async () => {
+                                  while (!shouldStop) {
+                                      if (pauseOpsLoop) {
+                                          await sleep(100); // 暂停期间短暂休眠避免空转
+                                          continue;
+                                      }
+                                      try {
+                                          await doOpsArray(
+                                              operations,
+                                              () => shouldStop || pauseOpsLoop,
+                                          );
+                                      } catch (e) {
+                                          log(
+                                              "WARNING: waitSceneChange operations 执行错误:",
+                                              /** @type {any} */ (e).message,
+                                          );
+                                      }
+                                  }
+                              })()
+                            : Promise.resolve();
+
+                    // 等待两个流程都结束
+                    await Promise.all([sceneChangeDetector, opsLoop]);
                 } finally {
                     _waitSceneChangeInProgress = false;
                 }

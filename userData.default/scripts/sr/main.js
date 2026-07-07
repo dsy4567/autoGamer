@@ -296,11 +296,18 @@ module.exports = async function (ctx) {
         // ]);
 
         try {
-            await action("waitSceneChange", [["tt", 432, 281]], {
-                threshold: 0.9,
-                timeout: 10 * 60 * 1000,
-                interval: 10000,
-            });
+            await action(
+                "waitSceneChange",
+                [
+                    ["tt", 432, 281],
+                    ["sleep", 5000],
+                ],
+                {
+                    threshold: 0.9,
+                    timeout: 10 * 60 * 1000,
+                    interval: 10000,
+                },
+            );
             await action("检测到场景变化后点击开始游戏", [
                 ["sleep", 3000],
                 ["tt", 432, 281],

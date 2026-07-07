@@ -444,37 +444,24 @@ module.exports = async function (ctx) {
             let fightFinished = false;
 
             // 并行执行：waitSceneChange 检测结算画面 + 循环执行战斗操作
-            await Promise.all([
-                (async () => {
-                    try {
-                        await action("waitSceneChange", [], {
-                            threshold: 0.99,
-                            interval: 5000,
-                            timeout: scriptConfig.dungeonFightTimeout,
-                            inverse: true,
-                            recheckCount: 3,
-                        });
-                    } catch (e) {
-                        log("WARNING: 检测结算画面超时，兜底等待");
-                        await action("战斗兜底等待", [
-                            ["sleep", scriptConfig.dungeonFightTimeout],
-                        ]);
-                    } finally {
-                        fightFinished = true;
-                    }
-                })(),
-                (async () => {
-                    while (!fightFinished) {
-                        await action(
-                            "执行战斗操作",
-                            scriptConfig.customFightActions,
-                            {
-                                screenshot: false,
-                            },
-                        );
-                    }
-                })(),
-            ]);
+            try {
+                await action(
+                    "waitSceneChange",
+                    scriptConfig.customFightActions,
+                    {
+                        threshold: 0.99,
+                        interval: 5000,
+                        timeout: scriptConfig.dungeonFightTimeout,
+                        inverse: true,
+                        recheckCount: 3,
+                    },
+                );
+            } catch (e) {
+                log("WARNING: 检测结算画面超时，兜底等待");
+                await action("战斗兜底等待", [
+                    ["sleep", scriptConfig.dungeonFightTimeout],
+                ]);
+            }
 
             // 来不及检测，会点到开始战斗
             await action("点击完成/开始战斗", [
