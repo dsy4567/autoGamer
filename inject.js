@@ -34,7 +34,7 @@ setTimeout(() => {
     if (alwaysHideOverlay) {
         overlay.style.setProperty("display", "none", "important");
     }
-    document.body.appendChild(overlay);
+    document.documentElement.appendChild(overlay);
 
     // 鼠标移入遮罩时隐藏它
     document.documentElement.addEventListener("mouseenter", function () {
@@ -581,7 +581,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                         null,
                         " [人工干预中]",
                         renderMiHtml(
-                            `Alt+鼠标左键进行操作，完成后<span style="color: red;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
+                            `Alt+鼠标左键进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
                         ),
                     );
                     showIndicator();
