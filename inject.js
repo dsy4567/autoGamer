@@ -209,11 +209,8 @@
             altPressed = true;
             updateIndicator();
             showIndicator();
-            indicator.style.setProperty(
-                "background",
-                "rgb(255,100,0)",
-                "important",
-            );
+            indicator.style.setProperty("background", "#66ccff", "important");
+            indicator.style.setProperty("color", "#000", "important");
 
             e.preventDefault();
             e.stopPropagation();
@@ -266,6 +263,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 "rgb(0,0,0)",
                 "important",
             );
+            indicator.style.setProperty("color", "#fff", "important");
         }
         if (e.key === "h" || !e.altKey) {
             updateIndicator(null, null, "", " ");
