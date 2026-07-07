@@ -568,8 +568,6 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             showIndicator();
 
             interval = window.setInterval(() => {
-                remaining -= 1000;
-
                 if (remaining <= 0) {
                     finish(false);
                     return;
@@ -578,25 +576,25 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 playWarningSound();
 
                 if (touched) {
-                    clearInterval(interval);
                     updateIndicator(
                         null,
                         null,
                         " [人工干预中]",
                         renderMiHtml(
-                            `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (已停止计时，请尽快操作)`,
+                            `Alt+鼠标左键进行操作，完成后<span style="color: red;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
                         ),
                     );
                     showIndicator();
                 } else {
+                    remaining -= 1000;
                     updateIndicator(
                         null,
                         null,
                         " [人工干预中]",
                         renderMiHtml(
-                            `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
+                            `(剩余 ${Math.ceil(
                                 remaining / 1000,
-                            )}s，执行操作以停止计时)`,
+                            )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) Alt+鼠标左键进行操作，完成后按 Alt+M 继续`,
                         ),
                     );
                     showIndicator();
