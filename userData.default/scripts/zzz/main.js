@@ -42,6 +42,8 @@ module.exports = async function (ctx) {
         scriptId,
         startAtChain,
         endAtChain,
+        getInstanceInfo,
+        enableHotReload,
     } = ctx;
     const {
         ts,
@@ -58,9 +60,12 @@ module.exports = async function (ctx) {
         setTaskTimeout,
         compareScreenshot,
         action,
+        mi,
     } = createUtils(ctx, code => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
+
+    enableHotReload();
 
     /** 传送到六分街-咖啡店 */
     async function goSixthStreet() {

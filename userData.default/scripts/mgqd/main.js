@@ -35,6 +35,8 @@ module.exports = async function (ctx) {
         scriptId,
         startAtChain,
         endAtChain,
+        getInstanceInfo,
+        enableHotReload,
     } = ctx;
     const {
         ts,

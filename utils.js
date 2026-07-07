@@ -25,35 +25,41 @@ let _lastScreenshotTime = 0;
 let _screenshotInProgress = false;
 // 放在模块作用域，确保开发模式截图警告只输出一次
 let _devScreenshotWarned = false;
+
 // 放在模块作用域，确保 createUtils 多次调用时任务超时定时器全局共享
 /**
  * @type {NodeJS.Timeout | null}
  */
 let _taskTimer = null;
-// 放在模块作用域，确保全局只有一个 waitSceneChange 在执行
-let _waitSceneChangeInProgress = false;
 
-// 放在模块作用域，确保 createUtils 多次调用时 action 的 start-at/end-at 状态全局共享
-/** --start-at 解析后的描述链（null 表示未指定） @type {string[] | null} */
-let _actionStartAtChain = null;
-/** 当前已匹配到 start-at 链的第几个索引 */
-let _actionStartAtIndex = 0;
-/** 是否已到达 start-at 锚点 */
-let _actionStartAtReached = false;
-/** --end-at 解析后的描述链（null 表示未指定） @type {string[] | null} */
-let _actionEndAtChain = null;
-/** 当前已匹配到 end-at 链的第几个索引 */
-let _actionEndAtIndex = 0;
-/** 是否已到达 end-at 锚点 */
-let _actionEndAtReached = false;
-/** 是否已执行完 end-at 锚点 action，后续应全部跳过 */
-let _actionEndAtPassed = false;
-/** action 状态是否已完成初始化（仅从 ctx 解析一次） */
-let _actionStateInitialized = false;
-/** action 调试模式是否开启 */
-let _actionDbgEnabled = false;
-/** 调试模式下挂起的 action 任务队列 @type {Array<{resolve: (value?: any) => void, reject: (e?: any) => void, task: () => Promise<void>, description: string}>} */
-let _actionDbgQueue = [];
+// 按实例维护 action 状态，开发模式热重载时各实例互不污染
+/** @type {Map<string, AutoGamer.ActionState>} */
+const _actionStateMap = new Map();
+
+/** 当前活跃的 REPL 会话，开发模式下复用 @type {import("readline").Interface | null} */
+let _activeRl = null;
+/** 当前 REPL 使用的 eval 函数，热重载时更新 @type {AutoGamer.EvalFn} */
+let _replEval = eval;
+
+/**
+ * 创建默认的 action 状态
+ * @returns {AutoGamer.ActionState}
+ */
+function _createDefaultActionState() {
+    return {
+        startAtChain: null,
+        startAtIndex: 0,
+        startAtReached: false,
+        endAtChain: null,
+        endAtIndex: 0,
+        endAtReached: false,
+        endAtPassed: false,
+        stateInitialized: false,
+        dbgEnabled: false,
+        dbgQueue: [],
+        waitSceneChangeInProgress: false,
+    };
+}
 
 /**
  * 将 Date 格式化为本地时间字符串（带时区偏移），文件系统安全
@@ -150,12 +156,34 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
  */
 function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
+    const info = ctx.getInstanceInfo?.();
+    const instanceId = info?.instanceId ?? "default";
+
+    /**
+     * 检查当前实例是否已销毁，销毁时清理该实例的 action 状态
+     * @returns {boolean}
+     */
+    const isInstanceDestroyed = () => {
+        if (info?.isDestroyed) {
+            // _actionStateMap.delete(instanceId);
+            return true;
+        }
+        return false;
+    };
+
+    // 按实例初始化 action 状态
+    if (!_actionStateMap.has(instanceId)) {
+        _actionStateMap.set(instanceId, _createDefaultActionState());
+    }
+    const state = /** @type {AutoGamer.ActionState} */ (
+        _actionStateMap.get(instanceId)
+    );
 
     // 从 ctx 初始化 --start-at / --end-at 描述链（仅初始化一次，后续 action("startAt"/"endAt") 可覆盖）
-    if (!_actionStateInitialized) {
-        _actionStateInitialized = true;
-        _actionStartAtChain = ctx.startAtChain ?? null;
-        _actionEndAtChain = ctx.endAtChain ?? null;
+    if (!state.stateInitialized) {
+        state.stateInitialized = true;
+        state.startAtChain = ctx.startAtChain ?? null;
+        state.endAtChain = ctx.endAtChain ?? null;
     }
 
     /**
@@ -287,6 +315,8 @@ function createUtils(ctx, _eval = eval) {
      * @returns {Promise<void>}
      */
     const action = async (description, operations, options) => {
+        if (isInstanceDestroyed()) return;
+
         // 特殊指令：覆盖 start-at
         if (description === "startAt") {
             const chain =
@@ -296,14 +326,13 @@ function createUtils(ctx, _eval = eval) {
                       ? operations
                       : null;
             if (!chain) {
-                log(
-                    "WARNING: action startAt 参数无效，应为 string 或 string[]",
+                throw new Error(
+                    "action startAt 参数无效，应为 string 或 string[]",
                 );
-                return;
             }
-            _actionStartAtChain = chain;
-            _actionStartAtIndex = 0;
-            _actionStartAtReached = false;
+            state.startAtChain = chain;
+            state.startAtIndex = 0;
+            state.startAtReached = false;
             log(`action startAt 已覆盖: ${chain.join("#")}`);
             return;
         }
@@ -317,26 +346,27 @@ function createUtils(ctx, _eval = eval) {
                       ? operations
                       : null;
             if (!chain) {
-                log("WARNING: action endAt 参数无效，应为 string 或 string[]");
-                return;
+                throw new Error(
+                    "action endAt 参数无效，应为 string 或 string[]",
+                );
             }
-            _actionEndAtChain = chain;
-            _actionEndAtIndex = 0;
-            _actionEndAtReached = false;
-            _actionEndAtPassed = false;
+            state.endAtChain = chain;
+            state.endAtIndex = 0;
+            state.endAtReached = false;
+            state.endAtPassed = false;
             log(`action endAt 已覆盖: ${chain.join("#")}`);
             return;
         }
 
         // 特殊指令：切换调试模式
         if (description === "toggleDbg") {
-            _actionDbgEnabled = !_actionDbgEnabled;
-            log(`action 调试模式: ${_actionDbgEnabled ? "开启" : "关闭"}`);
-            if (!_actionDbgEnabled && _actionDbgQueue.length > 0) {
+            state.dbgEnabled = !state.dbgEnabled;
+            log(`action 调试模式: ${state.dbgEnabled ? "开启" : "关闭"}`);
+            if (!state.dbgEnabled && state.dbgQueue.length > 0) {
                 log(
-                    `action 调试模式关闭，自动兑现 ${_actionDbgQueue.length} 个挂起任务`,
+                    `action 调试模式关闭，自动兑现 ${state.dbgQueue.length} 个挂起任务`,
                 );
-                const queue = _actionDbgQueue.splice(0, _actionDbgQueue.length);
+                const queue = state.dbgQueue.splice(0, state.dbgQueue.length);
                 for (const {
                     resolve,
                     reject,
@@ -357,7 +387,7 @@ function createUtils(ctx, _eval = eval) {
 
         // 特殊指令：调试模式下执行下一个挂起的 action
         if (description === "next") {
-            const nextAction = _actionDbgQueue.shift();
+            const nextAction = state.dbgQueue.shift();
             if (!nextAction) {
                 log("WARNING: action next 无挂起的调试任务");
                 return;
@@ -375,7 +405,7 @@ function createUtils(ctx, _eval = eval) {
 
         // 特殊指令：调试模式下跳过下一个挂起的 action（直接 resolve，不执行操作）
         if (description === "skip") {
-            const skipAction = _actionDbgQueue.shift();
+            const skipAction = state.dbgQueue.shift();
             if (!skipAction) {
                 log("WARNING: action skip 无挂起的调试任务");
                 return;
@@ -386,37 +416,37 @@ function createUtils(ctx, _eval = eval) {
             return;
         }
 
-        if (description.includes("#")) {
+        if (description?.includes("#")) {
             log(
                 "WARNING: action 简要描述包含半角 # 字符，可能影响 --start-at / --end-at 的匹配结果",
             );
         }
 
         // --start-at：未到达锚点前跳过
-        if (_actionStartAtChain && !_actionStartAtReached) {
-            if (description === _actionStartAtChain[_actionStartAtIndex]) {
-                _actionStartAtIndex++;
-                if (_actionStartAtIndex === _actionStartAtChain.length) {
-                    _actionStartAtReached = true;
+        if (state.startAtChain && !state.startAtReached) {
+            if (description === state.startAtChain[state.startAtIndex]) {
+                state.startAtIndex++;
+                if (state.startAtIndex === state.startAtChain.length) {
+                    state.startAtReached = true;
                 }
             }
-            if (!_actionStartAtReached) {
+            if (!state.startAtReached) {
                 return;
             }
         }
 
         // --end-at：已越过锚点后跳过
-        if (_actionEndAtPassed) {
+        if (state.endAtPassed) {
             return;
         }
 
         // --end-at：推进匹配进度，若当前 action 恰好是锚点，执行完后标记越过
         let shouldPassAfterThis = false;
-        if (_actionEndAtChain && !_actionEndAtReached) {
-            if (description === _actionEndAtChain[_actionEndAtIndex]) {
-                _actionEndAtIndex++;
-                if (_actionEndAtIndex === _actionEndAtChain.length) {
-                    _actionEndAtReached = true;
+        if (state.endAtChain && !state.endAtReached) {
+            if (description === state.endAtChain[state.endAtIndex]) {
+                state.endAtIndex++;
+                if (state.endAtIndex === state.endAtChain.length) {
+                    state.endAtReached = true;
                     shouldPassAfterThis = true;
                 }
             }
@@ -432,6 +462,7 @@ function createUtils(ctx, _eval = eval) {
                 for (const op of ops || []) {
                     // 检查是否需要暂停，如需要则立即退出循环
                     if (shouldPauseCheck()) break;
+                    if (isInstanceDestroyed()) break;
 
                     if (!Array.isArray(op)) continue;
                     if (op[0] === "fn") {
@@ -467,10 +498,10 @@ function createUtils(ctx, _eval = eval) {
 
             // 特殊操作：等待场景大幅变化，里面有 return 语句
             if (description === "waitSceneChange") {
-                if (_waitSceneChangeInProgress) {
+                if (state.waitSceneChangeInProgress) {
                     throw new Error("waitSceneChange 已有实例正在执行中");
                 }
-                _waitSceneChangeInProgress = true;
+                state.waitSceneChangeInProgress = true;
 
                 try {
                     // 处理边界情况
@@ -543,7 +574,7 @@ function createUtils(ctx, _eval = eval) {
                     }
 
                     if (timeout <= 0) {
-                        if (shouldPassAfterThis) _actionEndAtPassed = true;
+                        if (shouldPassAfterThis) state.endAtPassed = true;
                         return;
                     }
 
@@ -602,6 +633,10 @@ function createUtils(ctx, _eval = eval) {
                     // 流程A：截图比对流程
                     const sceneChangeDetector = (async () => {
                         while (Date.now() - startTime < timeout) {
+                            if (isInstanceDestroyed()) {
+                                shouldStop = true;
+                                return;
+                            }
                             const elapsed = Date.now() - startTime;
 
                             // 等待下一个截图时间点
@@ -669,7 +704,7 @@ function createUtils(ctx, _eval = eval) {
                                                 : "场景已发生大幅变化（已复查确认），继续执行",
                                         );
                                         if (shouldPassAfterThis)
-                                            _actionEndAtPassed = true;
+                                            state.endAtPassed = true;
                                         return;
                                     }
                                     // 继续下一次循环进行复查
@@ -681,7 +716,7 @@ function createUtils(ctx, _eval = eval) {
                                             : "场景已发生大幅变化，继续执行",
                                     );
                                     if (shouldPassAfterThis)
-                                        _actionEndAtPassed = true;
+                                        state.endAtPassed = true;
                                     return;
                                 }
                             } else {
@@ -711,6 +746,7 @@ function createUtils(ctx, _eval = eval) {
                         operations.length > 0
                             ? (async () => {
                                   while (!shouldStop) {
+                                      if (isInstanceDestroyed()) return;
                                       if (pauseOpsLoop) {
                                           await sleep(100); // 暂停期间短暂休眠避免空转
                                           continue;
@@ -733,7 +769,7 @@ function createUtils(ctx, _eval = eval) {
                     // 等待两个流程都结束
                     await Promise.all([sceneChangeDetector, opsLoop]);
                 } finally {
-                    _waitSceneChangeInProgress = false;
+                    state.waitSceneChangeInProgress = false;
                 }
             }
 
@@ -753,14 +789,14 @@ function createUtils(ctx, _eval = eval) {
             }
 
             if (shouldPassAfterThis) {
-                _actionEndAtPassed = true;
+                state.endAtPassed = true;
             }
         };
 
-        if (_actionDbgEnabled) {
+        if (state.dbgEnabled) {
             log(`action 调试挂起: ${description}`);
             return new Promise((resolve, reject) => {
-                _actionDbgQueue.push({
+                state.dbgQueue.push({
                     resolve,
                     reject,
                     task: _runActionCore,
@@ -780,6 +816,16 @@ function createUtils(ctx, _eval = eval) {
      */
     const startRepl = async () => {
         await sleep(1000);
+
+        // 更新当前 REPL 使用的 eval 函数、ctx，开发模式下热重载时复用同一个 REPL
+        _replEval = _eval;
+        // ctx = _;
+        // 开发模式下热重载时复用同一个 REPL 会话，只更新 _replEval
+        if (_activeRl) {
+            log("REPL 已存在，复用当前会话");
+            return;
+        }
+
         log(
             "进入实时测试模式，可输入并执行 puppeteer 代码 (用 browser, page, puppeteer, log 等变量)",
         );
@@ -792,6 +838,8 @@ function createUtils(ctx, _eval = eval) {
             output: process.stdout,
             prompt: "> ",
         });
+        _activeRl = rl;
+
         rl.prompt();
         rl.on("line", async input => {
             const trimmed = input.trim();
@@ -804,17 +852,29 @@ function createUtils(ctx, _eval = eval) {
                 return;
             }
             if (trimmed === "next") {
-                await action("next");
+                try {
+                    await _replEval('action("next")');
+                } catch (e) {
+                    log("WARNING: next 执行错误:", e);
+                }
                 rl.prompt();
                 return;
             }
             if (trimmed === "skip") {
-                await action("skip");
+                try {
+                    await _replEval('action("skip")');
+                } catch (e) {
+                    log("WARNING: skip 执行错误:", e);
+                }
                 rl.prompt();
                 return;
             }
             if (trimmed === "tdbg") {
-                await action("toggleDbg");
+                try {
+                    await _replEval('action("toggleDbg")');
+                } catch (e) {
+                    log("WARNING: tdbg 执行错误:", e);
+                }
                 rl.prompt();
                 return;
             }
@@ -863,7 +923,7 @@ action() 部分用法:
             try {
                 // 允许访问 browser, page, puppeteer, log 及别名
                 // 例外：允许使用 console.error 而不是 log/logRaw
-                const result = await _eval(
+                const result = await _replEval(
                     `(async () => {try{${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
@@ -872,6 +932,7 @@ action() 部分用法:
             }
             rl.prompt();
         }).on("close", async () => {
+            _activeRl = null;
             log("REPL结束，关闭浏览器...");
             await screenshot("退出前").catch(() => {});
             await browser.close();

@@ -36,6 +36,8 @@ module.exports = async function (ctx) {
         scriptId,
         startAtChain,
         endAtChain,
+        getInstanceInfo,
+        enableHotReload,
     } = ctx;
     const {
         ts,
@@ -55,6 +57,9 @@ module.exports = async function (ctx) {
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
+
+    // 启用热重载功能，仅开发模式下生效，启用后只建议在脚本使用 action() 函数
+    enableHotReload();
 
     async function main() {
         // ========== 你的自动化逻辑 ==========

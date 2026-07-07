@@ -36,6 +36,8 @@ module.exports = async function (ctx) {
         scriptId,
         startAtChain,
         endAtChain,
+        getInstanceInfo,
+        enableHotReload,
     } = ctx;
     const {
         ts,
@@ -55,6 +57,8 @@ module.exports = async function (ctx) {
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
+
+    enableHotReload();
 
     /** 领取简单奖励 */
     async function receiveSimpleRewards() {

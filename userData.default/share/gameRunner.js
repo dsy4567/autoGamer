@@ -88,15 +88,37 @@ function checkUpdateDate(updateDates) {
  * @param {AutoGamer.EvalFn} _eval 用于 REPL 中执行代码的 eval 函数
  */
 async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
-    const { page, log, getGlobalConfig, createUtils, browser } = ctx;
+    const {
+        page,
+        log,
+        getGlobalConfig,
+        createUtils,
+        browser,
+        getInstanceInfo,
+    } = ctx;
     const { startAutoScreenshot, setTaskTimeout, startRepl } = createUtils(
         ctx,
         _eval,
     );
     const config = getGlobalConfig();
+    const info = getInstanceInfo?.();
 
     // 存储 mainFn 供开发模式 REPL 使用
     _mainFn = mainFn;
+
+    // 热重载路径：初始化已完成时直接启动 REPL，不再重复初始化和执行 mainFn
+    if (info?.isHotReload) {
+        log(`游戏：${gameName} (热重载)`);
+        if (_initDone) {
+            startRepl();
+        } else {
+            log(
+                "WARNING: 热重载路径要求初始化已完成，但 _initDone 为 false，跳过 REPL",
+            );
+        }
+        return;
+    }
+    if (_initDone) return;
 
     // 检查是否为游戏版本更新日
     const updateDate = checkUpdateDate(scriptConfig.updateDates);
@@ -118,9 +140,20 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
         process.exit(1);
     }
 
+    // 注册热重载清理函数：重置 mainFn 状态，保留 _initDone 和 page.on
+    if (info) {
+        info.cleanupFunctions.push(() => {
+            _mainFn = null;
+            _mainFnRunning = false;
+            log("热重载清理：已重置 mainFn 状态");
+        });
+    }
+
     log(`游戏：${gameName}`);
     log("等待页面加载");
-    await page.goto(scriptConfig.gameUrl, config.pageloadOptions);
+
+    // 如果游戏已经启动，点击继续游戏
+    await miguInit(ctx);
     page.on("load", async () => {
         if (page.url() !== "about:blank") return;
         log("游戏已退出，程序退出");
@@ -128,13 +161,12 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
         process.exit(0);
     });
 
+    await page.goto(scriptConfig.gameUrl, config.pageloadOptions);
+
     // 根据配置决定是否启动自动定时截图
     if (config.screenshots?.autoScreenshotEnabled !== false) {
         startAutoScreenshot();
     }
-
-    // 如果游戏已经启动，点击继续游戏
-    await miguInit(ctx);
 
     // 初始化完成，标记状态供 executeMainFn 检查
     _initDone = true;
@@ -149,9 +181,10 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
         );
         await mainFn();
         await actionsInCloudGameBallAndExit(ctx);
+        return;
     }
 
-    // 自动化完成后即可进入 REPL
+    // 开发模式：初始化完成后进入 REPL
     startRepl();
 }
 

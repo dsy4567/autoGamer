@@ -211,45 +211,45 @@ declare global {
                 },
             ): Promise<string>;
             /**
-         * 统一的自动化操作函数，自动处理流程控制、日志、截图
-         *
-         * 一般操作：
-         *  - `action('<操作描述>',[['ts', x:number, y:number], ...])` — 触摸开始 - 在指定坐标触发 `touchStart` 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-         *  - `action('<操作描述>',[['te'], ...])` — 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-         *  - `action('<操作描述>',[['tm', x:number, y:number], ...])` — 触摸移动 - 在指定坐标触发 touchMove 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
-         *  - `action('<操作描述>',[['tt', x:number, y:number], ...])` — 触摸点击 - 在指定坐标触发 tap 事件
-         *  - `action('<操作描述>',[['pc', selector:string], ...]])` — 页面点击 - 调用 page.click
-         *  - `action('<操作描述>',[['hold', x:number, y:number, duration?:number], ...])` — 长按 - 在指定坐标按下并保持一段时间后释放
-         *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
-         *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
-         *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
-         *  - `action('<操作描述>',[['mi', msg?:string, ms:number?], ...])` — 请求人工干预，ms 为超时毫秒，默认 15000
-         *
-         * 特殊操作：
-         *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?, clip?, referenceFile?})` — 等待场景大幅变化，operations 并行循环执行
-         *    - `timeout`: 超时毫秒，默认600000
-         *    - `interval`: 截图比对间隔毫秒，默认3000，不少于200（不影响 operations 执行频率）
-         *    - `threshold`: 变化阈值，范围[0,1]，默认0.9
-         *    - `inverse`: 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
-         *    - `recheckCount`: 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行；复查期间暂停 operations 执行（支持操作级暂停检查）
-         *    - `clip`: 截图区域{x, y, width, height}，未提供时使用默认视口区域；提供时属性不完整将抛错
-         *    - `referenceFile`: 基准截图文件路径，指定后将使用该文件作为基准图，不再进行首次实时截图
-         *    - 注意：operations 必须包含 sleep 操作，否则将跳过执行并输出警告
-         *    - 特性：operations 支持操作级暂停检查，进入复查阶段时会在当前操作完成后立即停止，无需等待整个数组执行完毕
-         *
-         * 调试指令：
-         *  - `action('startAt', '<描述1#描述2>')` / `action('startAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 `--start-at` 命令行参数
-         *  - `action('endAt', '<描述1#描述2>')` / `action('endAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 `--end-at` 命令行参数
-         *  - `action('toggleDbg')` — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
-         *  - `action('next')` — 调试模式下兑现下一个挂起的 action
-         *  - `action('skip')` — 调试模式下跳过下一个挂起的 action
-         *
-         * 描述链格式: 描述1#描述2，以半角 # 分隔；至少包含一个描述项；只有一个描述项时不使用 # 分隔符
-         *
-         * 举例：'点击前往#进入咖啡店' 或 '进入生存索引'
-         *
-         * ---
-         */
+             * 统一的自动化操作函数，自动处理流程控制、日志、截图
+             *
+             * 一般操作：
+             *  - `action('<操作描述>',[['ts', x:number, y:number], ...])` — 触摸开始 - 在指定坐标触发 `touchStart` 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+             *  - `action('<操作描述>',[['te'], ...])` — 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+             *  - `action('<操作描述>',[['tm', x:number, y:number], ...])` — 触摸移动 - 在指定坐标触发 touchMove 事件；如无特别需求，推荐使用 `tt (touch tap)/hold/drag`
+             *  - `action('<操作描述>',[['tt', x:number, y:number], ...])` — 触摸点击 - 在指定坐标触发 tap 事件
+             *  - `action('<操作描述>',[['pc', selector:string], ...]])` — 页面点击 - 调用 page.click
+             *  - `action('<操作描述>',[['hold', x:number, y:number, duration?:number], ...])` — 长按 - 在指定坐标按下并保持一段时间后释放
+             *  - `action('<操作描述>',[['drag', fromX:number, fromY:number, toX:number, toY:number, duration?:number], ...])` — 拖拽 - 从起点拖拽到终点，分步模拟触摸移动
+             *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
+             *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
+             *  - `action('<操作描述>',[['mi', msg?:string, ms:number?], ...])` — 请求人工干预，ms 为超时毫秒，默认 15000
+             *
+             * 特殊操作：
+             *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?, clip?, referenceFile?})` — 等待场景大幅变化，operations 并行循环执行
+             *    - `timeout`: 超时毫秒，默认600000
+             *    - `interval`: 截图比对间隔毫秒，默认3000，不少于200（不影响 operations 执行频率）
+             *    - `threshold`: 变化阈值，范围[0,1]，默认0.9
+             *    - `inverse`: 反向模式，默认false。为true时画面无变化（相似度≥threshold）则继续执行
+             *    - `recheckCount`: 复查次数，默认0。>=1时强制截图间隔为3000ms，需连续多次复查通过后才继续执行；复查期间暂停 operations 执行（支持操作级暂停检查）
+             *    - `clip`: 截图区域{x, y, width, height}，未提供时使用默认视口区域；提供时属性不完整将抛错
+             *    - `referenceFile`: 基准截图文件路径，指定后将使用该文件作为基准图，不再进行首次实时截图
+             *    - 注意：operations 必须包含 sleep 操作，否则将跳过执行并输出警告
+             *    - 特性：operations 支持操作级暂停检查，进入复查阶段时会在当前操作完成后立即停止，无需等待整个数组执行完毕
+             *
+             * 调试指令：
+             *  - `action('startAt', '<描述1#描述2>')` / `action('startAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，从最后一个描述开始执行 action，覆盖 `--start-at` 命令行参数
+             *  - `action('endAt', '<描述1#描述2>')` / `action('endAt', ['<描述1>','<描述2>'])` — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 `--end-at` 命令行参数
+             *  - `action('toggleDbg')` — 开启/关闭调试模式（挂起后续 action，等待 next 逐步执行）
+             *  - `action('next')` — 调试模式下兑现下一个挂起的 action
+             *  - `action('skip')` — 调试模式下跳过下一个挂起的 action
+             *
+             * 描述链格式: 描述1#描述2，以半角 # 分隔；至少包含一个描述项；只有一个描述项时不使用 # 分隔符
+             *
+             * 举例：'点击前往#进入咖啡店' 或 '进入生存索引'
+             *
+             * ---
+             */
             action(
                 description: string,
                 operations?: OperationArray,
@@ -277,6 +277,55 @@ declare global {
             ): Promise<void>;
         }
 
+        // ============ 实例与热重载类型 ============
+
+        /** 脚本实例信息，用于开发模式热重载 */
+        interface InstanceInfo {
+            /** 实例唯一标识 */
+            instanceId: string;
+            /** 实例是否已销毁 */
+            isDestroyed: boolean;
+            /** 是否为热重载产生的实例 */
+            isHotReload: boolean;
+            /** 热重载是否已启用 */
+            hotReloadEnabled: boolean;
+            /** 实例清理函数队列 */
+            cleanupFunctions: Array<() => any>;
+            /** 启用热重载（非开发模式或重复调用时静默） */
+            enableHotReload(): void;
+        }
+
+        /** action 内部状态，按实例隔离 */
+        interface ActionState {
+            /** --start-at 解析后的描述链 */
+            startAtChain: string[] | null;
+            /** --start-at 匹配进度 */
+            startAtIndex: number;
+            /** 是否已到达 start-at 锚点 */
+            startAtReached: boolean;
+            /** --end-at 解析后的描述链 */
+            endAtChain: string[] | null;
+            /** --end-at 匹配进度 */
+            endAtIndex: number;
+            /** 是否已到达 end-at 锚点 */
+            endAtReached: boolean;
+            /** 是否已越过 end-at 锚点 */
+            endAtPassed: boolean;
+            /** 是否已从 ctx 初始化过描述链 */
+            stateInitialized: boolean;
+            /** 调试模式是否开启 */
+            dbgEnabled: boolean;
+            /** 调试模式挂起的任务队列 */
+            dbgQueue: Array<{
+                resolve: (value?: any) => void;
+                reject: (e?: any) => void;
+                task: () => Promise<void>;
+                description: string;
+            }>;
+            /** 是否有 waitSceneChange 正在执行 */
+            waitSceneChangeInProgress: boolean;
+        }
+
         // ============ ctx 相关类型 ============
 
         /** createUtils 接收的 ctx（也是 index.js 提供给脚本的 ctx 的子集） */
@@ -299,6 +348,8 @@ declare global {
             startAtChain?: string[] | null;
             /** --end-at 解析后的描述链（null 表示未指定） */
             endAtChain?: string[] | null;
+            /** 获取当前脚本实例信息（index.js 注入，热重载时使用） */
+            getInstanceInfo?: () => InstanceInfo | null;
         }
 
         /** index.js 调用脚本时传入的完整 ctx */
@@ -316,6 +367,8 @@ declare global {
             dataDir: string;
             /** 当前脚本 id */
             scriptId: string;
+            /** 启用当前实例的热重载（非开发模式时静默） */
+            enableHotReload: () => void;
         }
 
         interface LoadUserConfigCtx {

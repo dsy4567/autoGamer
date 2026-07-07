@@ -28,6 +28,88 @@ let _browser = null;
 /** 是否正在主动关闭浏览器，防止 disconnected 事件重复退出 @type {boolean} */
 let _isExiting = false;
 
+// ============ 热重载相关状态 ============
+/** 当前脚本实例 @type {AutoGamer.InstanceInfo | null} */
+let _currentInstance = null;
+/** 上一次热重载时间戳，用于 5s 冷却 */
+let _lastReloadTime = 0;
+/** 是否正在执行热重载清理 */
+let _isReloading = false;
+/** 触发重载的 resolve @type {(() => void) | null} */
+let _reloadResolve = null;
+/** 等待重载的 Promise @type {Promise<void> | null} */
+let _reloadPromise = null;
+
+/**
+ * 创建新的脚本实例
+ * @param {boolean} isHotReload
+ * @returns {AutoGamer.InstanceInfo}
+ */
+function _createInstance(isHotReload) {
+    const instance = {
+        instanceId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        isDestroyed: false,
+        isHotReload,
+        hotReloadEnabled: false,
+        cleanupFunctions: [],
+        enableHotReload() {
+            if (!config.isDev) return;
+            if (
+                _currentInstance !== instance ||
+                instance.isDestroyed ||
+                instance.hotReloadEnabled
+            ) {
+                return;
+            }
+            instance.hotReloadEnabled = true;
+            log("热重载已启用");
+        },
+    };
+    return instance;
+}
+
+/** @returns {AutoGamer.InstanceInfo | null} */
+function _getInstanceInfo() {
+    return _currentInstance;
+}
+
+/** 清理 require.cache 中 dataDir/scripts 下的文件 */
+function _clearDataDirRequireCache() {
+    const prefixs = [
+        path.normalize(`${config.dataDir}/scripts`),
+        path.normalize(`${config.dataDir}/scriptData`),
+    ];
+    for (const key of Object.keys(require.cache)) {
+        if (prefixs.some(prefix => path.normalize(key).startsWith(prefix))) {
+            delete require.cache[key];
+        }
+    }
+}
+
+/** 请求一次热重载 */
+function _requestReload() {
+    if (_isReloading) return;
+    if (_currentInstance && !_currentInstance.isDestroyed) {
+        _currentInstance.isDestroyed = true;
+    }
+    _reloadResolve?.();
+}
+
+/**
+ * 执行实例的清理函数
+ * @param {AutoGamer.InstanceInfo} instance
+ */
+async function _runInstanceCleanup(instance) {
+    for (const fn of instance.cleanupFunctions) {
+        try {
+            await fn();
+        } catch (/** @type {any} */ e) {
+            log("WARNING: 热重载清理函数执行出错:", e?.message ?? e);
+        }
+    }
+    instance.cleanupFunctions = [];
+}
+
 /** 关闭浏览器后退出进程 @param {number} code */
 async function _closeBrowserAndExit(code, exit = true) {
     _isExiting = true;
@@ -214,9 +296,7 @@ async function inject(page, tt, drag, hold) {
                     alwaysHideOverlay,
                 };
             }, config.alwaysHideOverlay ?? false);
-            page.evaluate(fs.readFileSync(injectPath, "utf-8")).catch(e =>
-                log("WARNING: inject.js 注入失败:", e),
-            );
+            page.evaluate(fs.readFileSync(injectPath, "utf-8")).catch(e => {});
             log("已注入 inject.js");
         }
     } catch (e) {}
@@ -573,34 +653,90 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
             return await _closeBrowserAndExit(1);
         }
 
-        log("加载操作脚本:", scriptPath);
-        // 传递 puppeteer, browser, page, log 给脚本
-        /** @type {AutoGamer.ScriptFunction} */
-        const script = require(scriptPath);
-        if (typeof script !== "function") {
-            log("ERROR: 脚本文件需导出一个 async function");
-            return await _closeBrowserAndExit(1);
-        }
+        /**
+         * 加载并执行脚本
+         * @param {boolean} isHotReload
+         */
+        const _loadAndRunScript = async isHotReload => {
+            _currentInstance = _createInstance(isHotReload);
+            const instance = _currentInstance;
 
-        try {
-            await script({
-                puppeteer,
-                browser,
-                page,
-                log,
-                logRaw,
-                pageOpenTime,
-                logDir,
-                getGlobalConfig: () => config,
-                createUtils,
-                loadUserConfig,
-                dataDir,
-                scriptId,
-                startAtChain,
-                endAtChain,
+            log(isHotReload ? "热重载脚本:" : "加载操作脚本:", scriptPath);
+            _clearDataDirRequireCache();
+            /** @type {AutoGamer.ScriptFunction} */
+            const script = require(scriptPath);
+            if (typeof script !== "function") {
+                log("ERROR: 脚本文件需导出一个 async function");
+                await _closeBrowserAndExit(1);
+                return;
+            }
+
+            try {
+                await script({
+                    puppeteer,
+                    browser,
+                    page,
+                    log,
+                    logRaw,
+                    pageOpenTime,
+                    logDir,
+                    getGlobalConfig: () => config,
+                    createUtils,
+                    loadUserConfig,
+                    dataDir,
+                    scriptId,
+                    startAtChain,
+                    endAtChain,
+                    getInstanceInfo: _getInstanceInfo,
+                    enableHotReload: () => instance.enableHotReload(),
+                });
+            } catch (e) {
+                log("ERROR: 脚本执行出错:", e);
+            }
+        };
+
+        if (config.isDev) {
+            // 开发模式：启用热重载循环
+            _reloadPromise = new Promise(resolve => {
+                _reloadResolve = resolve;
             });
-        } catch (e) {
-            log("ERROR: 脚本执行出错:", e);
+
+            // 监听 main.js 变化，5 秒内限一次热重载
+            fs.watch(scriptPath, eventType => {
+                if (eventType !== "change") return;
+                const now = Date.now();
+                if (now - _lastReloadTime < 5000) {
+                    // log("WARNING: 文件变化过于频繁，忽略此次热重载请求");
+                    return;
+                }
+                _lastReloadTime = now;
+                log("检测到脚本文件变化，触发热重载");
+                _requestReload();
+            });
+
+            await _loadAndRunScript(false);
+
+            while (true) {
+                // 若实例已被标记销毁，说明热重载已被请求，跳过等待直接清理
+                if (!_currentInstance || !_currentInstance.isDestroyed) {
+                    log("等待脚本文件变化以触发热重载...");
+                    await _reloadPromise;
+                }
+
+                if (_currentInstance && _currentInstance.isDestroyed) {
+                    _isReloading = true;
+                    await _runInstanceCleanup(_currentInstance);
+                }
+
+                _reloadPromise = new Promise(resolve => {
+                    _reloadResolve = resolve;
+                });
+
+                _loadAndRunScript(true);
+                _isReloading = false;
+            }
+        } else {
+            _loadAndRunScript(false);
         }
     }
 }
