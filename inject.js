@@ -9,7 +9,7 @@
 // @ts-check
 "use strict";
 
-(window => {
+setTimeout(() => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     // @ts-ignore
@@ -609,4 +609,4 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     // console.log = function (...args) {
     //     originalLog.apply(console, args);
     // };
-})(window);
+}, 0);
