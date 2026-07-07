@@ -66,7 +66,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
  * @param {AutoGamer.ScriptCtx} ctx
  */
 async function miguInit(ctx) {
-    if (!ctx) return;
+    if (!ctx || ctx.getInstanceInfo?.()?.isHotReload) return;
     const {
         puppeteer,
         browser,
@@ -95,7 +95,7 @@ async function miguInit(ctx) {
     const config = getGlobalConfig();
 
     // TODO: 云游戏连接成功后再继续
-    await (async () => {
+    page.on("load", async () => {
         await sleep(5000);
         if (!config.isDev) {
             const errBtn =
@@ -119,7 +119,7 @@ async function miguInit(ctx) {
             // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
         }
         // await page.waitForSelector(".gameSetingButton");
-    })();
+    });
 }
 
 module.exports = { actionsInCloudGameBallAndExit, miguInit };
