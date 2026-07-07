@@ -106,7 +106,8 @@
     indicator.style.setProperty("z-index", "9999", "important");
     indicator.style.setProperty("pointer-events", "none", "important");
     indicator.style.setProperty("transition", "opacity 0.3s", "important");
-    indicator.textContent = "X: 0, Y: 0";
+    indicator.style.setProperty("font-family", "cursive", "important");
+    // indicator.textContent = "X: 0, Y: 0";
     document.documentElement.appendChild(indicator);
 
     let altPressed = false;
@@ -151,10 +152,10 @@
             indicator.style.setProperty("bottom", "auto", "important");
             indicator.style.setProperty("top", "10px", "important");
         }
-        indicator.textContent = `X: ${mousePos.x}, Y: ${mousePos.y}${
+        indicator.textContent = `${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
         }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
-        indicator.innerHTML += extraHtml;
+        indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${extraHtml}`;
     };
     const showIndicator = () => {
         indicator.style.setProperty("opacity", "0.8", "important");
