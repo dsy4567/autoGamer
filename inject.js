@@ -9,11 +9,12 @@
 // @ts-check
 "use strict";
 
+// @ts-ignore
+window.__autoGamer = window.__autoGamer || {};
+
 setTimeout(() => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
-    // @ts-ignore
-    window.__autoGamer = window.__autoGamer || {};
     /** @type {{ alwaysHideOverlay: boolean }} */
     // @ts-ignore
     const autoGamerConfig = window.__autoGamer.config || {};
@@ -436,13 +437,13 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     const playWarningSound = () => {
         // 创建或复用 AudioContext（兼容写法）
         // @ts-ignore
-        if (!window._warningAudioCtx) {
+        if (!window.__autoGamer.warningAudioCtx) {
             // @ts-ignore
-            window._warningAudioCtx = new // @ts-ignore
+            window.__autoGamer.warningAudioCtx = new // @ts-ignore
             (window.AudioContext || window.webkitAudioContext)();
         }
         // @ts-ignore
-        const ctx = window._warningAudioCtx;
+        const ctx = window.__autoGamer.warningAudioCtx;
 
         // 如果浏览器自动暂停了音频上下文，恢复它
         if (ctx.state === "suspended") {
