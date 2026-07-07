@@ -495,12 +495,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
     const pageOpenTime = Date.now();
 
     page.on("load", () => {
-        log(
-            "网页完全加载，用时:",
-            Date.now() - pageOpenTime,
-            "毫秒",
-            page.url(),
-        );
+        log("网页完全加载", page.url());
     });
 
     const utils = createUtils(
