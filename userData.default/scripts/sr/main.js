@@ -65,44 +65,44 @@ module.exports = async function (ctx) {
         log("-----领取简单奖励-----");
         await action("进入每日实训", [
             ["tt", 495, 20],
-            ["sleep", 3000],
+            ["sleep", 2000],
         ]);
 
         await action("领取登录游戏活跃度", [
             ["tt", 108, 344],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("进入派遣页面", [
             ["tt", 127, 351],
-            ["sleep", 3000],
+            ["sleep", 2000],
         ]);
 
         await action("点击一键领取", [
             ["tt", 508, 378],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击空白处", [
             ["tt", 320, 342],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("关闭派遣页面", [
             ["tt", 609, 16],
-            ["sleep", 3000],
+            ["sleep", 2000],
         ]);
 
         await action("领取派遣活跃度", [
             ["tt", 110, 353],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("活跃度兑换奖励", [
             ["tt", 196, 155],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["tt", 196, 155],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
@@ -171,7 +171,7 @@ module.exports = async function (ctx) {
                     ["tt", 563, 398],
                     ["sleep", 200],
                     ["tt", 564, 379],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                 ]);
 
                 await action("点击挑战按钮", [
@@ -181,17 +181,17 @@ module.exports = async function (ctx) {
 
                 await action("选择1号队伍", [
                     ["drag", 196, 31, 492, 31, 200],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                     ["drag", 196, 31, 492, 31, 200],
                     ["sleep", 1000],
                     ["tt", 198, 29],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                 ]);
 
                 await action("开始挑战", [
                     ["tt", 524, 435],
                     // ["sleep", scriptConfig.dungeonFightTime * 1000],
-                    ["sleep", 20000],
+                    ["sleep", 15000],
                 ]);
 
                 try {
@@ -232,16 +232,16 @@ module.exports = async function (ctx) {
                 ]);
                 await action("领取战斗活跃度", [
                     ["tt", 110, 353],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                     ["tt", 110, 353],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                 ]);
 
                 await action("活跃度兑换奖励", [
                     ["tt", 377, 154],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                     ["tt", 377, 154],
-                    ["sleep", 1000],
+                    ["sleep", 500],
                     ["fn", config.checkpoint],
                 ]);
 
@@ -267,7 +267,7 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 526, 400],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击奖励标签页", [
@@ -277,9 +277,9 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 433, 396],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["tt", 433, 396],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
