@@ -289,9 +289,11 @@ module.exports = async function (ctx) {
         ]);
     }
 
-    /** 主函数 */
-    async function main() {
-        await sleep(scriptConfig.startupDelays.initialWait);
+    /** 进入主界面 */
+    async function enterMain() {
+        await action("初始等待", [
+            ["sleep", scriptConfig.startupDelays.initialWait],
+        ]);
 
         // NOTE: 已废弃点击同意用户协议
         // await action("同意用户协议/点击开始游戏", [
@@ -304,29 +306,34 @@ module.exports = async function (ctx) {
                 "waitSceneChange",
                 [
                     ["tt", 432, 281],
-                    ["sleep", 5000],
+                    ["sleep", 4500],
                 ],
                 {
                     threshold: 0.9,
                     timeout: 10 * 60 * 1000,
-                    interval: 10000,
+                    interval: 3000,
                 },
             );
-            await action("检测到场景变化后点击开始游戏", [
-                ["sleep", 3000],
-                ["tt", 432, 281],
-                ["sleep", 3000],
-            ]);
+            // await action("检测到场景变化后点击开始游戏", [
+            //     ["sleep", 3000],
+            //     ["tt", 432, 281],
+            //     ["sleep", 3000],
+            // ]);
         } catch (e) {
             log("ERROR: 等待场景变化超时", e);
-            await action("等待场景变化超时后兜底等待", [["sleep", 90000]]);
+            await action("等待场景变化超时后人工干预", [
+                ["mi", "请手动点击开始游戏后，按快捷键取消干预", 60000],
+            ]);
         }
 
-        await action("兜底点击开始游戏，等待读条", [
-            ["tt", 432, 281],
+        await action("等待读条", [
             ["sleep", scriptConfig.startupDelays.afterStartGame],
         ]);
+    }
 
+    /** 主函数 */
+    async function main() {
+        await enterMain();
         await receiveSimpleRewards();
         await dungeonFight();
         await getJiXingReward();
