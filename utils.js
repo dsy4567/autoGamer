@@ -258,6 +258,7 @@ function createUtils(ctx, _eval = eval) {
      * @returns {Promise<void>}
      */
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+    // TODO: 执行自定义函数
     /**
      * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
      *
