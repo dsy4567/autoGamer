@@ -105,23 +105,23 @@ module.exports = async function (ctx) {
 
         await action("选择六分街", [
             ["tt", 101, 154],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("选择咖啡店", [
-            ["drag", 181, 380, 589, 380, 1146],
-            ["sleep", 1000],
+            ["drag", 181, 380, 589, 380, 200],
+            ["sleep", 500],
             ["tt", 193, 380],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("确认传送到咖啡店", [
             ["tt", 392, 289],
-            ["sleep", 20000],
+            ["sleep", 17000],
         ]);
 
         // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭咖啡店页面
-        await action("关闭咖啡店页面", [tapBackBtn.middleTop, ["sleep", 5000]]);
+        await action("关闭咖啡店页面", [tapBackBtn.middleTop, ["sleep", 3000]]);
         // 等待用户干预
         if (scriptConfig.coffeeShopInterventionDelay > 0) {
             await action("咖啡店人工干预等待", [
@@ -191,7 +191,7 @@ module.exports = async function (ctx) {
         }
     }
 
-    /** 前往报刊亭 */
+    /** 前往六分街报刊亭 */
     async function goMagazineShop() {
         await action("打开手册", [
             ["tt", 484, 30],
@@ -200,8 +200,11 @@ module.exports = async function (ctx) {
 
         await action("点击前往，去报刊亭", [
             ["tt", 319, 356],
-            ["sleep", 10 * 1000],
+            ["sleep", 7 * 1000],
         ]);
+
+        // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭报刊亭页面
+        await action("关闭报刊亭页面", [tapBackBtn.middleTop, ["sleep", 3000]]);
 
         await action("靠近狗狗，进入报刊亭", [
             ["drag", 142, 365, 141, 319],
@@ -214,7 +217,9 @@ module.exports = async function (ctx) {
             ["tt", 333, 470],
             ["sleep", 3000],
             ["tt", 461, 307],
-            ["sleep", 5000],
+            ["sleep", 3000],
+            ["tt", 461, 307],
+            ["sleep", 3000],
         ]);
 
         await action("点击刮刮卡", [
@@ -233,13 +238,13 @@ module.exports = async function (ctx) {
 
         await action("点击确认", [
             ["tt", 323, 318],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
         await action("关闭刮刮卡、报刊亭页面", [
             ["tt", 43, 81],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["tt", 43, 81],
             ["sleep", 5000],
         ]);
@@ -257,7 +262,7 @@ module.exports = async function (ctx) {
 
         await action("点击前往，去录像店", [
             ["tt", 319, 356],
-            ["sleep", 20 * 1000],
+            ["sleep", 17 * 1000],
         ]);
 
         await action("靠近邦布", [
@@ -272,12 +277,12 @@ module.exports = async function (ctx) {
 
         await action("关闭昨日账本", [
             ["tt", 308, 412],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("进入选择宣传员页面", [
             ["tt", 280, 320],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         // 使用默认宣传员
@@ -287,32 +292,32 @@ module.exports = async function (ctx) {
             ...(scriptConfig.selectPromoterActions?.[0]
                 ? scriptConfig.selectPromoterActions
                 : [["tt", 205, 175]]),
-            ["sleep", 3000],
+            ["sleep", 500],
         ]);
 
         await action("点击确定", [
             ["tt", 548, 401],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("进入选择录像带页面", [
             ["tt", 381, 316],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击推荐上架", [
             ["tt", 423, 400],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击开始营业", [
             ["tt", 549, 390],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击确定", [
             ["tt", 379, 279],
-            ["sleep", 1000],
+            ["sleep", 2000],
             // 开业大吉
             ["fn", config.checkpoint],
             ["tt", 318, 276],
@@ -329,24 +334,24 @@ module.exports = async function (ctx) {
 
         await action("点击成长任务", [
             ["tt", 463, 80],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击全部领取", [
             ["tt", 556, 397],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击等级回馈", [
             ["tt", 369, 81],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击全部领取", [
             ["tt", 400, 395],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["tt", 400, 395],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
@@ -365,12 +370,12 @@ module.exports = async function (ctx) {
 
         await action("领取全部奖励", [
             ["tt", 237, 154],
-            ["sleep", 1000],
+            ["sleep", 500],
         ]);
 
         await action("点击确认", [
             ["tt", 327, 322],
-            ["sleep", 1000],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
@@ -465,8 +470,6 @@ module.exports = async function (ctx) {
                 log("ERROR: 等待副本加载完成失败", e);
                 await action("等待副本加载完成-兜底", [["sleep", 20000]]);
             }
-
-            let fightFinished = false;
 
             // 并行执行：waitSceneChange 检测结算画面 + 循环执行战斗操作
             try {
