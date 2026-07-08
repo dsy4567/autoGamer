@@ -138,7 +138,7 @@ const defaultConfig = {
     /** 检查点处理函数，可能被脚本调用 */
     checkpoint: async (desc, ctx, ...args) => {
         ctx.log(
-            "触发检查点，请修改全局配置文件以自定义检查点行为",
+            "提示: 已触发检查点，可修改全局配置文件以自定义检查点行为，当前检查点行为为仅打印日志",
             desc,
             ...args,
         );
