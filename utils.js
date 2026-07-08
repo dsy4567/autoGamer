@@ -485,11 +485,10 @@ function createUtils(ctx, _eval = eval) {
                             sleep,
                             drag,
                             mi,
+                            setBeforeUnload,
                         })[fnName];
                     if (!fn) {
-                        log(
-                            `WARNING: waitSceneChange 中存在未知操作 "${fnName}"，已跳过`,
-                        );
+                        log(`WARNING: 存在未知操作 "${fnName}"，已跳过`);
                         continue;
                     }
                     await fn(...args);
@@ -806,6 +805,22 @@ function createUtils(ctx, _eval = eval) {
         }
 
         await _runActionCore();
+    };
+
+    /**
+     * 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload）
+     * @param {boolean} [enabled=true] 为 true 时启用二次确认，为 false 时取消
+     * @returns {Promise<void>}
+     */
+    const setBeforeUnload = async (enabled = true) => {
+        await page.evaluate(
+            /** @param {boolean} enabled */
+            enabled => {
+                window.onbeforeunload = enabled ? () => false : null;
+            },
+            enabled,
+        );
+        log(`${enabled ? "已启用" : "已禁用"}关闭网页前二次确认`);
     };
 
     /**
@@ -1249,6 +1264,7 @@ action() 部分用法:
         screenshot,
         startAutoScreenshot,
         compareScreenshot,
+        setBeforeUnload,
         action,
     };
 }

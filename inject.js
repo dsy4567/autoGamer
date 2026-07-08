@@ -603,6 +603,11 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         });
     };
 
+    // 关闭网页前二次确认
+    // window.onbeforeunload = () => {
+    //     return false;
+    // };
+
     // hook console.log
     // let originalLog = console.log;
     // console.log = function (...args) {

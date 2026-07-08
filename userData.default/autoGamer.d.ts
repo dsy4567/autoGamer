@@ -41,6 +41,7 @@ declare global {
          * - ["sleep", ms]           延时
          * - ["fn", fn, args]        自定义函数，fn(desc, ctx, ...args) 通过 await 执行，不处理抛错
          * - ["mi", msg, ms]         请求人工干预，ms 为超时毫秒，默认 15000
+         * - ["setBeforeUnload", enabled?] 设置关闭网页前是否二次确认（enabled 默认 true）
          */
         type Operation =
             | ["ts", number, number]
@@ -68,7 +69,8 @@ declare global {
                       ...args: any[]
                   ) => any,
               ]
-            | ["mi", string?, number?];
+            | ["mi", string?, number?]
+            | ["setBeforeUnload", boolean?];
 
         /** 操作数组 */
         type OperationArray = Operation[];
@@ -174,6 +176,8 @@ declare global {
                 pngPath: string,
                 options?: CompareScreenshotOptions,
             ): Promise<boolean>;
+            /** 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload） */
+            setBeforeUnload(enabled?: boolean): Promise<void>;
             /** 进入实时测试模式 (REPL)，可输入并执行 puppeteer 代码 */
             startRepl(): Promise<void>;
             /** 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时（默认 30 分钟） */
@@ -224,6 +228,7 @@ declare global {
              *  - `action('<操作描述>',[['sleep', ms:number], ...])` — 延时等待 - 暂停指定毫秒数后继续
              *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
              *  - `action('<操作描述>',[['mi', msg?:string, ms:number?], ...])` — 请求人工干预，ms 为超时毫秒，默认 15000
+             *  - `action('<操作描述>',[['setBeforeUnload', enabled?:boolean], ...])` — 设置关闭网页前是否二次确认（enabled 默认 true）
              *
              * 特殊操作：
              *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?, clip?, referenceFile?})` — 等待场景大幅变化，operations 并行循环执行
