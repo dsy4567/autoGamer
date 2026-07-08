@@ -513,7 +513,7 @@ function runInit(sourceDir, dataDir, scriptId = null) {
             writeSourceMetadata(dataDir, metadata);
         }
 
-        log("初始化完成:", dataDir);
+        log("初始化完成:", dataDir, scriptId || "");
     } else {
         log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
     }
