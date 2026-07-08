@@ -331,6 +331,22 @@ declare global {
             waitSceneChangeInProgress: boolean;
         }
 
+        // ============ 数据目录源文件元数据类型 ============
+
+        /** 单个源文件的元数据 */
+        interface FileMetadata {
+            /** 文件大小（字节） */
+            size: number;
+            /** 最后修改时间（毫秒时间戳） */
+            mtimeMs: number;
+        }
+
+        /** 数据目录源文件元数据快照 */
+        interface SourceMetadata {
+            /** 各相对路径对应的文件元数据 */
+            files: Record<string, FileMetadata>;
+        }
+
         // ============ ctx 相关类型 ============
 
         /** createUtils 接收的 ctx（也是 index.js 提供给脚本的 ctx 的子集） */

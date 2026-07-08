@@ -321,39 +321,186 @@ function copyDirForce(src, dest) {
 }
 
 /**
- * 执行 init 命令：创建数据目录、各脚本的 logs/scriptData 子目录，并强制覆盖 README/share/scripts
- * @param {string} sourceDir 项目内 userData.default 源目录
- * @param {string} dataDir 数据目录
+ * 递归收集目录下所有文件的元数据
+ * @param {string} baseDir 用于计算相对路径的基准目录
+ * @param {string} dir 要扫描的目录
+ * @param {Record<string, AutoGamer.FileMetadata>} result
  */
-function runInit(sourceDir, dataDir) {
-    fs.mkdirSync(dataDir, { recursive: true });
+function _collectFileMetadata(baseDir, dir, result) {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+        const fullPath = path.join(dir, name);
+        const stat = fs.statSync(fullPath);
+        if (stat.isDirectory()) {
+            _collectFileMetadata(baseDir, fullPath, result);
+        } else if (stat.isFile()) {
+            const relPath = path
+                .relative(baseDir, fullPath)
+                .split(path.sep)
+                .join("/");
+            result[relPath] = { size: stat.size, mtimeMs: stat.mtimeMs };
+        }
+    }
+}
 
-    // 扫描源 scripts 目录，为每个脚本创建 logs/<id>/、scriptData/<id>/
-    const scriptsSrc = path.join(sourceDir, "scripts");
-    if (fs.existsSync(scriptsSrc)) {
-        for (const id of fs.readdirSync(scriptsSrc)) {
-            if (fs.statSync(path.join(scriptsSrc, id)).isDirectory()) {
-                ["logs", "scriptData"].forEach(dir => {
-                    fs.mkdirSync(path.join(dataDir, dir, id), {
-                        recursive: true,
-                    });
-                });
+/**
+ * 获取指定脚本相关的源文件元数据快照
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string|null} scriptId 当前脚本 id（null 表示所有脚本）
+ * @returns {AutoGamer.SourceMetadata}
+ */
+function getSourceMetadata(sourceDir, scriptId) {
+    /** @type {Record<string, AutoGamer.FileMetadata>} */
+    const files = {};
+
+    for (const file of ["README.md", "autoGamer.d.ts"]) {
+        const filePath = path.join(sourceDir, file);
+        if (fs.existsSync(filePath)) {
+            const stat = fs.statSync(filePath);
+            files[file] = { size: stat.size, mtimeMs: stat.mtimeMs };
+        }
+    }
+
+    const shareDir = path.join(sourceDir, "share");
+    _collectFileMetadata(sourceDir, shareDir, files);
+
+    const scriptsDir = path.join(sourceDir, "scripts");
+    if (scriptId) {
+        const scriptDir = path.join(scriptsDir, scriptId);
+        _collectFileMetadata(sourceDir, scriptDir, files);
+    } else if (fs.existsSync(scriptsDir)) {
+        for (const id of fs.readdirSync(scriptsDir)) {
+            const scriptDir = path.join(scriptsDir, id);
+            if (fs.statSync(scriptDir).isDirectory()) {
+                _collectFileMetadata(sourceDir, scriptDir, files);
             }
         }
     }
 
+    return { files };
+}
+
+/**
+ * 读取已存储的源文件元数据
+ * @param {string} dataDir 数据目录
+ * @returns {AutoGamer.SourceMetadata | null}
+ */
+function _readStoredSourceMetadata(dataDir) {
+    const metadataPath = path.join(dataDir, "sourceMetadata.json");
+    if (!fs.existsSync(metadataPath)) return null;
+    try {
+        const content = fs.readFileSync(metadataPath, "utf-8");
+        return JSON.parse(content);
+    } catch (/** @type {any} */ e) {
+        return null;
+    }
+}
+
+/**
+ * 写入源文件元数据快照
+ * @param {string} dataDir 数据目录
+ * @param {AutoGamer.SourceMetadata} metadata
+ */
+function writeSourceMetadata(dataDir, metadata) {
+    const metadataPath = path.join(dataDir, "sourceMetadata.json");
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), "utf-8");
+}
+
+/**
+ * 启动时检查源文件元数据是否一致
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string} dataDir 数据目录
+ * @param {string} scriptId 当前脚本 id
+ * @returns {boolean}
+ */
+function checkSourceMetadata(sourceDir, dataDir, scriptId) {
+    const current = getSourceMetadata(sourceDir, scriptId);
+    const stored = _readStoredSourceMetadata(dataDir);
+    if (!stored || typeof stored.files !== "object") {
+        log(
+            `WARNING: 源文件元数据记录不存在或已损坏，正在重新生成；如需同步文件请执行 init ${scriptId}`,
+        );
+        writeSourceMetadata(dataDir, current);
+        return true;
+    }
+
+    // 仅检查当前脚本相关文件：stored 可以是超集（例如 init 未指定脚本 id 时记录了全量文件）
+    const currentKeys = Object.keys(current.files).sort();
+    for (const key of currentKeys) {
+        const cur = current.files[key];
+        const sto = stored.files[key];
+        if (!sto || cur.size !== sto.size || cur.mtimeMs !== sto.mtimeMs) {
+            log(
+                `WARNING: 源文件 ${key} 与记录不一致，建议执行 init ${scriptId} 以同步最新文件`,
+            );
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 执行 init 命令：创建数据目录、各脚本的 logs/scriptData 子目录，并强制覆盖相关文件
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string} dataDir 数据目录
+ * @param {string|null} [scriptId] 指定脚本 id（null 表示所有脚本）
+ */
+function runInit(sourceDir, dataDir, scriptId = null) {
+    fs.mkdirSync(dataDir, { recursive: true });
+
+    // 扫描源 scripts 目录，为相关脚本创建 logs/<id>/、scriptData/<id>/
+    const scriptsSrc = path.join(sourceDir, "scripts");
+    /** @type {string[]} */
+    const ids = [];
+    if (scriptId) {
+        const scriptDir = path.join(scriptsSrc, scriptId);
+        if (fs.existsSync(scriptDir) && fs.statSync(scriptDir).isDirectory()) {
+            ids.push(scriptId);
+        } else {
+            log(`WARNING: 找不到脚本 ${scriptId}，跳过该脚本相关目录创建`);
+        }
+    } else if (fs.existsSync(scriptsSrc)) {
+        ids.push(
+            ...fs
+                .readdirSync(scriptsSrc)
+                .filter(id =>
+                    fs.statSync(path.join(scriptsSrc, id)).isDirectory(),
+                ),
+        );
+    }
+    for (const id of ids) {
+        ["logs", "scriptData"].forEach(dir => {
+            fs.mkdirSync(path.join(dataDir, dir, id), {
+                recursive: true,
+            });
+        });
+    }
+
     // 强制覆盖（源=目标时跳过，避免递归）
     if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
-        const dirs = ["share", "scripts"];
+        const dirs = scriptId
+            ? ["share", path.join("scripts", scriptId)]
+            : ["share", "scripts"];
         const files = ["README.md", "autoGamer.d.ts"];
-        const items = [...dirs, ...files];
-        items.forEach(item => {
+        const items = [...files, ...dirs];
+        for (const item of items) {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            files.includes(item)
-                ? copyForce(src, dest)
-                : copyDirForce(src, dest);
-        });
+            if (!fs.existsSync(src)) continue;
+            if (files.includes(item)) {
+                copyForce(src, dest);
+            } else {
+                copyDirForce(src, dest);
+            }
+        }
+
+        // 非开发模式记录源文件元数据快照
+        if (config.isDev !== 1) {
+            const metadata = getSourceMetadata(sourceDir, scriptId);
+            writeSourceMetadata(dataDir, metadata);
+        }
+
         log("初始化完成:", dataDir);
     } else {
         log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
@@ -375,25 +522,40 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
         ...(scriptId ? [path.join("scripts", scriptId)] : []),
     ];
     /** @type {string[]}  */
-    const files = [
-        ...(scriptId
-            ? [
-                  path.join("scripts", scriptId, "main.js"),
-                  path.join("scripts", scriptId, "config.default.js"),
-              ]
-            : []),
-    ];
+    const files = ["README.md", "autoGamer.d.ts"];
     const items = [...dirs, ...files];
 
+    let initialized = false;
     if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
         log("WARNING: 相关目录不存在，正在初始化");
         fs.mkdirSync(dataDir, { recursive: true });
-        items.forEach(item => {
+        for (const item of items) {
             const src = path.join(sourceDir, item);
             const dest = path.join(dataDir, item);
-            dirs.includes(item) && copyDirForce(src, dest);
-        });
+            if (!fs.existsSync(src)) continue;
+            if (files.includes(item)) {
+                copyForce(src, dest);
+            } else {
+                copyDirForce(src, dest);
+            }
+        }
+        initialized = true;
         log("已初始化数据目录:", dataDir);
+    }
+
+    // 为当前脚本创建 logs/<id>/、scriptData/<id>/
+    if (scriptId) {
+        ["logs", "scriptData"].forEach(dir => {
+            fs.mkdirSync(path.join(dataDir, dir, scriptId), {
+                recursive: true,
+            });
+        });
+    }
+
+    // 首次自动初始化时记录源文件元数据快照
+    if (initialized && scriptId) {
+        const metadata = getSourceMetadata(sourceDir, scriptId);
+        writeSourceMetadata(dataDir, metadata);
     }
 }
 
@@ -419,7 +581,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 用法: node index.js [选项] <命令>
 
 命令:
-  init                  初始化数据目录（开发模式为 userData.default/，否则为 ~/.autoGamer/）
+  init [脚本id]         初始化数据目录（开发模式为 userData.default/，否则为 ~/.autoGamer/）；指定脚本 id 时仅同步该脚本相关文件
   login [URL]           打开登录页面（默认 URL 可配置）
   <脚本id>              执行指定的自动化脚本（如 sr、zzz、example）
 
@@ -469,13 +631,19 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     // init 命令：初始化数据目录后退出
     if (isInit) {
-        runInit(sourceDir, dataDir);
+        const initScriptId = positionals[1] ?? null;
+        runInit(sourceDir, dataDir, initScriptId);
         process.exit(0);
     }
 
     // 非开发模式（贡献者）自动初始化：首次运行时创建数据目录并复制内置文件
     if (config.isDev !== 1) {
         ensureDataDir(sourceDir, dataDir, scriptId);
+    }
+
+    // 非开发模式且运行脚本时：检查源文件元数据是否仍与 init 时一致
+    if (config.isDev !== 1 && !isLogin && scriptId) {
+        checkSourceMetadata(sourceDir, dataDir, scriptId);
     }
 
     // 推导脚本名，用于日志目录
