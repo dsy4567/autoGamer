@@ -143,10 +143,10 @@ setTimeout(() => {
         if (_extraHtml) extraHtml = _extraHtml;
         if (_extraContent)
             extraContent =
-                _extraContent.substring(0, 50) +
-                (_extraContent.length > 50 ? "..." : "");
-        // 鼠标距页面顶部 <= 50px 时，指示器靠下显示，避免遮挡
-        if (mousePos.y <= 64) {
+                _extraContent.substring(0, 80) +
+                (_extraContent.length > 80 ? "..." : "");
+        // 鼠标距页面顶部 <= <像素> 时，指示器靠下显示，避免遮挡
+        if (mousePos.y <= 240) {
             indicator.style.setProperty("top", "auto", "important");
             indicator.style.setProperty("bottom", "10px", "important");
         } else {
