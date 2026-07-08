@@ -67,6 +67,32 @@ module.exports = async function (ctx) {
 
     enableHotReload();
 
+    /** 妮可 信赖任务（六分街报刊亭） */
+    async function onMeetNicoleAtMagazineShop() {
+        // @ts-ignore
+        await action("信赖任务（六分街报刊亭）", [
+            ["tt", 490, 413],
+            ["sleep", 3000],
+            ["tt", 490, 413],
+            ["sleep", 3000],
+            // 第一个对话选项
+            ["tt", 454, 272],
+            ["sleep", 3000],
+
+            // 重复8次
+            ...Array.from({ length: 8 }, () => [
+                ["tt", 292, 388],
+                ["sleep", 3000],
+            ]).flat(),
+        ]);
+        await action("兜底返回", [
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
+        ]);
+    }
+
     /** 传送到六分街-咖啡店 */
     async function goSixthStreet() {
         await action("点击首页快捷导航", [
@@ -215,17 +241,8 @@ module.exports = async function (ctx) {
             ["sleep", 5000],
         ]);
 
-        // 等待用户干预
-        if (scriptConfig.magazineShopInterventionDelay > 0) {
-            await action("报刊亭人工干预等待", [
-                [
-                    "mi",
-                    "请及时完成人工干预（例如完成信赖任务），随后在报刊亭附近结束干预",
-                    scriptConfig.magazineShopInterventionDelay,
-                ],
-                ["fn", config.checkpoint],
-            ]);
-        }
+        if (scriptConfig.magazineShopInterventionDelay > 0)
+            await onMeetNicoleAtMagazineShop();
     }
 
     /** 前往录像店 */
