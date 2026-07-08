@@ -529,15 +529,16 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
     process.env.PUPPETEER_SKIP_DOWNLOAD = "true";
     /** @type {import("puppeteer-core")} */
     let puppeteer;
-    if (config.useStealth) {
-        puppeteer = require("puppeteer-core");
-    } else {
-        // @ts-ignore
-        puppeteer = require("puppeteer-extra");
-        const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-        // @ts-ignore
-        puppeteer.use(StealthPlugin());
-    }
+    puppeteer = require("puppeteer-core");
+    // if (!config.useStealth) {
+    //     puppeteer = require("puppeteer-core");
+    // } else {
+    //     // @ts-ignore
+    //     puppeteer = require("puppeteer-extra");
+    //     const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+    //     // @ts-ignore
+    //     puppeteer.use(StealthPlugin());
+    // }
 
     const userDataDir =
         config.dirs?.chromeDataDir ?? path.join(config.dataDir, "chromeData");

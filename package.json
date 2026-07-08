@@ -13,9 +13,7 @@
     },
     "dependencies": {
         "pngjs": "^7.0.0",
-        "puppeteer-core": "^24.20.0",
-        "puppeteer-extra": "^3.3.6",
-        "puppeteer-extra-plugin-stealth": "^2.11.2"
+        "puppeteer-core": "^24.20.0"
     },
     "devDependencies": {
         "@types/pngjs": "^6.0.5",
