@@ -154,7 +154,7 @@ module.exports = async function (ctx) {
 
         await action("选择咖啡", [
             ["tt", 45 + scriptConfig.coffeeIndex * 85, 340],
-            ["sleep", 3000],
+            ["sleep", 500],
         ]);
 
         await action("点击点单按钮", [
@@ -170,7 +170,10 @@ module.exports = async function (ctx) {
 
         await action("点击确认和返回", [
             ["tt", 323, 318],
-            ["sleep", 3000],
+            ["sleep", 1000],
+            // 特效咖啡
+            ["tt", 384, 291],
+            ["sleep", 1000],
             tapBackBtn.middleTop,
             ["sleep", 3000],
         ]);
