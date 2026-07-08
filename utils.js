@@ -41,6 +41,9 @@ let _activeRl = null;
 /** 当前 REPL 使用的 eval 函数，热重载时更新 @type {AutoGamer.EvalFn} */
 let _replEval = eval;
 
+/** 热重载前最后一次 action @type {string | null} */
+let lastAction = null;
+
 /**
  * 创建默认的 action 状态
  * @returns {AutoGamer.ActionState}
@@ -454,6 +457,9 @@ function createUtils(ctx, _eval = eval) {
 
         /** action 核心执行逻辑 */
         const _runActionCore = async () => {
+            log("ACTION:", description);
+            lastAction = description;
+
             const doOpsArray = async (
                 /** @type {AutoGamer.OperationArray | string[] | string | undefined} */ ops,
                 /** @type {() => boolean} */ shouldPauseCheck = () => false,
@@ -838,6 +844,11 @@ function createUtils(ctx, _eval = eval) {
         // 开发模式下热重载时复用同一个 REPL 会话，只更新 _replEval
         if (_activeRl) {
             log("REPL 已存在，复用当前会话");
+            log(
+                "上次执行的 action:",
+                lastAction,
+                "输入 la 以设置 startAt、执行 main()",
+            );
             return;
         }
 
