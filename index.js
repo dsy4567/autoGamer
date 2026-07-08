@@ -126,20 +126,32 @@ async function _closeBrowserAndExit(code, exit = true) {
 /** 输出日志并触发写文件钩子 @param {...any} args */
 const log = (...args) => {
     const now = new Date().toISOString();
-    console.log(`[${now}]`, ...args);
     const str = args
         .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
         .join(" ");
+    console[
+        str.startsWith("ERROR")
+            ? "error"
+            : str.startsWith("WARNING")
+              ? "warn"
+              : "log"
+    ](`[${now}]`, ...args);
     _logWriteFile(now, str);
     _logWriteHtml(str);
 };
 /** 原始日志，不触发截图钩子，供截图函数自身使用以避免递归 @param {...any} args */
 const logRaw = (...args) => {
     const now = new Date().toISOString();
-    console.log(`[${now}]`, ...args);
     const str = args
         .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
         .join(" ");
+    console[
+        str.startsWith("ERROR")
+            ? "error"
+            : str.startsWith("WARNING")
+              ? "warn"
+              : "log"
+    ](`[${now}]`, ...args);
     _logWriteFile(now, str);
     _logWriteHtml(str);
 };
