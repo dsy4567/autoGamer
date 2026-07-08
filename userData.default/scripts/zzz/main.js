@@ -504,8 +504,46 @@ module.exports = async function (ctx) {
         ]);
     }
 
-    /** 首次进入主界面后操作 */
-    async function firstEnterMainGame() {
+    /** 进入主界面 */
+    async function enterMain() {
+        await action("初始等待", [
+            ["sleep", scriptConfig.startupDelays.initialWait],
+        ]);
+
+        // NOTE: 已废弃点击同意用户协议
+        // await action("同意用户协议/点击开始游戏", [
+        //     ["tt", 384, 317],
+        //     ["sleep", scriptConfig.startupDelays.afterAgreement],
+        // ]);
+
+        try {
+            await action(
+                "waitSceneChange",
+                [
+                    ["tt", 384, 317],
+                    ["sleep", 4500],
+                ],
+                {
+                    threshold: 0.97,
+                    interval: 3000,
+                },
+            );
+            await action("检测到场景变化后点击开始游戏", [
+                ["sleep", 3000],
+                ["tt", 384, 317],
+                ["sleep", 3000],
+            ]);
+        } catch (e) {
+            log("ERROR: 等待场景变化超时", e);
+            await action("等待场景变化超时后人工干预", [
+                ["mi", "请手动点击开始游戏后，按快捷键取消干预", 60000],
+            ]);
+        }
+
+        await action("等待读条", [
+            ["sleep", scriptConfig.startupDelays.afterStartGame],
+        ]);
+
         await action("疯狂关闭弹窗", [
             // 左上角关闭按钮/误触菜单
             tapBackBtn.top,
@@ -526,7 +564,10 @@ module.exports = async function (ctx) {
             ["sleep", 5000],
         ]);
         await action("关闭弹窗后等待", [["sleep", 10000]]);
+    }
 
+    async function main() {
+        await enterMain();
         await goSixthStreet();
         await goCoffeeShop();
         await goMagazineShop();
@@ -534,43 +575,6 @@ module.exports = async function (ctx) {
         await getManualReward();
         await dungeonFight();
         await getJiXingReward();
-    }
-
-    async function main() {
-        await action("初始等待", [
-            ["sleep", scriptConfig.startupDelays.initialWait],
-        ]);
-
-        // NOTE: 已废弃点击同意用户协议
-        // await action("同意用户协议/点击开始游戏", [
-        //     ["tt", 384, 317],
-        //     ["sleep", scriptConfig.startupDelays.afterAgreement],
-        // ]);
-
-        try {
-            await action("waitSceneChange", [["tt", 384, 317]], {
-                threshold: 0.97,
-                interval: 3000,
-            });
-            await action("检测到场景变化后点击开始游戏", [
-                ["sleep", 3000],
-                ["tt", 384, 317],
-                ["sleep", 3000],
-            ]);
-        } catch (e) {
-            log("ERROR: 等待场景变化超时", e);
-            await action("等待场景变化超时后兜底等待", [["sleep", 90000]]);
-        }
-
-        await action("兜底点击开始游戏，等待读条", [
-            ["tt", 384, 317],
-            ["sleep", scriptConfig.startupDelays.afterStartGame],
-        ]);
-
-        // if (!scriptConfig.isReturn) {
-        //     await firstReturnGame();
-        // }
-        await firstEnterMainGame();
     }
 
     await runGame(ctx, "绝区零", scriptConfig, main, code => eval(code));
