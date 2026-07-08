@@ -637,6 +637,7 @@ function createUtils(ctx, _eval = eval) {
 
                     // 流程A：截图比对流程
                     const sceneChangeDetector = (async () => {
+                        log("waitSceneChange 开始二次截图比对流程");
                         while (Date.now() - startTime < timeout) {
                             if (isInstanceDestroyed()) {
                                 shouldStop = true;
@@ -757,6 +758,9 @@ function createUtils(ctx, _eval = eval) {
                                           continue;
                                       }
                                       try {
+                                          log("waitSceneChange 执行一批操作");
+                                          // NOTE: 不需要 race 检查 shouldStop || pauseOpsLoop 退出，
+                                          // 脚本紧接着执行触摸等操作可能会乱套，等待执行完就行
                                           await doOpsArray(
                                               operations,
                                               () => shouldStop || pauseOpsLoop,
