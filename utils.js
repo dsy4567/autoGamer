@@ -419,9 +419,9 @@ function createUtils(ctx, _eval = eval) {
             return;
         }
 
-        if (description?.includes("#")) {
+        if (['"', "'", "\\", "#"].some(char => description?.includes(char))) {
             log(
-                "WARNING: action 简要描述包含半角 # 字符，可能影响 --start-at / --end-at 的匹配结果",
+                "WARNING: action 简要描述包含 #\"'\\ 字符，可能引发一系列问题，例如影响 --start-at / --end-at 的匹配结果",
             );
         }
 
@@ -778,8 +778,6 @@ function createUtils(ctx, _eval = eval) {
                 }
             }
 
-            log("ACTION:", description);
-
             await doOpsArray(operations);
 
             /** @type {AutoGamer.ActionOptions} */
@@ -868,46 +866,67 @@ function createUtils(ctx, _eval = eval) {
 
         rl.prompt();
         rl.on("line", async input => {
-            const trimmed = input.trim();
-            if (trimmed === "exit") {
-                rl.close();
-                return;
-            }
-            if (trimmed === "") {
-                log("网页已打开毫秒数:", Date.now() - pageOpenTime);
-                return;
-            }
-            if (trimmed === "next") {
-                try {
-                    await _replEval('action("next")');
-                } catch (e) {
-                    log("WARNING: next 执行错误:", e);
+            // 输入包含特殊文本则不应用优化，直接执行原始代码
+            let enableEnhanced = true;
+            if (
+                [";", "var", "let", "const", "return"].some(kwd =>
+                    input.includes(kwd),
+                )
+            )
+                enableEnhanced = false;
+
+            if (enableEnhanced) {
+                const trimmed = input.trim();
+                if (trimmed === "exit") {
+                    rl.close();
+                    return;
                 }
-                rl.prompt();
-                return;
-            }
-            if (trimmed === "skip") {
-                try {
-                    await _replEval('action("skip")');
-                } catch (e) {
-                    log("WARNING: skip 执行错误:", e);
+                if (trimmed === "") {
+                    log("网页已打开毫秒数:", Date.now() - pageOpenTime);
+                    return;
                 }
-                rl.prompt();
-                return;
-            }
-            if (trimmed === "tdbg") {
-                try {
-                    await _replEval('action("toggleDbg")');
-                } catch (e) {
-                    log("WARNING: tdbg 执行错误:", e);
+                if (trimmed === "next") {
+                    try {
+                        await _replEval('action("next")');
+                    } catch (e) {
+                        log("WARNING: next 执行错误:", e);
+                    }
+                    rl.prompt();
+                    return;
                 }
-                rl.prompt();
-                return;
-            }
-            if (trimmed === "help") {
-                log(
-                    `
-获取返回值: 使用 return 语句返回执行结果
+                if (trimmed === "skip") {
+                    try {
+                        await _replEval('action("skip")');
+                    } catch (e) {
+                        log("WARNING: skip 执行错误:", e);
+                    }
+                    rl.prompt();
+                    return;
+                }
+                if (trimmed === "tdbg") {
+                    try {
+                        await _replEval('action("toggleDbg")');
+                    } catch (e) {
+                        log("WARNING: tdbg 执行错误:", e);
+                    }
+                    rl.prompt();
+                    return;
+                }
+                if (trimmed === "la") {
+                    try {
+                        await _replEval(
+                            `await action("startAt", "${lastAction}"); main()`,
+                        );
+                    } catch (e) {
+                        log("WARNING: la 执行错误:", e);
+                    }
+                    rl.prompt();
+                    return;
+                }
+                if (trimmed === "help") {
+                    log(
+                        `
+注意：REPL 不支持声明变量供后续使用
 
 可用命令:
   exit          - 退出 REPL 并关闭浏览器
@@ -942,15 +961,16 @@ action() 部分用法:
   te() - 触摸结束; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
   tm(x, y) - 触摸移动; 如无特别需求，推荐使用 tt (touch tap)/hold/drag
 `,
-                );
-                rl.prompt();
-                return;
+                    );
+                    rl.prompt();
+                    return;
+                }
             }
             try {
                 // 允许访问 browser, page, puppeteer, log 及别名
                 // 例外：允许使用 console.error 而不是 log/logRaw
                 const result = await _replEval(
-                    `(async () => {try{${input}}catch(e){console.error(e)}})()`,
+                    `(async () => {try{${enableEnhanced ? "return " : ""}${input}}catch(e){console.error(e)}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
