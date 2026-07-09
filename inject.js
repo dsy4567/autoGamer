@@ -118,9 +118,9 @@ setTimeout(() => {
     let clipboardEnabled = false;
 
     let mousePos = {
-            x: 0,
-            y: 0,
-        },
+        x: 0,
+        y: 0,
+    },
         extraContent = "",
         extraHtml = "",
         /** @type {number|undefined} - 用于延迟显示指示器的定时器 ID */
@@ -153,9 +153,8 @@ setTimeout(() => {
             indicator.style.setProperty("bottom", "auto", "important");
             indicator.style.setProperty("top", "10px", "important");
         }
-        indicator.textContent = `${
-            altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
-        }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
+        indicator.textContent = `${altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
+            }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
         indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${extraHtml}`;
     };
     const showIndicator = () => {
@@ -188,13 +187,19 @@ setTimeout(() => {
     hideBallStyle.textContent = `.gameSetingButton {
         display: none !important;
     }`;
-    const toggleBallVisible = () => {
+    /**
+     * 切换悬浮球的可见性
+     * @param {boolean|null} show - 是否显示悬浮球
+     */
+    const toggleBallVisible = (show = null) => {
         try {
             document.head[
-                (ballVisible = !ballVisible) ? "removeChild" : "appendChild"
+                (ballVisible = (show ?? !ballVisible)) ? "removeChild" : "appendChild"
             ](hideBallStyle);
-        } catch (e) {}
+        } catch (e) { }
     };
+    // @ts-ignore
+    window.__autoGamer.toggleBallVisible = toggleBallVisible;
     toggleBallVisible();
 
     // Alt+鼠标事件转发为 puppeteer 触摸事件
@@ -386,7 +391,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 }
 
                 if (clipboardEnabled) {
-                    navigator.clipboard.writeText(cmd).catch(() => {});
+                    navigator.clipboard.writeText(cmd).catch(() => { });
                 }
                 dragStart = {
                     x: 0,
@@ -440,7 +445,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         if (!window.__autoGamer.warningAudioCtx) {
             // @ts-ignore
             window.__autoGamer.warningAudioCtx = new // @ts-ignore
-            (window.AudioContext || window.webkitAudioContext)();
+                (window.AudioContext || window.webkitAudioContext)();
         }
         // @ts-ignore
         const ctx = window.__autoGamer.warningAudioCtx;
