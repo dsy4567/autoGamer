@@ -339,7 +339,7 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 556, 397],
-            ["sleep", 500],
+            ["sleep", 1000],
         ]);
 
         await action("点击等级回馈", [
@@ -349,9 +349,9 @@ module.exports = async function (ctx) {
 
         await action("点击全部领取", [
             ["tt", 400, 395],
-            ["sleep", 500],
+            ["sleep", 1000],
             ["tt", 400, 395],
-            ["sleep", 500],
+            ["sleep", 1000],
             ["fn", config.checkpoint],
         ]);
 
