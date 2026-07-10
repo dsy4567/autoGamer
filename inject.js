@@ -615,7 +615,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     // };
 };
 
-if (document.readyState === "complete") {
+if (document.readyState !== "loading") {
     window.__autoGamer.mainFn();
 } else {
     window.addEventListener("DOMContentLoaded", window.__autoGamer.mainFn);
