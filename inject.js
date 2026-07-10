@@ -168,6 +168,12 @@ window.__autoGamer.mainFn = () => {
     let crosshairEnabled = true;
     /** 是否已发生过触摸（首次触摸后才显示十字线） */
     let crosshairTouched = false;
+    /** @type {{x: number, y: number} | null} 上次操作的最终坐标（用于连续同位置操作计数） */
+    let lastOpPos = null;
+    /** 连续同位置操作次数 */
+    let opCount = 0;
+    /** @type {{x: number, y: number} | null} 当前触摸的最后坐标（tap 为点击位置，drag 为终点） */
+    let touchLastPos = null;
     /**
      * 根据 crosshairEnabled 与 crosshairTouched 同步十字线与标签的可见性
      */
@@ -181,8 +187,9 @@ window.__autoGamer.mainFn = () => {
      * 更新十字线交点位置与坐标标签
      * @param {number} x
      * @param {number} y
+     * @param {number} [count] - 连续同位置操作次数，> 1 时显示 xN 标注
      */
-    const updateCrosshair = (x, y) => {
+    const updateCrosshair = (x, y, count = 0) => {
         crosshairH.style.setProperty(
             "transform",
             `translate3d(0,${y}px,0)`,
@@ -199,7 +206,8 @@ window.__autoGamer.mainFn = () => {
             `translate3d(${x + 4}px,${y + 4}px,0)`,
             "important",
         );
-        crosshairLabel.textContent = `(${Math.round(x)},${Math.round(y)})`;
+        const countLabel = count > 1 ? ` x${count}` : "";
+        crosshairLabel.textContent = `(${Math.round(x)},${Math.round(y)})${countLabel}`;
     };
 
     let altPressed = false;
@@ -269,6 +277,7 @@ window.__autoGamer.mainFn = () => {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
             crosshairTouched = true;
+            touchLastPos = { x: touch.clientX, y: touch.clientY };
             updateCrosshair(touch.clientX, touch.clientY);
             updateCrosshairVisibility();
         }
@@ -278,8 +287,28 @@ window.__autoGamer.mainFn = () => {
             const touch = e.touches[0];
             updateIndicator(touch.clientX, touch.clientY);
             showIndicator();
+            touchLastPos = { x: touch.clientX, y: touch.clientY };
             updateCrosshair(touch.clientX, touch.clientY);
         }
+    });
+    document.addEventListener("touchend", function (e) {
+        if (e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            touchLastPos = { x: touch.clientX, y: touch.clientY };
+        }
+        const finalPos = touchLastPos || { x: 0, y: 0 };
+        const threshold = 5;
+        if (
+            lastOpPos &&
+            Math.abs(finalPos.x - lastOpPos.x) <= threshold &&
+            Math.abs(finalPos.y - lastOpPos.y) <= threshold
+        ) {
+            opCount++;
+        } else {
+            opCount = 1;
+        }
+        lastOpPos = finalPos;
+        updateCrosshair(finalPos.x, finalPos.y, opCount);
     });
 
     // 隐藏/显示悬浮球
