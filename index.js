@@ -227,6 +227,8 @@ async function inject(page, tt, drag, hold) {
             // 隐藏 navigator.webdriver，绕过最常见的 Puppeteer/自动化检测
             Object.defineProperty(navigator, "webdriver", { value: false });
         });
+
+        // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
         await page.exposeFunction(
             "__autoGamerSimulateTouch",
             async (
@@ -276,48 +278,61 @@ async function inject(page, tt, drag, hold) {
                 }
             },
         );
-                    await page.evaluateOnNewDocument(alwaysHideOverlay => {
+
+        await page.evaluateOnNewDocument(alwaysHideOverlay => {
+            // @ts-ignore
+            if (window.__autoGamer) return;
+            // @ts-ignore
+            window.__autoGamer = {
                 // @ts-ignore
-                window.__autoGamer = {
+                simulateTouch: window.__autoGamerSimulateTouch,
+            };
+
+            window.addEventListener("message", ev => {
+                if (
+                    ev &&
+                    ev.data &&
+                    (ev.data.type === "auto-gamer-mouse-to-tap" ||
+                        ev.data.type === "auto-gamer-mouse-to-drag" ||
+                        ev.data.type === "auto-gamer-mouse-to-hold" ||
+                        ev.data.type === "auto-gamer-log")
+                ) {
+                    // 通过 puppeteer 暴露的函数转发到 Node 端
                     // @ts-ignore
-                    simulateTouch: window.__autoGamerSimulateTouch,
-                };
+                    window.__autoGamer.simulateTouch(ev.data);
+                }
+            });
 
-                window.addEventListener("message", ev => {
-                    if (
-                        ev &&
-                        ev.data &&
-                        (ev.data.type === "auto-gamer-mouse-to-tap" ||
-                            ev.data.type === "auto-gamer-mouse-to-drag" ||
-                            ev.data.type === "auto-gamer-mouse-to-hold" ||
-                            ev.data.type === "auto-gamer-log")
-                    ) {
-                        // 通过 puppeteer 暴露的函数转发到 Node 端
-                        // @ts-ignore
-                        window.__autoGamer.simulateTouch(ev.data);
-                    }
-                });
+            // 将全局配置注入页面，供 inject.js 读取
+            // @ts-ignore
+            window.__autoGamer.config = {
+                alwaysHideOverlay,
+            };
+        }, config.alwaysHideOverlay ?? false);
 
-                // 将全局配置注入页面，供 inject.js 读取
-                // @ts-ignore
-                window.__autoGamer.config = {
-                    alwaysHideOverlay,
-                };
-            }, config.alwaysHideOverlay ?? false);
+        let identifier = (
+            await page.evaluateOnNewDocument(
+                fs.readFileSync(injectPath, "utf-8"),
+            )
+        ).identifier;
+        let lastInjectTime = 0;
+        config.isDev &&
+            fs.watch(injectPath, async () => {
+                if (Date.now() - lastInjectTime < 300) return;
+                lastInjectTime = Date.now();
+                log("inject.js 已更新，重新注入");
+                await page.removeScriptToEvaluateOnNewDocument(identifier);
+                identifier = (
+                    await page.evaluateOnNewDocument(
+                        fs.readFileSync(injectPath, "utf-8"),
+                    )
+                ).identifier;
+            });
 
-        while (fs.existsSync(injectPath)) {
-            if (page.isClosed()) break;
-            // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
-            try {
-                await page.waitForNavigation({
-                    timeout: 0,
-                    waitUntil: "domcontentloaded",
-                });
-            } catch (e) {}
-            page.evaluate(fs.readFileSync(injectPath, "utf-8")).catch(e => {});
-            log("已注入 inject.js");
-        }
-    } catch (e) {}
+        log("已注入 inject.js");
+    } catch (e) {
+        log("ERROR: 注入 inject.js 失败:", e);
+    }
 }
 
 /**
