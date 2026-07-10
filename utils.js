@@ -1078,6 +1078,8 @@ action() 部分用法:
         }
         let overlayWasVisible = false;
         let crosshairWasVisible = false;
+        let scrollX = 0;
+        let scrollY = 0;
         _lastScreenshotTime = now;
         _screenshotInProgress = true;
 
@@ -1086,6 +1088,8 @@ action() 部分用法:
             ({
                 overlayVisible: overlayWasVisible,
                 crossVisible: crosshairWasVisible,
+                scrollX,
+                scrollY,
             } = await page.evaluate(() => {
                 const overlay = document.getElementById("auto-gamer-overlay");
                 const indicator = document.getElementById(
@@ -1112,14 +1116,19 @@ action() 部分用法:
                 crossV?.style.setProperty("display", "none", "important");
                 crossLabel?.style.setProperty("display", "none", "important");
 
-                return { overlayVisible, crossVisible };
+                return {
+                    overlayVisible,
+                    crossVisible,
+                    scrollX: window.scrollX,
+                    scrollY: window.scrollY,
+                };
             }));
 
             const screenshotOptions = {
                 fullPage: false,
                 clip: clip || {
-                    x: 0,
-                    y: 0,
+                    x: scrollX,
+                    y: scrollY,
                     width: config.viewport?.width ?? 640,
                     height: config.viewport?.height ?? 480,
                 },
