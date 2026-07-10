@@ -26,6 +26,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
     log("开始签到");
     try {
         // 点击悬浮球元素
+        await page.evaluate('window?.__autoGamer?.toggleBallVisible?.(true)');
         await page.click("#app > div > div.pagebox > div:nth-child(4) > div");
         await sleep(3000);
         try {
