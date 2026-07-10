@@ -200,14 +200,21 @@ window.__autoGamer.mainFn = () => {
             `translate3d(${x}px,0,0)`,
             "important",
         );
-        // 标签紧贴交点右下方，偏移 4px 避免遮挡交点
-        crosshairLabel.style.setProperty(
-            "transform",
-            `translate3d(${x + 4}px,${y + 4}px,0)`,
-            "important",
-        );
         const countLabel = count > 1 ? ` x${count}` : "";
         crosshairLabel.textContent = `(${Math.round(x)},${Math.round(y)})${countLabel}`;
+        // 标签紧贴交点右下方，偏移 4px 避免遮挡交点
+        // 标签本身的位置不能超出视口，超出时紧贴视口边缘
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const lw = crosshairLabel.offsetWidth;
+        const lh = crosshairLabel.offsetHeight;
+        const lx = lw > 0 ? Math.max(0, Math.min(x + 4, vw - lw)) : x + 4;
+        const ly = lh > 0 ? Math.max(0, Math.min(y + 4, vh - lh)) : y + 4;
+        crosshairLabel.style.setProperty(
+            "transform",
+            `translate3d(${lx}px,${ly}px,0)`,
+            "important",
+        );
     };
 
     let altPressed = false;
