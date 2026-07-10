@@ -194,7 +194,10 @@ function createUtils(ctx, _eval = eval) {
      * @param {number} x 横坐标
      * @param {number} y 纵坐标
      */
-    const ts = (x, y) => page.touchscreen.touchStart(x, y);
+    const ts = (x, y) => {
+        page.evaluate(`window.__autoGamer.updateCrosshair(${x}, ${y})`);
+        return page.touchscreen.touchStart(x, y);
+    };
     /** 触摸结束 - 触发 touchEnd 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag} */
     const te = () => page.touchscreen.touchEnd();
     /**
@@ -202,13 +205,19 @@ function createUtils(ctx, _eval = eval) {
      * @param {number} x 横坐标
      * @param {number} y 纵坐标
      */
-    const tm = (x, y) => page.touchscreen.touchMove(x, y);
+    const tm = (x, y) => {
+        page.evaluate(`window.__autoGamer.updateCrosshair(${x}, ${y})`);
+        return page.touchscreen.touchMove(x, y);
+    };
     /**
      * 触摸点击 - 在指定坐标触发 tap 事件
      * @param {number} x 横坐标
      * @param {number} y 纵坐标
      */
-    const tt = (x, y) => page.touchscreen.tap(x, y);
+    const tt = (x, y) => {
+        page.evaluate(`window.__autoGamer.updateCrosshair(${x}, ${y})`);
+        return page.touchscreen.tap(x, y);
+    };
     /**
      * 页面点击 - 调用 page.click(selector)
      * @param {string} selector 传递给 page.click 的参数

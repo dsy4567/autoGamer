@@ -510,6 +510,16 @@ declare global {
             /** 显示/隐藏悬浮球 */
             toggleBallVisible(show?: boolean | null): void;
 
+            /**
+             * 手动更新十字线坐标并记录操作次数
+             *
+             * 将十字线移动到指定坐标并显示，同时与上次操作位置比较，
+             * 连续同位置（阈值 5px）操作累加计数，在标签上显示 xN 标注。
+             * @param x X 坐标
+             * @param y Y 坐标
+             */
+            updateCrosshair(x: number, y: number): void;
+
             /** 播放警告音 */
             playWarningSound(): void;
 

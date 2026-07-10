@@ -166,13 +166,13 @@ window.__autoGamer.mainFn = () => {
 
     /** 十字线开关（Alt+X 切换），关闭后触摸也不显示 */
     let crosshairEnabled = true;
-    /** 是否已发生过触摸（首次触摸后才显示十字线） */
+    /** 是否已通过 updateCrosshair 激活过（激活后才显示十字线） */
     let crosshairTouched = false;
     /** @type {{x: number, y: number} | null} 上次操作的最终坐标（用于连续同位置操作计数） */
     let lastOpPos = null;
     /** 连续同位置操作次数 */
     let opCount = 0;
-    /** @type {{x: number, y: number} | null} 当前触摸的最后坐标（tap 为点击位置，drag 为终点） */
+    /** @type {{x: number, y: number} | null} 当前触摸的最后坐标（tap 为点击位置，drag 为最后停留坐标） */
     let touchLastPos = null;
     /**
      * 根据 crosshairEnabled 与 crosshairTouched 同步十字线与标签的可见性
@@ -184,12 +184,12 @@ window.__autoGamer.mainFn = () => {
         crosshairLabel.style.setProperty("display", show, "important");
     };
     /**
-     * 更新十字线交点位置与坐标标签
+     * 渲染十字线交点位置与坐标标签（仅更新 DOM，不记录操作）
      * @param {number} x
      * @param {number} y
      * @param {number} [count] - 连续同位置操作次数，> 1 时显示 xN 标注
      */
-    const updateCrosshair = (x, y, count = 0) => {
+    const renderCrosshair = (x, y, count = 0) => {
         crosshairH.style.setProperty(
             "transform",
             `translate3d(0,${y}px,0)`,
@@ -216,6 +216,30 @@ window.__autoGamer.mainFn = () => {
             "important",
         );
     };
+
+    /**
+     * 手动更新十字线坐标并记录操作次数（用于重复点击计数）
+     *
+     * 通过 window.__autoGamer.updateCrosshair(x, y) 调用，
+     * 将十字线移动到指定坐标、标记为已触摸并显示，
+     * 同时与上次操作位置比较，连续同位置（阈值 5px）操作累加计数。
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
+     */
+    const updateCrosshair = (x, y) => {
+        crosshairTouched = true;
+        touchLastPos = { x, y };
+        if (lastOpPos && x == lastOpPos.x && y == lastOpPos.y) {
+            opCount++;
+        } else {
+            opCount = 1;
+        }
+        lastOpPos = { x, y };
+        renderCrosshair(x, y, opCount);
+        updateCrosshairVisibility();
+    };
+
+    window.__autoGamer.updateCrosshair = updateCrosshair;
 
     let altPressed = false;
     /** 人工干预激活时为 true，使指示器保持可见 */
@@ -280,42 +304,13 @@ window.__autoGamer.mainFn = () => {
         updateIndicator(e.clientX, e.clientY);
         showIndicator();
     });
-    document.addEventListener("touchstart", function (e) {
-        if (e.touches.length > 0) {
-            const touch = e.touches[0];
-            crosshairTouched = true;
-            touchLastPos = { x: touch.clientX, y: touch.clientY };
-            updateCrosshair(touch.clientX, touch.clientY);
-            updateCrosshairVisibility();
-        }
-    });
+
     document.addEventListener("touchmove", function (e) {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
             updateIndicator(touch.clientX, touch.clientY);
             showIndicator();
-            touchLastPos = { x: touch.clientX, y: touch.clientY };
-            updateCrosshair(touch.clientX, touch.clientY);
         }
-    });
-    document.addEventListener("touchend", function (e) {
-        if (e.changedTouches.length > 0) {
-            const touch = e.changedTouches[0];
-            touchLastPos = { x: touch.clientX, y: touch.clientY };
-        }
-        const finalPos = touchLastPos || { x: 0, y: 0 };
-        const threshold = 5;
-        if (
-            lastOpPos &&
-            Math.abs(finalPos.x - lastOpPos.x) <= threshold &&
-            Math.abs(finalPos.y - lastOpPos.y) <= threshold
-        ) {
-            opCount++;
-        } else {
-            opCount = 1;
-        }
-        lastOpPos = finalPos;
-        updateCrosshair(finalPos.x, finalPos.y, opCount);
     });
 
     // 隐藏/显示悬浮球
@@ -370,7 +365,7 @@ window.__autoGamer.mainFn = () => {
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
-Alt + x       开启/关闭触摸点十字线（默认开，首次触摸后显示）<br>
+Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
 Alt + m       人工干预后继续（仅干预期间生效）<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
