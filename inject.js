@@ -12,7 +12,7 @@
 // @ts-ignore
 window.__autoGamer = window.__autoGamer || {};
 
-setTimeout(() => {
+window.__autoGamer.mainFn = () => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     /** @type {{ alwaysHideOverlay: boolean }} */
@@ -618,4 +618,10 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     // console.log = function (...args) {
     //     originalLog.apply(console, args);
     // };
-}, 0);
+};
+
+if (document.readyState === "complete") {
+    window.__autoGamer.mainFn();
+} else {
+    window.addEventListener("DOMContentLoaded", window.__autoGamer.mainFn);
+}
