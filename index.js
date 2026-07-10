@@ -223,6 +223,10 @@ process.on("SIGTERM", async () => {
 async function inject(page, tt, drag, hold) {
     try {
         const injectPath = path.resolve(__dirname, "inject.js");
+        await page.evaluateOnNewDocument(() => {
+            // 隐藏 navigator.webdriver，绕过最常见的 Puppeteer/自动化检测
+            Object.defineProperty(navigator, "webdriver", false);
+        });
         await page.exposeFunction(
             "__autoGamerSimulateTouch",
             async (
@@ -272,16 +276,7 @@ async function inject(page, tt, drag, hold) {
                 }
             },
         );
-        while (fs.existsSync(injectPath)) {
-            if (page.isClosed()) break;
-            // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
-            try {
-                await page.waitForNavigation({
-                    timeout: 0,
-                    waitUntil: "domcontentloaded",
-                });
-            } catch (e) {}
-            await page.evaluate(alwaysHideOverlay => {
+                    await page.evaluateOnNewDocument(alwaysHideOverlay => {
                 // @ts-ignore
                 window.__autoGamer = {
                     // @ts-ignore
@@ -309,6 +304,16 @@ async function inject(page, tt, drag, hold) {
                     alwaysHideOverlay,
                 };
             }, config.alwaysHideOverlay ?? false);
+
+        while (fs.existsSync(injectPath)) {
+            if (page.isClosed()) break;
+            // 监听页面 postMessage 事件，自动模拟 tap/drag/hold
+            try {
+                await page.waitForNavigation({
+                    timeout: 0,
+                    waitUntil: "domcontentloaded",
+                });
+            } catch (e) {}
             page.evaluate(fs.readFileSync(injectPath, "utf-8")).catch(e => {});
             log("已注入 inject.js");
         }
