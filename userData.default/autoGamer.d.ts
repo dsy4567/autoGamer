@@ -482,6 +482,47 @@ declare global {
             ) => any;
         }
     }
+    interface Window {
+        __autoGamer: {
+            /** 向 Node 端转发触摸/日志事件（由 index.js exposeFunction 注入） */
+            simulateTouch(msg: {
+                type:
+                    | "auto-gamer-mouse-to-tap"
+                    | "auto-gamer-mouse-to-drag"
+                    | "auto-gamer-mouse-to-hold"
+                    | "auto-gamer-log";
+                x?: number;
+                y?: number;
+                from?: { x: number; y: number };
+                to?: { x: number; y: number };
+                duration?: number;
+                content?: string;
+            }): Promise<void>;
+
+            /** 全局配置（由 index.js 注入） */
+            config: {
+                alwaysHideOverlay: boolean;
+            };
+
+            /** 初始化注入 UI 与事件监听 */
+            mainFn(): void;
+
+            /** 显示/隐藏悬浮球 */
+            toggleBallVisible(show?: boolean | null): void;
+
+            /** 播放警告音 */
+            playWarningSound(): void;
+
+            /** 请求人工干预，返回用户是否手动结束 */
+            requestManualIntervention(
+                msg?: string,
+                timeout?: number,
+            ): Promise<boolean>;
+
+            /** 懒创建的音频上下文 */
+            warningAudioCtx?: AudioContext;
+        };
+    }
 }
 
 export {};

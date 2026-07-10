@@ -6,17 +6,18 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+/// <reference types="./userData.default/autoGamer.d.ts" />
+
 // @ts-check
 "use strict";
 
-// @ts-ignore
 window.__autoGamer = window.__autoGamer || {};
 
 window.__autoGamer.mainFn = () => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     /** @type {{ alwaysHideOverlay: boolean }} */
-    // @ts-ignore
+
     const autoGamerConfig = window.__autoGamer.config || {};
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
@@ -60,14 +61,7 @@ window.__autoGamer.mainFn = () => {
     window.addEventListener = new Proxy(window.addEventListener, {
         apply(target, thisArg, args) {
             const event = args[0];
-            if (
-                [
-                    "visibilitychange",
-                    "pagehide",
-                    "pageshow",
-                    "webkitvisibilitychange",
-                ].includes(event)
-            ) {
+            if (["visibilitychange", "pagehide", "pageshow"].includes(event)) {
                 return;
             }
             return Reflect.apply(target, thisArg, args);
@@ -118,9 +112,9 @@ window.__autoGamer.mainFn = () => {
     let clipboardEnabled = false;
 
     let mousePos = {
-        x: 0,
-        y: 0,
-    },
+            x: 0,
+            y: 0,
+        },
         extraContent = "",
         extraHtml = "",
         /** @type {number|undefined} - 用于延迟显示指示器的定时器 ID */
@@ -153,8 +147,9 @@ window.__autoGamer.mainFn = () => {
             indicator.style.setProperty("bottom", "auto", "important");
             indicator.style.setProperty("top", "10px", "important");
         }
-        indicator.textContent = `${altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
-            }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
+        indicator.textContent = `${
+            altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
+        }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
         indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${extraHtml}`;
     };
     const showIndicator = () => {
@@ -194,11 +189,13 @@ window.__autoGamer.mainFn = () => {
     const toggleBallVisible = (show = null) => {
         try {
             document.head[
-                (ballVisible = (show ?? !ballVisible)) ? "removeChild" : "appendChild"
+                (ballVisible = show ?? !ballVisible)
+                    ? "removeChild"
+                    : "appendChild"
             ](hideBallStyle);
-        } catch (e) { }
+        } catch (e) {}
     };
-    // @ts-ignore
+
     window.__autoGamer.toggleBallVisible = toggleBallVisible;
     toggleBallVisible();
 
@@ -391,7 +388,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 }
 
                 if (clipboardEnabled) {
-                    navigator.clipboard.writeText(cmd).catch(() => { });
+                    navigator.clipboard.writeText(cmd).catch(() => {});
                 }
                 dragStart = {
                     x: 0,
@@ -441,13 +438,11 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      */
     const playWarningSound = () => {
         // 创建或复用 AudioContext（兼容写法）
-        // @ts-ignore
+
         if (!window.__autoGamer.warningAudioCtx) {
-            // @ts-ignore
-            window.__autoGamer.warningAudioCtx = new // @ts-ignore
-                (window.AudioContext || window.webkitAudioContext)();
+            window.__autoGamer.warningAudioCtx = new window.AudioContext();
         }
-        // @ts-ignore
+
         const ctx = window.__autoGamer.warningAudioCtx;
 
         // 如果浏览器自动暂停了音频上下文，恢复它
@@ -479,7 +474,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             osc.stop(startTime + 0.08);
         }
     };
-    // @ts-ignore
+
     window.__autoGamer.playWarningSound = playWarningSound;
 
     /**
@@ -497,7 +492,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * @param {number} [timeout=15000] 超时毫秒
      * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false
      */
-    // @ts-ignore
+
     window.__autoGamer.requestManualIntervention = (
         msg = "",
         timeout = 15000,
