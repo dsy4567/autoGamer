@@ -851,7 +851,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         } catch (e) {}
     };
 
-    inject(page, tt, drag, hold);
+    await inject(page, tt, drag, hold);
 
     if (isLogin) {
         // 支持 node index.js login [url]
