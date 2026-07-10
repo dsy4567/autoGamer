@@ -13,7 +13,8 @@
 
 const path = require("path");
 const fs = require("fs");
-const { parseArgs } = require("util");
+const { parseArgs, styleText: _styleText } = require("util");
+const styleText = _styleText || ((_, text) => text);
 const config = require("./config.default.js");
 const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig");
@@ -122,37 +123,65 @@ async function _closeBrowserAndExit(code, exit = true) {
     exit && process.exit(code);
 }
 
-// TODO: 区分颜色
+/**
+ * 解析日志参数，识别级别并剥离前缀
+ * @param {any[]} args
+ * @returns {{ level: "INFO" | "WARNING" | "ERROR", color: "green" | "yellow" | "red", args: any[] }}
+ */
+const _parseLogArgs = args => {
+    /** @type {"INFO" | "WARNING" | "ERROR"} */
+    let level = "INFO";
+    /** @type {"green" | "yellow" | "red"} */
+    let color = "green";
+    const first = args[0];
+    if (typeof first === "string") {
+        if (/^ERROR[:：]/.test(first)) {
+            level = "ERROR";
+            color = "red";
+        } else if (/^WARNING[:：]/.test(first)) {
+            level = "WARNING";
+            color = "yellow";
+        }
+        if (level !== "INFO") {
+            const rest = first.replace(/^(ERROR|WARNING)[:：]\s?/, "");
+            if (rest === "" && args.length === 1) {
+                args = [];
+            } else {
+                args = [rest, ...args.slice(1)];
+            }
+        }
+    }
+    return { level, color, args };
+};
+
 // 日志工具（只定义一次，通过钩子变量控制增强行为）
 /** 输出日志并触发写文件钩子 @param {...any} args */
 const log = (...args) => {
     const now = new Date().toISOString();
-    const str = args
+    const { level, color, args: processedArgs } = _parseLogArgs(args);
+    const tag = `[${level}]`;
+    const coloredTag = styleText(color, tag);
+    const consoleMethod =
+        level === "ERROR" ? "error" : level === "WARNING" ? "warn" : "log";
+    const str = [tag, ...processedArgs]
         .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
         .join(" ");
-    console[
-        str.startsWith("ERROR")
-            ? "error"
-            : str.startsWith("WARNING")
-              ? "warn"
-              : "log"
-    ](`[${now}]`, ...args);
+    console[consoleMethod](`[${now}]`, coloredTag, ...processedArgs);
     _logWriteFile(now, str);
     _logWriteHtml(str);
 };
 /** 原始日志，不触发截图钩子，供截图函数自身使用以避免递归 @param {...any} args */
 const logRaw = (...args) => {
     const now = new Date().toISOString();
-    const str = args
+    const { level, color, args: processedArgs } = _parseLogArgs(args);
+    const tag = `[${level}]`;
+    const coloredTag = styleText(color, tag);
+    const consoleMethod =
+        level === "ERROR" ? "error" : level === "WARNING" ? "warn" : "log";
+    const str = [tag, ...processedArgs]
         .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
         .join(" ");
-    console[
-        str.startsWith("ERROR")
-            ? "error"
-            : str.startsWith("WARNING")
-              ? "warn"
-              : "log"
-    ](`[${now}]`, ...args);
+    console[consoleMethod](`[${now}]`, coloredTag, ...processedArgs);
     _logWriteFile(now, str);
     _logWriteHtml(str);
 };

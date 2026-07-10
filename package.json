@@ -9,7 +9,7 @@
         "login": "node index.js login"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=23.5.0"
     },
     "dependencies": {
         "pngjs": "^7.0.0",
