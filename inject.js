@@ -21,7 +21,7 @@ window.__autoGamer.mainFn = () => {
     const autoGamerConfig = window.__autoGamer.config || {};
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
-    // 创建透明度为 0.01 的全屏遮罩
+    // 创建透明度为 0.01 的全屏遮罩，用于遮挡包括游戏界面、auto-gamer-* 在内的其他所有元素
     const overlay = document.createElement("div");
     overlay.id = "auto-gamer-overlay";
     overlay.style.setProperty("position", "fixed", "important");
@@ -30,6 +30,8 @@ window.__autoGamer.mainFn = () => {
     overlay.style.setProperty("width", "100vw", "important");
     overlay.style.setProperty("height", "100vh", "important");
     overlay.style.setProperty("background", "rgba(0,0,0,0.999)", "important");
+    // 咪咕快游某个弹窗似乎使用了恰好低于此的 z-index，任何情况下这个遮罩必须在其他元素之上
+    // 为确保统一性，其他 auto-gamer 元素的 z-index 应该参考下方 indicator
     overlay.style.setProperty("z-index", "1000001", "important");
     overlay.style.setProperty("pointer-events", "none", "important");
     if (alwaysHideOverlay) {
@@ -105,6 +107,101 @@ window.__autoGamer.mainFn = () => {
     // indicator.textContent = "X: 0, Y: 0";
     document.documentElement.appendChild(indicator);
 
+    // 十字交叉线 + 坐标标签：展示最后一个触摸点
+    // mix-blend-mode: difference 实现透明反色；不使用外层容器，各元素直接与游戏画面混合，
+    // 避免父级 stacking context 阻断 difference
+    /** @type {[string, string][]} */
+    const crosshairCommonStyle = [
+        ["position", "fixed"],
+        ["top", "0"],
+        ["left", "0"],
+        ["margin", "0"],
+        ["mix-blend-mode", "difference"],
+        ["z-index", "10000"],
+        ["pointer-events", "none"],
+        ["display", "none"],
+        ["transform", "translate3d(0,0,0)"],
+    ];
+    /**
+     * 批量以 important 优先级设置样式
+     * @param {HTMLElement} el
+     * @param {[string, string][]} styles
+     */
+    const applyStyle = (el, styles) => {
+        for (const [k, v] of styles) el.style.setProperty(k, v, "important");
+    };
+
+    const crosshairH = document.createElement("div");
+    crosshairH.id = "auto-gamer-crosshair-h";
+    applyStyle(crosshairH, crosshairCommonStyle);
+    applyStyle(crosshairH, [
+        ["width", "100vw"],
+        ["height", "1px"],
+        ["background", "rgba(255,255,255,0.8)"],
+    ]);
+    document.documentElement.appendChild(crosshairH);
+
+    const crosshairV = document.createElement("div");
+    crosshairV.id = "auto-gamer-crosshair-v";
+    applyStyle(crosshairV, crosshairCommonStyle);
+    applyStyle(crosshairV, [
+        ["width", "1px"],
+        ["height", "100vh"],
+        ["background", "rgba(255,255,255,0.8)"],
+    ]);
+    document.documentElement.appendChild(crosshairV);
+
+    // 紧挨十字线交点的坐标标签，无背景、反色
+    const crosshairLabel = document.createElement("div");
+    crosshairLabel.id = "auto-gamer-crosshair-label";
+    applyStyle(crosshairLabel, crosshairCommonStyle);
+    applyStyle(crosshairLabel, [
+        ["background", "transparent"],
+        ["color", "rgba(255,255,255,0.8)"],
+        ["font-size", "12px"],
+        ["line-height", "1"],
+        ["white-space", "nowrap"],
+    ]);
+    document.documentElement.appendChild(crosshairLabel);
+
+    /** 十字线开关（Alt+X 切换），关闭后触摸也不显示 */
+    let crosshairEnabled = true;
+    /** 是否已发生过触摸（首次触摸后才显示十字线） */
+    let crosshairTouched = false;
+    /**
+     * 根据 crosshairEnabled 与 crosshairTouched 同步十字线与标签的可见性
+     */
+    const updateCrosshairVisibility = () => {
+        const show = crosshairEnabled && crosshairTouched ? "block" : "none";
+        crosshairH.style.setProperty("display", show, "important");
+        crosshairV.style.setProperty("display", show, "important");
+        crosshairLabel.style.setProperty("display", show, "important");
+    };
+    /**
+     * 更新十字线交点位置与坐标标签
+     * @param {number} x
+     * @param {number} y
+     */
+    const updateCrosshair = (x, y) => {
+        crosshairH.style.setProperty(
+            "transform",
+            `translate3d(0,${y}px,0)`,
+            "important",
+        );
+        crosshairV.style.setProperty(
+            "transform",
+            `translate3d(${x}px,0,0)`,
+            "important",
+        );
+        // 标签紧贴交点右下方，偏移 4px 避免遮挡交点
+        crosshairLabel.style.setProperty(
+            "transform",
+            `translate3d(${x + 4}px,${y + 4}px,0)`,
+            "important",
+        );
+        crosshairLabel.textContent = `(${Math.round(x)},${Math.round(y)})`;
+    };
+
     let altPressed = false;
     /** 人工干预激活时为 true，使指示器保持可见 */
     let miActive = false;
@@ -168,11 +265,20 @@ window.__autoGamer.mainFn = () => {
         updateIndicator(e.clientX, e.clientY);
         showIndicator();
     });
+    document.addEventListener("touchstart", function (e) {
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            crosshairTouched = true;
+            updateCrosshair(touch.clientX, touch.clientY);
+            updateCrosshairVisibility();
+        }
+    });
     document.addEventListener("touchmove", function (e) {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
             updateIndicator(touch.clientX, touch.clientY);
             showIndicator();
+            updateCrosshair(touch.clientX, touch.clientY);
         }
     });
 
@@ -228,6 +334,7 @@ window.__autoGamer.mainFn = () => {
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
+Alt + x       开启/关闭触摸点十字线（默认开，首次触摸后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
 Alt + m       人工干预后继续（仅干预期间生效）<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
@@ -248,6 +355,10 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             clipboardEnabled = !clipboardEnabled;
             updateIndicator();
             showIndicator();
+        }
+        if (e.key === "x" && e.altKey) {
+            crosshairEnabled = !crosshairEnabled;
+            updateCrosshairVisibility();
         }
     });
     window.addEventListener("keyup", e => {

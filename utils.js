@@ -1077,26 +1077,43 @@ action() 部分用法:
             };
         }
         let overlayWasVisible = false;
+        let crosshairWasVisible = false;
         _lastScreenshotTime = now;
         _screenshotInProgress = true;
 
         try {
             logRaw("准备截图");
-            overlayWasVisible = await page.evaluate(() => {
+            ({
+                overlayVisible: overlayWasVisible,
+                crossVisible: crosshairWasVisible,
+            } = await page.evaluate(() => {
                 const overlay = document.getElementById("auto-gamer-overlay");
-                if (!overlay) return false;
-
-                const visible =
-                    overlay.style.getPropertyValue("display") !== "none";
-                overlay.style.setProperty("display", "none", "important");
-
                 const indicator = document.getElementById(
                     "auto-gamer-mouse-indicator",
                 );
-                indicator?.style.setProperty("display", "none", "important");
+                const crossH = document.getElementById(
+                    "auto-gamer-crosshair-h",
+                );
+                const crossV = document.getElementById(
+                    "auto-gamer-crosshair-v",
+                );
+                const crossLabel = document.getElementById(
+                    "auto-gamer-crosshair-label",
+                );
 
-                return visible;
-            });
+                const overlayVisible =
+                    overlay?.style.getPropertyValue("display") !== "none";
+                const crossVisible =
+                    crossH?.style.getPropertyValue("display") !== "none";
+
+                overlay?.style.setProperty("display", "none", "important");
+                indicator?.style.setProperty("display", "none", "important");
+                crossH?.style.setProperty("display", "none", "important");
+                crossV?.style.setProperty("display", "none", "important");
+                crossLabel?.style.setProperty("display", "none", "important");
+
+                return { overlayVisible, crossVisible };
+            }));
 
             const screenshotOptions = {
                 fullPage: false,
@@ -1146,15 +1163,17 @@ action() 部分用法:
             throw e;
         } finally {
             try {
-                await page.evaluate(wasVisible => {
-                    const overlay =
-                        document.getElementById("auto-gamer-overlay");
-                    if (overlay) {
-                        overlay.style.setProperty(
-                            "display",
-                            wasVisible ? "block" : "none",
-                            "important",
-                        );
+                await page.evaluate(
+                    ({ wasVisible, crossVisible }) => {
+                        const overlay =
+                            document.getElementById("auto-gamer-overlay");
+                        if (overlay) {
+                            overlay.style.setProperty(
+                                "display",
+                                wasVisible ? "block" : "none",
+                                "important",
+                            );
+                        }
 
                         const indicator = document.getElementById(
                             "auto-gamer-mouse-indicator",
@@ -1164,8 +1183,38 @@ action() 部分用法:
                             "block",
                             "important",
                         );
-                    }
-                }, overlayWasVisible);
+
+                        const crossDisplay = crossVisible ? "block" : "none";
+                        const crossH = document.getElementById(
+                            "auto-gamer-crosshair-h",
+                        );
+                        const crossV = document.getElementById(
+                            "auto-gamer-crosshair-v",
+                        );
+                        const crossLabel = document.getElementById(
+                            "auto-gamer-crosshair-label",
+                        );
+                        crossH?.style.setProperty(
+                            "display",
+                            crossDisplay,
+                            "important",
+                        );
+                        crossV?.style.setProperty(
+                            "display",
+                            crossDisplay,
+                            "important",
+                        );
+                        crossLabel?.style.setProperty(
+                            "display",
+                            crossDisplay,
+                            "important",
+                        );
+                    },
+                    {
+                        wasVisible: overlayWasVisible,
+                        crossVisible: crosshairWasVisible,
+                    },
+                );
             } catch (_) {}
             _screenshotInProgress = false;
         }
