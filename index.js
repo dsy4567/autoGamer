@@ -225,7 +225,7 @@ async function inject(page, tt, drag, hold) {
         const injectPath = path.resolve(__dirname, "inject.js");
         await page.evaluateOnNewDocument(() => {
             // 隐藏 navigator.webdriver，绕过最常见的 Puppeteer/自动化检测
-            Object.defineProperty(navigator, "webdriver", false);
+            Object.defineProperty(navigator, "webdriver", { value: false });
         });
         await page.exposeFunction(
             "__autoGamerSimulateTouch",
