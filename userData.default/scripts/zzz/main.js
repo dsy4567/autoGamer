@@ -466,6 +466,7 @@ module.exports = async function (ctx) {
                     interval: 3000,
                     timeout: 60000,
                 });
+                await action("sleep",[["sleep", 3000]]);
             } catch (e) {
                 log("ERROR: 等待副本加载完成失败", e);
                 await action("等待副本加载完成-兜底", [["sleep", 20000]]);
