@@ -375,7 +375,7 @@ module.exports = async function (ctx) {
 
         await action("点击确认", [
             ["tt", 327, 322],
-            ["sleep", 500],
+            ["sleep", 1000],
             ["fn", config.checkpoint],
         ]);
 
