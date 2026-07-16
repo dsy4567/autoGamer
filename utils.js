@@ -1265,7 +1265,12 @@ action() 部分用法:
      * 注意：当前页面截图与指定 PNG 文件的尺寸必须完全相同，否则会抛出异常
      * （截图尺寸由 config.viewport 或 clip 决定，PNG 文件应使用相同尺寸）
      *
-     * @param {string} pngPath PNG 文件路径
+     * pngPath 支持绝对路径和相对路径：
+     * - 绝对路径：直接使用
+     * - 相对路径：依次尝试 <脚本目录>/resources/<pngPath> 和 <项目根目录>/<pngPath>
+     *   （脚本目录需要 ctx 中包含 dataDir 和 scriptId）
+     *
+     * @param {string} pngPath PNG 文件路径（绝对路径或相对路径）
      * @param {AutoGamer.CompareScreenshotOptions} [options] 配置选项
      * @returns {Promise<boolean>} 满足条件（相似度 >= threshold，或 inverse 时相似度 < threshold）时返回 true
      * @throws {Error} 图片尺寸不一致、clip 属性不完整（透传 screenshot）或读取失败时抛出
@@ -1288,7 +1293,43 @@ action() 部分用法:
             Number(opts.recheckInterval) || 3000,
         );
 
-        const fileBuffer = fs.readFileSync(pngPath);
+        // 解析 pngPath：绝对路径直接使用，相对路径依次尝试脚本目录/resources 和项目根目录
+        /** @type {string} */
+        let resolvedPath;
+        if (path.isAbsolute(pngPath)) {
+            resolvedPath = pngPath;
+        } else {
+            const scriptDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
+                .dataDir;
+            const scriptId = /** @type {AutoGamer.ScriptCtx} */ (ctx).scriptId;
+            // 脚本目录/resources/<pngPath>
+            const scriptResourcePath =
+                scriptDataDir && scriptId
+                    ? path.join(
+                          scriptDataDir,
+                          "scripts",
+                          scriptId,
+                          "resources",
+                          pngPath,
+                      )
+                    : null;
+            // 项目根目录/<pngPath>
+            const projectRootPath = path.join(
+                /** @type {string} */ (require.main?.path ?? process.cwd()),
+                pngPath,
+            );
+
+            if (scriptResourcePath && fs.existsSync(scriptResourcePath)) {
+                resolvedPath = scriptResourcePath;
+            } else if (fs.existsSync(projectRootPath)) {
+                resolvedPath = projectRootPath;
+            } else {
+                // 都找不到，尝试脚本目录/resources 作为默认值，让 readFileSync 报错提示
+                resolvedPath = scriptResourcePath || projectRootPath;
+            }
+        }
+
+        const fileBuffer = fs.readFileSync(resolvedPath);
         // 截图重试：screenshot 可能因节流/并发/超时等抛错，重试以增强健壮性
         const maxRetries = 3;
         const retryDelay = 3000;

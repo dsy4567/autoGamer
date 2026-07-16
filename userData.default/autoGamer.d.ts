@@ -167,7 +167,12 @@ declare global {
              * 注意：当前页面截图与指定 PNG 文件的尺寸必须完全相同，否则会抛出异常
              * （截图尺寸由 config.viewport 决定，PNG 文件应使用相同尺寸）
              *
-             * @param pngPath PNG 文件路径
+             * pngPath 支持绝对路径和相对路径：
+             * - 绝对路径：直接使用
+             * - 相对路径：依次尝试 <脚本目录>/resources/<pngPath> 和 <项目根目录>/<pngPath>
+             *   （脚本目录需要 ctx 中包含 dataDir 和 scriptId）
+             *
+             * @param pngPath PNG 文件路径（绝对路径或相对路径）
              * @param options 配置选项
              * @returns 相似度 >= threshold 时返回 true
              * @throws {Error} 图片尺寸不一致、clip 属性不完整（透传 screenshot）或读取失败时抛出
