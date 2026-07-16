@@ -297,8 +297,11 @@ function createUtils(ctx, _eval = eval) {
                 timeout,
             );
             return Boolean(result);
-        } catch (/** @type {any} */ e) {
-            log("WARNING: 人工干预调用失败，已跳过:", e?.message ?? e);
+        } catch (e) {
+            log(
+                "WARNING: 人工干预调用失败，已跳过:",
+                /** @type {any} */ (e).message,
+            );
             return false;
         }
     };
@@ -631,7 +634,7 @@ function createUtils(ctx, _eval = eval) {
                                 }
                                 log(
                                     "WARNING: waitSceneChange 首次截图失败，3秒后重试:",
-                                    e,
+                                    /** @type {any} */ (e).message || e,
                                 );
                                 await sleep(3000);
                             }
@@ -1177,7 +1180,7 @@ action() 部分用法:
             logRaw("截图已保存:", filename);
             return filePath;
         } catch (e) {
-            logRaw("截图失败:", /** @type {any} */ (e).message);
+            logRaw("截图失败:", /** @type {any} */ (e).message || e);
             throw e;
         } finally {
             try {
@@ -1340,11 +1343,11 @@ action() 部分用法:
                         returnBuffer: true,
                         ...(opts.clip ? { clip: opts.clip } : {}),
                     });
-                } catch (/** @type {any} */ e) {
+                } catch (e) {
                     if (attempt === maxRetries) throw e;
                     log(
                         `WARNING: compareScreenshot 截图失败(第${attempt}/${maxRetries}次)，${retryDelay}ms 后重试:`,
-                        e.message,
+                        /** @type {any} */ (e).message || e,
                     );
                     await sleep(retryDelay);
                 }
