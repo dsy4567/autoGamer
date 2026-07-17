@@ -984,7 +984,8 @@ action() 部分用法:
                 // 允许访问 browser, page, puppeteer, log 及别名
                 // 例外：允许使用 console.error 而不是 log/logRaw
                 const result = await _replEval(
-                    `(async () => {try{${enableEnhanced ? "return " : ""}${input}}catch(e){console.error(e)}})()`,
+                    `(async () =>{try{${enableEnhanced ? "return " : ""}${input}}
+catch(e){console.error(e);return '（代码出错）'}})()`,
                 );
                 log("执行结果:", result);
             } catch (e) {
