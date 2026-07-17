@@ -55,6 +55,7 @@ module.exports = async function (ctx) {
         compareScreenshot,
         action,
         mi,
+        setBeforeUnload,
     } = createUtils(ctx, code => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
@@ -211,7 +212,7 @@ module.exports = async function (ctx) {
 
         await action("确认传送到咖啡店", [
             ["tt", 392, 289],
-            ["sleep", 17000],
+            ["sleep", 7 * 1000],
         ]);
 
         // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭咖啡店页面
@@ -579,7 +580,7 @@ module.exports = async function (ctx) {
                     interval: 3000,
                     timeout: 60000,
                 });
-                await action("sleep",[["sleep", 3000]]);
+                await action("sleep", [["sleep", 3000]]);
             } catch (e) {
                 log("ERROR: 等待副本加载完成失败", e);
                 await action("等待副本加载完成-兜底", [["sleep", 20000]]);
@@ -689,9 +690,9 @@ module.exports = async function (ctx) {
         await action("疯狂关闭弹窗", [
             // 左上角关闭按钮/误触菜单
             tapBackBtn.top,
-            ["sleep", 3000],
+            ["sleep", 1000],
             tapBackBtn.top,
-            ["sleep", 3000],
+            ["sleep", 1000],
 
             // 底部空白处
             ["tt", 303, 472],
@@ -701,11 +702,12 @@ module.exports = async function (ctx) {
 
             // 左上角靠下关闭按钮
             tapBackBtn.middleTop,
-            ["sleep", 5000],
+            ["sleep", 3000],
             tapBackBtn.middleTop,
-            ["sleep", 5000],
+            ["sleep", 3000],
         ]);
-        await action("关闭弹窗后等待", [["sleep", 10000]]);
+
+        await action("关闭弹窗后等待", [["sleep", 3000]]);
     }
 
     async function main() {
