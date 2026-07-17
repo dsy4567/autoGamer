@@ -101,6 +101,37 @@ module.exports = async function (ctx) {
         ],
     };
 
+    /** 调整时间至凌晨 */
+    async function adjustTimeToNight() {
+        await action("调整时间至凌晨-前置检查及最终切换", [
+            ["tt", 140, 26],
+            ["sleep", 3000],
+            ["tt", 312, 103],
+            ["sleep", 1000],
+            [
+                "cs",
+                "调整时间是否可用.png",
+                {
+                    clip: {
+                        x: 50,
+                        y: 90,
+                        width: 550,
+                        height: 80,
+                    },
+                    threshold: 0.99,
+                },
+                [
+                    ["tt", 514, 324],
+                    ["sleep", 500],
+                    ["tt", 317, 366],
+                    ["sleep", 8000],
+                ],
+            ],
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
+        ]);
+    }
+
     /** 妮可 信赖任务（六分街报刊亭） */
     async function onMeetNicoleAtMagazineShop() {
         // @ts-ignore
@@ -609,6 +640,7 @@ module.exports = async function (ctx) {
 
     async function main() {
         await enterMain();
+        await adjustTimeToNight();
         await goSixthStreet();
         await goCoffeeShop();
         await goMagazineShop();
