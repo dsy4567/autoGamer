@@ -60,8 +60,6 @@ module.exports = function (ctx) {
         startupDelays: {
             /** 等待页面 初始加载 */
             initialWait: 40 * 1000,
-            /** 同意用户协议后等待 */
-            // afterAgreement: 90 * 1000,
             /** 点击开始游戏后等待读条 */
             afterStartGame: 30 * 1000,
         },
