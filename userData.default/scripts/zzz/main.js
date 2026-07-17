@@ -575,12 +575,31 @@ module.exports = async function (ctx) {
                 ]);
             }
 
-            // 来不及检测，会点到开始战斗
+            let needBreak = false;
+            // 来不及检测，会点到下一步
             await action("点击完成/开始战斗", [
                 ["tt", 556, 398],
                 ["sleep", 20000],
-                ["fn", config.checkpoint],
+                [
+                    "cs",
+                    "电量补充-取消图标.png",
+                    {
+                        clip: { x: 204, y: 332, width: 16, height: 16 },
+                    },
+                    [
+                        ["tt", 206, 340],
+                        ["sleep", 3000],
+                        [
+                            "fn",
+                            () => {
+                                needBreak = true;
+                                log("WARNING: 体力不足，正在离开副本");
+                            },
+                        ],
+                    ],
+                ],
             ]);
+            if (needBreak) break;
         }
 
         await action("离开副本", [
