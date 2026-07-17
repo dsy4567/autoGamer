@@ -17,12 +17,6 @@
 const loadScriptConfig = require("./config.default.js");
 const { runGame, eMain } = require("../../share/gameRunner.js");
 
-/** @type {Record<"top" | "middleTop", ["tt", number, number]>} */
-const tapBackBtn = {
-    top: ["tt", 46, 30],
-    middleTop: ["tt", 28, 76],
-};
-
 /**
  * @type {AutoGamer.ScriptFunction} ctx
  */
@@ -66,6 +60,46 @@ module.exports = async function (ctx) {
     const scriptConfig = loadScriptConfig(ctx);
 
     enableHotReload();
+
+    /** @type {Record<"top" | "middleTop", ["cs", string, AutoGamer.CompareScreenshotOptions?, AutoGamer.OperationArray?, AutoGamer.OperationArray?]>} */
+    const tapBackBtn = {
+        top: [
+            "cs",
+            "backBtn.png",
+            {
+                clip: { x: 40, y: 10, width: 20, height: 20 },
+                threshold: 0.99,
+            },
+            [["tt", 46, 28]],
+            [
+                [
+                    "fn",
+                    () => {
+                        log("WARNING: 检查返回按钮（top）是否可用失败");
+                    },
+                ],
+                ["tt", 46, 28],
+            ],
+        ],
+        middleTop: [
+            "cs",
+            "backBtn.png",
+            {
+                clip: { x: 40, y: 70, width: 20, height: 20 },
+                threshold: 0.99,
+            },
+            [["tt", 28, 76]],
+            [
+                [
+                    "fn",
+                    () => {
+                        log("WARNING: 检查返回按钮（middleTop）是否可用失败");
+                    },
+                ],
+                ["tt", 28, 76],
+            ],
+        ],
+    };
 
     /** 妮可 信赖任务（六分街报刊亭） */
     async function onMeetNicoleAtMagazineShop() {
