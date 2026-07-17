@@ -883,9 +883,21 @@ function createUtils(ctx, _eval = eval) {
             // 输入包含特殊文本则不应用优化，直接执行原始代码
             let enableEnhanced = true;
             if (
-                [";", "var", "let", "const", "return"].some(kwd =>
-                    input.includes(kwd),
-                )
+                [
+                    ";",
+                    "var",
+                    "let",
+                    "const",
+                    "return",
+                    "if",
+                    "for",
+                    "while",
+                    "switch",
+                    "do",
+                    "try",
+                    "function",
+                    "class",
+                ].some(kwd => input.includes(kwd))
             )
                 enableEnhanced = false;
 
@@ -940,7 +952,7 @@ function createUtils(ctx, _eval = eval) {
                 if (trimmed === "help") {
                     log(
                         `
-注意：REPL 不支持声明变量供后续使用
+注意：REPL 不支持使用 let 等关键字声明变量供后续使用
 
 可用命令:
   exit          - 退出 REPL 并关闭浏览器
