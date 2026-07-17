@@ -26,7 +26,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
     log("开始签到");
     try {
         // 点击悬浮球元素
-        await page.evaluate('window?.__autoGamer?.toggleBallVisible?.(true)');
+        await page.evaluate("window?.__autoGamer?.toggleBallVisible?.(true)");
         await page.click("#app > div > div.pagebox > div:nth-child(4) > div");
         await sleep(3000);
         try {
@@ -115,11 +115,13 @@ async function miguInit(ctx) {
                 page.click("b.button.continueGame"),
                 page.click("b.button.continueOpen"),
             ]);
-            // log("点击继续游戏按钮成功");
+            log("点击继续游戏按钮");
         } catch (e) {
             // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
         }
-        // await page.waitForSelector(".gameSetingButton");
+        await page.waitForSelector(".HMplayerBox");
+        await sleep(5000);
+        log("咪咕快游加载完成");
     });
 }
 
