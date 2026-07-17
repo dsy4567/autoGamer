@@ -298,10 +298,7 @@ function createUtils(ctx, _eval = eval) {
             );
             return Boolean(result);
         } catch (e) {
-            log(
-                "WARNING: 人工干预调用失败，已跳过:",
-                /** @type {any} */ (e).message,
-            );
+            log("WARNING: 人工干预调用失败", /** @type {any} */ (e).message);
             return false;
         }
     };
