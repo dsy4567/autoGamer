@@ -34,7 +34,7 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 - info类日志无需标注级别，但是warning/error类日志内容必须包含日志级别（字符串以`WARNING:`、`ERROR:` 开头）。
 
 ### 解构规范
-- 对于所有文件，解构 `ctx` 或 `createUtils` 返回的对象时，必须写出除了 `ts`, `te`, `tt`, `pc`, `hold`, `drag`（不含 `sleep`）以外所有可解构的属性，即使未使用。
+- 对于所有文件，解构 `ctx` 或 `createUtils` 返回的对象时，必须写出所有可解构的属性，即使未使用。
   - 这不适用于 `userData.default/share/` `userData.default/scripts/*/*.config.default.js` 目录下的文件，这里不应该包含未使用的属性。
 - 目的：保证代码可读性，方便后续维护时直接引用已有变量，避免遗漏可用工具。
 
@@ -45,6 +45,10 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 ---
 
 ## Agents 行为约束
+
+### 排除文件
+
+在没有明确说明的情况下，不要操作 `~/.autoGamer/` 目录下的文件。
 
 ### Git 提交规范
 
