@@ -303,7 +303,7 @@ module.exports = async function (ctx) {
         await action("关闭报刊亭页面", [tapBackBtn.middleTop, ["sleep", 3000]]);
 
         await action("靠近狗狗，进入报刊亭", [
-            ["drag", 142, 365, 141, 319],
+            ["hold", 156, 336, 452],
             ["sleep", 3000],
             ["tt", 497, 387],
             ["sleep", 5000],
