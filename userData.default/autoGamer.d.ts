@@ -391,7 +391,7 @@ declare global {
         interface ScriptCtx extends UtilsCtx {
             /** 获取全局配置（config.default.js + 用户配置） */
             getGlobalConfig: () => GlobalConfig;
-            /** 工具集工厂，等价于 require("../../utils.js").createUtils */
+            /** 工具集工厂，等价于 require("./path/to/utils.js").createUtils */
             createUtils: (ctx: UtilsCtx, _eval?: EvalFn) => Utils;
             /** 加载用户自定义配置文件 */
             loadUserConfig: (
