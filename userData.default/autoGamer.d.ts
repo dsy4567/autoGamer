@@ -42,6 +42,7 @@ declare global {
          * - ["fn", fn, args]        自定义函数，fn(desc, ctx, ...args) 通过 await 执行，不处理抛错
          * - ["mi", msg, ms]         请求人工干预，ms 为超时毫秒，默认 15000
          * - ["setBeforeUnload", enabled?] 设置关闭网页前是否二次确认（enabled 默认 true）
+         * - ["cs", pngPath, options?, onMatch?, onError?]  截图比对，匹配成功执行 onMatch，比对出错执行 onError，匹配失败仅警告
          */
         type Operation =
             | ["ts", number, number]
@@ -70,7 +71,14 @@ declare global {
                   ) => any,
               ]
             | ["mi", string?, number?]
-            | ["setBeforeUnload", boolean?];
+            | ["setBeforeUnload", boolean?]
+            | [
+                  "cs",
+                  string,
+                  CompareScreenshotOptions?,
+                  OperationArray?,
+                  OperationArray?,
+              ];
 
         /** 操作数组 */
         type OperationArray = Operation[];
@@ -234,6 +242,7 @@ declare global {
              *  - `action('<操作描述>',[['fn', (desc, ctx, ...args) => any, [...args]], ...])` — 自定义函数，通过 await 执行，不处理抛错
              *  - `action('<操作描述>',[['mi', msg?:string, ms:number?], ...])` — 请求人工干预，ms 为超时毫秒，默认 15000
              *  - `action('<操作描述>',[['setBeforeUnload', enabled?:boolean], ...])` — 设置关闭网页前是否二次确认（enabled 默认 true）
+             *  - `action('<操作描述>',[['cs', pngPath:string, options?:CompareScreenshotOptions, onMatch?:OperationArray, onError?:OperationArray], ...])` — 截图比对，匹配成功执行 onMatch，比对出错执行 onError，匹配失败仅警告
              *
              * 特殊操作：
              *  - `action('waitSceneChange', [操作数组], {timeout?, interval?, threshold?, inverse?, recheckCount?, clip?, referenceFile?})` — 等待场景大幅变化，operations 并行循环执行

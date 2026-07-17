@@ -489,6 +489,47 @@ function createUtils(ctx, _eval = eval) {
                         await userFn(description, ctx, ...userArgs);
                         continue;
                     }
+                    if (op[0] === "cs") {
+                        // 截图比对操作：["cs", pngPath, options?, onMatch?, onError?]
+                        // 匹配成功执行 onMatch，比对出错执行 onError，匹配失败仅警告
+                        const [, pngPath, cmpOpts, onMatch, onError] = op;
+                        /** @type {AutoGamer.CompareScreenshotOptions} */
+                        const csOpts =
+                            typeof cmpOpts === "object" && cmpOpts !== null
+                                ? cmpOpts
+                                : {};
+                        csOpts.threshold = csOpts.threshold || 0.5;
+                        let matched = false;
+                        try {
+                            matched = await compareScreenshot(
+                                /** @type {string} */ (pngPath),
+                                csOpts,
+                            );
+                        } catch (e) {
+                            log(
+                                "WARNING: 截图比对出错，将执行兜底操作:",
+                                /** @type {any} */ (e).message || e,
+                            );
+                            await doOpsArray(
+                                /** @type {AutoGamer.OperationArray | undefined} */ (
+                                    onError
+                                ),
+                                shouldPauseCheck,
+                            );
+                            continue;
+                        }
+                        if (matched) {
+                            await doOpsArray(
+                                /** @type {AutoGamer.OperationArray | undefined} */ (
+                                    onMatch
+                                ),
+                                shouldPauseCheck,
+                            );
+                        } else {
+                            log("截图比对未通过，已跳过操作");
+                        }
+                        continue;
+                    }
                     const [fnName, ...args] = op;
                     const fn =
                         /** @type {Record<string, (...args: any[]) => any>} */ ({
