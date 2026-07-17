@@ -46,7 +46,7 @@
         "prettier.semi": true,
         "prettier.singleQuote": false,
         "prettier.tabWidth": 4,
-        "prettier.trailingComma": "es5",
+        "prettier.trailingComma": "all",
         "prettier.useTabs": false,
         "typescript.tsc.autoDetect": "off",
         "typescript.tsdk": "node_modules/typescript/lib",
