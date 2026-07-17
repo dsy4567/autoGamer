@@ -7,12 +7,49 @@
             "path": "../.autoGamer",
         },
     ],
+    "extensions": {
+        "recommendations": ["esbenp.prettier-vscode"],
+    },
     "settings": {
-        "typescript.tsdk": "autoGamer/node_modules/typescript/lib",
         "search.exclude": {
             "**/node_modules": true,
             "**/chromeData": true,
             "**/chromeData.bk": true,
         },
+        "[css]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[html]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[javascript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[json]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[jsonc]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[markdown]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "[typescript]": {
+            "editor.defaultFormatter": "esbenp.prettier-vscode",
+        },
+        "prettier.arrowParens": "avoid",
+        "prettier.bracketSpacing": true,
+        "prettier.endOfLine": "lf",
+        "prettier.printWidth": 80,
+        "prettier.proseWrap": "preserve",
+        "prettier.quoteProps": "as-needed",
+        "prettier.semi": true,
+        "prettier.singleQuote": false,
+        "prettier.tabWidth": 4,
+        "prettier.trailingComma": "es5",
+        "prettier.useTabs": false,
+        "typescript.tsc.autoDetect": "off",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "files.eol": "\n",
     },
 }
