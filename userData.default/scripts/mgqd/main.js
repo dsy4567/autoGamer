@@ -53,6 +53,8 @@ module.exports = async function (ctx) {
         setTaskTimeout,
         compareScreenshot,
         action,
+        mi,
+        setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
