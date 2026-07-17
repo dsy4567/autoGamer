@@ -392,37 +392,55 @@ module.exports = async function (ctx) {
 
     /** 领取纪行奖励 */
     async function getJiXingReward() {
-        await action("进入纪行界面", [
-            ["tt", 517, 30],
-            ["sleep", 3000],
-        ]);
+        await action("检查纪行按钮", [
+            [
+                "cs",
+                "纪行按钮.png",
+                {
+                    clip: { x: 515, y: 20, width: 20, height: 20 },
+                    threshold: 0.99,
+                },
+                [
+                    [
+                        "fn",
+                        async () => {
+                            await action("进入纪行界面", [
+                                ["tt", 517, 30],
+                                ["sleep", 3000],
+                            ]);
 
-        await action("点击成长任务", [
-            ["tt", 463, 80],
-            ["sleep", 500],
-        ]);
+                            await action("点击成长任务", [
+                                ["tt", 463, 80],
+                                ["sleep", 500],
+                            ]);
 
-        await action("点击全部领取", [
-            ["tt", 556, 397],
-            ["sleep", 1000],
-        ]);
+                            await action("点击全部领取", [
+                                ["tt", 556, 397],
+                                ["sleep", 1000],
+                            ]);
 
-        await action("点击等级回馈", [
-            ["tt", 369, 81],
-            ["sleep", 500],
-        ]);
+                            await action("点击等级回馈", [
+                                ["tt", 369, 81],
+                                ["sleep", 500],
+                            ]);
 
-        await action("点击全部领取", [
-            ["tt", 400, 395],
-            ["sleep", 1000],
-            ["tt", 400, 395],
-            ["sleep", 1000],
-            ["fn", config.checkpoint],
-        ]);
+                            await action("点击全部领取", [
+                                ["tt", 400, 395],
+                                ["sleep", 1000],
+                                ["tt", 400, 395],
+                                ["sleep", 1000],
+                                ["fn", config.checkpoint],
+                            ]);
 
-        await action("关闭纪行奖励页面", [
-            ["tt", 38, 84],
-            ["sleep", 5000],
+                            await action("关闭纪行奖励页面", [
+                                ["tt", 38, 84],
+                                ["sleep", 5000],
+                            ]);
+                        },
+                    ],
+                ],
+                [["fn", () => log("WARN: 纪行按钮未找到/没有要领取的奖励")]],
+            ],
         ]);
     }
 
