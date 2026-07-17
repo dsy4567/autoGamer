@@ -1051,7 +1051,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      *                 上一张截图正在处理中；截图超时；puppeteer 截图失败
      */
     const screenshot = async (label = "无描述", options = {}) => {
-        const returnBuffer = options.returnBuffer === true;
+        const returnBuffer = Boolean(options.returnBuffer) === true;
         if (config.isDev && !_devScreenshotWarned) {
             _devScreenshotWarned = true;
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
@@ -1280,10 +1280,10 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         /** @type {AutoGamer.CompareScreenshotOptions} */
         const opts =
             typeof options === "object" && options !== null ? options : {};
-        const threshold = Math.min(
-            1,
-            Math.max(0, Number(opts.threshold) ?? 0.9),
-        );
+        const thresholdRaw = Number(opts.threshold);
+        const threshold = Number.isNaN(thresholdRaw)
+            ? 0.9
+            : Math.min(1, Math.max(0, thresholdRaw));
         const inverse = Boolean(opts.inverse);
         const recheckCount = Math.max(
             0,
