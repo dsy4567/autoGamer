@@ -894,15 +894,15 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
             log(isHotReload ? "热重载脚本:" : "加载操作脚本:", scriptPath);
             _clearDataDirRequireCache();
-            /** @type {AutoGamer.ScriptFunction} */
-            const script = require(scriptPath);
-            if (typeof script !== "function") {
-                log("ERROR: 脚本文件需导出一个 async function");
-                await _closeBrowserAndExit(1);
-                return;
-            }
 
             try {
+                /** @type {AutoGamer.ScriptFunction} */
+                const script = require(scriptPath);
+                if (typeof script !== "function") {
+                    log("ERROR: 脚本文件需导出一个 async function");
+                    !isHotReload && (await _closeBrowserAndExit(1));
+                    return;
+                }
                 await script({
                     puppeteer,
                     browser,
