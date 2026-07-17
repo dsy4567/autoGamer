@@ -158,8 +158,37 @@ module.exports = async function (ctx) {
         ]);
     }
 
-    /** 传送到六分街-咖啡店 */
+    /** 传送到六分街-改装店-咖啡店 */
     async function goSixthStreet() {
+        await action("点击首页快捷导航", [
+            ["tt", 539, 118],
+            ["sleep", 3000],
+            // 如果点到了小地图，再点一次右上角快捷导航
+            ["tt", 484, 77],
+            ["sleep", 3000],
+        ]);
+
+        // 这次传送是为了重置角色朝向
+        await action("选择六分街", [
+            ["tt", 101, 154],
+            ["sleep", 500],
+        ]);
+
+        await action("选择改装店", [
+            ["drag", 181, 380, 589, 380, 200],
+            ["sleep", 500],
+            ["tt", 442, 380],
+            ["sleep", 500],
+        ]);
+
+        await action("确认传送到改装店", [
+            ["tt", 392, 289],
+            ["sleep", 17000],
+        ]);
+
+        // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭改装店页面
+        await action("关闭改装店页面", [tapBackBtn.middleTop, ["sleep", 3000]]);
+
         await action("点击首页快捷导航", [
             ["tt", 539, 118],
             ["sleep", 3000],
