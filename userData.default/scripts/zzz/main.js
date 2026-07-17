@@ -187,17 +187,18 @@ module.exports = async function (ctx) {
 
         // 未知是否勾选了 直接打开功能页面（每日首次），为了避免引发非预期行为，关闭咖啡店页面
         await action("关闭咖啡店页面", [tapBackBtn.middleTop, ["sleep", 3000]]);
+
         // 等待用户干预
-        if (scriptConfig.coffeeShopInterventionDelay > 0) {
-            await action("咖啡店人工干预等待", [
-                [
-                    "mi",
-                    "请及时完成人工干预（例如完成信赖任务），随后靠近咖啡店并结束干预",
-                    scriptConfig.coffeeShopInterventionDelay,
-                ],
-                ["fn", config.checkpoint],
-            ]);
-        }
+        // if (scriptConfig.coffeeShopInterventionDelay > 0) {
+        //     await action("咖啡店人工干预等待", [
+        //         [
+        //             "mi",
+        //             "请及时完成人工干预（例如完成信赖任务），随后靠近咖啡店并结束干预",
+        //             scriptConfig.coffeeShopInterventionDelay,
+        //         ],
+        //         ["fn", config.checkpoint],
+        //     ]);
+        // }
     }
 
     /** 前往咖啡店 */
@@ -244,16 +245,16 @@ module.exports = async function (ctx) {
         ]);
 
         // 等待用户干预
-        if (scriptConfig.coffeeShopInterventionDelay > 0) {
-            await action("咖啡店人工干预等待", [
-                [
-                    "mi",
-                    "请及时完成人工干预（例如完成信赖任务），随后在咖啡店附近结束干预",
-                    scriptConfig.coffeeShopInterventionDelay,
-                ],
-                ["fn", config.checkpoint],
-            ]);
-        }
+        // if (scriptConfig.coffeeShopInterventionDelay > 0) {
+        //     await action("咖啡店人工干预等待", [
+        //         [
+        //             "mi",
+        //             "请及时完成人工干预（例如完成信赖任务），随后在咖啡店附近结束干预",
+        //             scriptConfig.coffeeShopInterventionDelay,
+        //         ],
+        //         ["fn", config.checkpoint],
+        //     ]);
+        // }
     }
 
     /** 前往六分街报刊亭 */
@@ -314,8 +315,8 @@ module.exports = async function (ctx) {
             ["sleep", 5000],
         ]);
 
-        if (scriptConfig.magazineShopInterventionDelay > 0)
-            await onMeetNicoleAtMagazineShop();
+        // if (scriptConfig.magazineShopInterventionDelay > 0)
+        //     await onMeetNicoleAtMagazineShop();
     }
 
     /** 前往录像店 */
