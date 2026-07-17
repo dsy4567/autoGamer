@@ -929,7 +929,7 @@ function createUtils(ctx, _eval = eval) {
                 if (trimmed === "la") {
                     try {
                         await _replEval(
-                            `await action("startAt", "${lastAction}"); main()`,
+                            `(async ()=>{await action("startAt", "${lastAction}");return main()})()`,
                         );
                     } catch (e) {
                         log("WARNING: la 执行错误:", e);
