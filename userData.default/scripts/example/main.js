@@ -21,6 +21,7 @@ const { runGame, eMain } = require("../../share/gameRunner.js");
  * @type {AutoGamer.ScriptFunction} ctx
  */
 module.exports = async function (ctx) {
+    // NOTE: 解构所有可解构的属性，即使未使用，以便在 REPL 中使用
     const {
         puppeteer,
         browser,
@@ -54,11 +55,13 @@ module.exports = async function (ctx) {
         setTaskTimeout,
         compareScreenshot,
         action,
+        mi,
+        setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
     const config = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
-    // 启用热重载功能，仅开发模式下生效，启用后只建议在脚本使用 action() 函数
+    // 启用热重载功能，仅开发模式下生效，启用后只建议在脚本使用 action() 函数（而非 tt、drag 等函数）
     enableHotReload();
 
     async function main() {
