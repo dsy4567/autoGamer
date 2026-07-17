@@ -36,6 +36,26 @@ let _taskTimer = null;
 /** @type {Map<string, AutoGamer.ActionState>} */
 const _actionStateMap = new Map();
 
+// 文件缓存，避免重复读取同一文件
+/** @type {Map<string, { buffer: Buffer, mtime: number }>} */
+const _fileBufferCache = new Map();
+
+/**
+ * 读取文件并缓存，如果文件未修改则返回缓存内容
+ * @param {string} filePath 文件绝对路径
+ * @returns {Buffer}
+ */
+function _getFileBuffer(filePath) {
+    const stats = fs.statSync(filePath);
+    const cached = _fileBufferCache.get(filePath);
+    if (cached && cached.mtime === stats.mtimeMs) {
+        return cached.buffer;
+    }
+    const buffer = fs.readFileSync(filePath);
+    _fileBufferCache.set(filePath, { buffer, mtime: stats.mtimeMs });
+    return buffer;
+}
+
 /** 当前活跃的 REPL 会话，开发模式下复用 @type {import("readline").Interface | null} */
 let _activeRl = null;
 /** 当前 REPL 使用的 eval 函数，热重载时更新 @type {AutoGamer.EvalFn} */
@@ -652,7 +672,7 @@ function createUtils(ctx, _eval = eval) {
                     let prevBuffer = null;
 
                     if (referenceFile) {
-                        prevBuffer = fs.readFileSync(referenceFile);
+                        prevBuffer = _getFileBuffer(referenceFile);
                         log(
                             "waitSceneChange 使用指定文件作为基准图:",
                             referenceFile,
@@ -1383,7 +1403,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             }
         }
 
-        const fileBuffer = fs.readFileSync(resolvedPath);
+        const fileBuffer = _getFileBuffer(resolvedPath);
         // 截图重试：screenshot 可能因节流/并发/超时等抛错，重试以增强健壮性
         const maxRetries = 3;
         const retryDelay = 3000;
