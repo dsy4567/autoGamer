@@ -358,10 +358,17 @@ function createUtils(ctx, _eval = eval) {
                     : Array.isArray(operations)
                       ? operations
                       : null;
-            if (!chain) {
-                throw new Error(
-                    "action startAt 参数无效，应为 string 或 string[]",
-                );
+            // 空chain时重置状态
+            if (
+                !chain ||
+                chain.length === 0 ||
+                (chain.length === 1 && chain[0] === "")
+            ) {
+                state.startAtChain = null;
+                state.startAtIndex = 0;
+                state.startAtReached = false;
+                log("action startAt 已重置");
+                return;
             }
             state.startAtChain = chain;
             state.startAtIndex = 0;
@@ -378,10 +385,18 @@ function createUtils(ctx, _eval = eval) {
                     : Array.isArray(operations)
                       ? operations
                       : null;
-            if (!chain) {
-                throw new Error(
-                    "action endAt 参数无效，应为 string 或 string[]",
-                );
+            // 空chain时重置状态
+            if (
+                !chain ||
+                chain.length === 0 ||
+                (chain.length === 1 && chain[0] === "")
+            ) {
+                state.endAtChain = null;
+                state.endAtIndex = 0;
+                state.endAtReached = false;
+                state.endAtPassed = false;
+                log("action endAt 已重置");
+                return;
             }
             state.endAtChain = chain;
             state.endAtIndex = 0;
@@ -1010,6 +1025,17 @@ function createUtils(ctx, _eval = eval) {
                     rl.prompt();
                     return;
                 }
+                if (trimmed === "rc") {
+                    try {
+                        await _replEval(
+                            `(async ()=>{await action("startAt", null);await action("endAt", null)})()`,
+                        );
+                    } catch (e) {
+                        log("WARNING: rc 执行错误:", e);
+                    }
+                    rl.prompt();
+                    return;
+                }
                 if (trimmed === "help") {
                     log(
                         `
@@ -1020,6 +1046,8 @@ function createUtils(ctx, _eval = eval) {
   next          - 调试模式下执行下一个挂起的 action
   skip          - 调试模式下跳过下一个挂起的 action
   tdbg          - 开启/关闭 action 调试模式
+  la            - 仅适用于热重载后，重置 startAt 为最后一个 Action，并执行 main()
+  rc            - 重置 startAt、endAt
   help          - 显示此帮助信息
   <空回车>       - 显示网页已打开毫秒数
   <JS 代码>      - 执行代码 (可用 browser, page, puppeteer, log 等变量)
