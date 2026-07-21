@@ -62,6 +62,11 @@ module.exports = async function (ctx) {
 
     enableHotReload();
 
+    /** @type {Record<"top", ["tt", number, number]>} */
+    const tapBackBtn = {
+        top: ["tt", 633, 26],
+    };
+
     /** 领取简单奖励 */
     async function receiveSimpleRewards() {
         log("-----领取简单奖励-----");
@@ -90,28 +95,22 @@ module.exports = async function (ctx) {
             ["sleep", 500],
         ]);
 
-        await action("关闭派遣页面", [
-            ["tt", 609, 16],
-            ["sleep", 2000],
-        ]);
+        await action("关闭派遣页面", [tapBackBtn.top, ["sleep", 3000]]);
 
         await action("领取派遣活跃度", [
             ["tt", 110, 353],
-            ["sleep", 500],
+            ["sleep", 1000],
         ]);
 
         await action("活跃度兑换奖励", [
             ["tt", 196, 155],
-            ["sleep", 500],
+            ["sleep", 1000],
             ["tt", 196, 155],
             ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
-        await action("关闭每日实训页面", [
-            ["tt", 612, 27],
-            ["sleep", 3000],
-        ]);
+        await action("关闭每日实训页面", [tapBackBtn.top, ["sleep", 3000]]);
     }
 
     /** 刷本 */
@@ -222,10 +221,7 @@ module.exports = async function (ctx) {
                 ["sleep", 10000],
             ]);
 
-            await action("关闭副本页", [
-                ["tt", 610, 29],
-                ["sleep", 5000],
-            ]);
+            await action("关闭副本页", [tapBackBtn.top, ["sleep", 5000]]);
 
             if (index === 0) {
                 await action("重新进入每日实训", [
@@ -247,10 +243,7 @@ module.exports = async function (ctx) {
                     ["fn", config.checkpoint],
                 ]);
 
-                await action("关闭每日实训", [
-                    ["tt", 609, 31],
-                    ["sleep", 3000],
-                ]);
+                await action("关闭每日实训", [tapBackBtn.top, ["sleep", 3000]]);
             }
         }
     }
@@ -285,10 +278,7 @@ module.exports = async function (ctx) {
             ["fn", config.checkpoint],
         ]);
 
-        await action("关闭纪行页面", [
-            ["tt", 609, 30],
-            ["sleep", 3000],
-        ]);
+        await action("关闭纪行页面", [tapBackBtn.top, ["sleep", 3000]]);
     }
 
     /** 进入主界面 */
@@ -299,7 +289,7 @@ module.exports = async function (ctx) {
 
         // NOTE: 已废弃点击同意用户协议
         // await action("同意用户协议/点击开始游戏", [
-        //     ["tt", 432, 281],
+        //     ["tt", 432, 290],
         //     ["sleep", scriptConfig.startupDelays.afterAgreement],
         // ]);
 
@@ -307,7 +297,7 @@ module.exports = async function (ctx) {
             await action(
                 "waitSceneChange",
                 [
-                    ["tt", 432, 281],
+                    ["tt", 432, 290],
                     ["sleep", 4500],
                 ],
                 {
@@ -318,7 +308,7 @@ module.exports = async function (ctx) {
             );
             // await action("检测到场景变化后点击开始游戏", [
             //     ["sleep", 3000],
-            //     ["tt", 432, 281],
+            //     ["tt", 432, 290],
             //     ["sleep", 3000],
             // ]);
         } catch (e) {
