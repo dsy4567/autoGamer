@@ -690,23 +690,19 @@ module.exports = async function (ctx) {
         ]);
 
         await action("疯狂关闭弹窗", [
-            // 左上角关闭按钮/误触菜单
+            ["tt", 303, 472],
+            ["sleep", 2000],
             tapBackBtn.top,
             ["sleep", 1000],
+            tapBackBtn.middleTop,
+            ["sleep", 1000],
+
+            ["tt", 303, 472],
+            ["sleep", 2000],
             tapBackBtn.top,
             ["sleep", 1000],
-
-            // 底部空白处
-            ["tt", 303, 472],
-            ["sleep", 1000],
-            ["tt", 303, 472],
-            ["sleep", 1000],
-
-            // 左上角靠下关闭按钮
             tapBackBtn.middleTop,
-            ["sleep", 3000],
-            tapBackBtn.middleTop,
-            ["sleep", 3000],
+            ["sleep", 1000],
         ]);
 
         await action("关闭弹窗后等待", [["sleep", 3000]]);
