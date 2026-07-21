@@ -573,10 +573,12 @@ module.exports = async function (ctx) {
                 ["tt", 556, 398],
                 ["sleep", 5000],
                 ["tt", 556, 398],
+                ["sleep", 1000],
             ]);
 
             // 等待副本加载完成
             try {
+                await action("等待副本加载完成");
                 await action("waitSceneChange", [], {
                     threshold: 0.98,
                     interval: 3000,
@@ -585,11 +587,12 @@ module.exports = async function (ctx) {
                 await action("sleep", [["sleep", 3000]]);
             } catch (e) {
                 log("ERROR: 等待副本加载完成失败", e);
-                await action("等待副本加载完成-兜底", [["sleep", 20000]]);
+                await action("等待副本加载完成-兜底", [["sleep", 10000]]);
             }
 
             // 并行执行：waitSceneChange 检测结算画面 + 循环执行战斗操作
             try {
+                await action("执行战斗操作");
                 await action(
                     "waitSceneChange",
                     scriptConfig.customFightActions,
@@ -608,10 +611,37 @@ module.exports = async function (ctx) {
                 ]);
             }
 
-            let needBreak = false;
-            // 来不及检测，会点到下一步
-            await action("点击完成/开始战斗", [
+            await action("点击完成战斗", [
+                ["tt", 325, 458], // 空白处
+                ["sleep", 500],
+                ["tt", 325, 458],
+                ["sleep", 500],
+
                 ["tt", 556, 398],
+            ]);
+            // 等待大世界加载完成
+            try {
+                await action("等待大世界加载完成");
+                await action("waitSceneChange", [], {
+                    threshold: 0.98,
+                    interval: 3000,
+                    timeout: 60000,
+                });
+                await action("sleep", [["sleep", 3000]]);
+            } catch (e) {
+                log("ERROR: 等待大世界加载完成失败", e);
+                await action("等待大世界加载完成-兜底", [["sleep", 10000]]);
+            }
+
+            // 体力是否不足
+            let isTired = false;
+            await action("点击完成并准备下一场", [
+                ["tt", 325, 458], // 空白处
+                ["sleep", 500],
+                ["tt", 325, 458],
+                ["sleep", 500],
+
+                ["tt", 556, 398], // 下一步按钮
                 ["sleep", 20000],
                 [
                     "cs",
@@ -625,14 +655,14 @@ module.exports = async function (ctx) {
                         [
                             "fn",
                             () => {
-                                needBreak = true;
+                                isTired = true;
                                 log("WARNING: 体力不足，正在离开副本");
                             },
                         ],
                     ],
                 ],
             ]);
-            if (needBreak) break;
+            if (isTired) break;
         }
 
         await action("离开副本", [
@@ -640,6 +670,8 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             tapBackBtn.middleTop,
             ["sleep", 1000],
+            tapBackBtn.middleTop,
+            ["sleep", 5000],
             tapBackBtn.middleTop,
             ["sleep", 5000],
             ["fn", config.checkpoint],
