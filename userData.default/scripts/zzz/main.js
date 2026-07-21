@@ -702,6 +702,7 @@ module.exports = async function (ctx) {
                 ],
                 {
                     threshold: 0.97,
+                    timeout: 10 * 60 * 1000,
                     interval: 3000,
                 },
             );
@@ -712,6 +713,7 @@ module.exports = async function (ctx) {
             ]);
         } catch (e) {
             log("ERROR: 等待场景变化超时", e);
+            // TODO: 人工干预超时需处理
             await action("等待场景变化超时后人工干预", [
                 ["mi", "请手动点击开始游戏后，按快捷键取消干预", 60000],
             ]);
