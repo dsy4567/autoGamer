@@ -484,12 +484,14 @@ module.exports = async function (ctx) {
 
         await action("领取全部奖励", [
             ["tt", 237, 154],
-            ["sleep", 500],
+            ["sleep", 1000],
         ]);
 
         await action("点击确认", [
-            ["tt", 327, 322],
-            ["sleep", 1000],
+            ["tt", 303, 472],
+            ["sleep", 500],
+            ["tt", 303, 472],
+            ["sleep", 500],
             ["fn", config.checkpoint],
         ]);
 
