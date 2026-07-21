@@ -153,15 +153,13 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     log("等待页面加载");
 
     // 如果游戏已经启动，点击继续游戏
-    await miguInit(ctx);
+    await miguInit(ctx, scriptConfig.gameUrl);
     page.on("load", async () => {
         if (page.url() !== "about:blank") return;
         log("游戏已退出，程序退出");
         await browser.close();
         process.exit(0);
     });
-
-    await page.goto(scriptConfig.gameUrl, config.pageloadOptions);
 
     // 根据配置决定是否启动自动定时截图
     if (config.screenshots?.autoScreenshotEnabled !== false) {

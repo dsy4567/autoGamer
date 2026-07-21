@@ -65,63 +65,79 @@ async function actionsInCloudGameBallAndExit(ctx) {
 
 /**
  * @param {AutoGamer.ScriptCtx} ctx
+ * @param {string} gameUrl
+ * @returns {Promise<void>}
  */
-async function miguInit(ctx) {
-    if (!ctx || ctx.getInstanceInfo?.()?.isHotReload) return;
-    const {
-        puppeteer,
-        browser,
-        page,
-        log,
-        logRaw,
-        pageOpenTime,
-        logDir,
-        getGlobalConfig,
-        createUtils,
-    } = ctx;
-    const {
-        ts,
-        te,
-        tm,
-        tt,
-        pc,
-        hold,
-        sleep,
-        startRepl,
-        drag,
-        setTaskTimeout,
-        screenshot,
-        startAutoScreenshot,
-    } = createUtils(ctx);
-    const config = getGlobalConfig();
+async function miguInit(ctx, gameUrl) {
+    return new Promise(async (resolve, reject) => {
+        if (!ctx || ctx.getInstanceInfo?.()?.isHotReload) return resolve();
+        const {
+            puppeteer,
+            browser,
+            page,
+            log,
+            logRaw,
+            pageOpenTime,
+            logDir,
+            getGlobalConfig,
+            createUtils,
+        } = ctx;
+        const {
+            ts,
+            te,
+            tm,
+            tt,
+            pc,
+            hold,
+            sleep,
+            startRepl,
+            drag,
+            setTaskTimeout,
+            screenshot,
+            startAutoScreenshot,
+        } = createUtils(ctx);
+        const config = getGlobalConfig();
 
-    // TODO: 云游戏连接成功后再继续
-    page.on("load", async () => {
-        await sleep(5000);
-        if (!config.isDev) {
-            const errBtn =
-                (await page.$("div.dialogBox b.iknowGoback")) ||
-                (await page.$("div.dialogBox b.quitToHome"));
-            if (errBtn) {
-                const msg = await page.$eval(
-                    "div.dialogBox div.dialogMsg",
-                    el => el?.textContent.trim() || "",
-                );
-                throw new Error("检测到维护或其他公告，无法进入游戏：" + msg);
+        page.on("load", async () => {
+            const U = new URL(page.url());
+            if (
+                !U.hostname.endsWith(".migufun.com") &&
+                U.hostname !== "migufun.com"
+            )
+                return resolve();
+
+            await sleep(5000);
+            if (!config.isDev) {
+                const errBtn =
+                    (await page.$("div.dialogBox b.iknowGoback")) ||
+                    (await page.$("div.dialogBox b.quitToHome"));
+                if (errBtn) {
+                    const msg = await page.$eval(
+                        "div.dialogBox div.dialogMsg",
+                        el => el?.textContent.trim() || "",
+                    );
+                    throw new Error(
+                        "检测到维护或其他公告，无法进入游戏：" + msg,
+                    );
+                }
             }
-        }
-        try {
-            await Promise.any([
-                page.click("b.button.continueGame"),
-                page.click("b.button.continueOpen"),
-            ]);
-            log("点击继续游戏按钮");
-        } catch (e) {
-            // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
-        }
-        await page.waitForSelector(".HMplayerBox");
-        await sleep(5000);
-        log("咪咕快游加载完成");
+
+            try {
+                await Promise.any([
+                    page.click("b.button.continueGame"),
+                    page.click("b.button.continueOpen"),
+                ]);
+                log("点击继续游戏按钮");
+            } catch (e) {
+                // log("似乎没有同时启动的游戏，已跳过点击继续游戏按钮");
+            }
+            await page.waitForSelector(".HMplayerBox");
+            await sleep(5000);
+            log("咪咕快游加载完成");
+            resolve();
+        });
+
+        await page.goto(gameUrl, config.pageloadOptions);
     });
 }
 
