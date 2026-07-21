@@ -72,18 +72,18 @@ module.exports = function (ctx) {
         /** 自定义卡组选项的间隔，单位像素 */
         customCardGroupSpacing: 115,
         /** 进入副本前预留人工干预时间（毫秒） */
-        manualInterventionDelay: 15 * 1000,
+        manualInterventionDelay: 0,
         /** 咖啡店操作完成后预留人工干预时间（毫秒） */
-        coffeeShopInterventionDelay: 15 * 1000,
+        coffeeShopInterventionDelay: 0,
         /** 报刊亭操作完成后预留人工干预时间（毫秒） */
-        magazineShopInterventionDelay: 15 * 1000,
+        magazineShopInterventionDelay: 0,
         /** 副本预计战斗时长（毫秒） */
         dungeonFightTimeout: 10 * 60 * 1000,
         /** 材料本-自定义模板序号，从0开始计数，范围 [0, 4] */
         customTemplateIndex: 0,
         /** 刷本次数，默认 3 次 */
         dungeonRunCount: 3,
-        /** 自定义副本打怪操作，推荐操作总时长接近小于 10000 毫秒 */
+        /** 自定义副本打怪操作，推荐操作总时长接近小于 5000 毫秒 */
         // WARN: 别用下面没列出的坐标，像素值也不要碰，别问为什么
         customFightActions: [
             ["tt", 445, 424], // 技能*3
