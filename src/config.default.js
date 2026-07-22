@@ -26,7 +26,7 @@ let isDev = process.argv.includes("--dev")
 // 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/
 const dataDir =
     isDev === 1
-        ? path.resolve(__dirname, "userData.default")
+        ? path.resolve(__dirname, "../userData.default")
         : path.resolve(os.homedir(), ".autoGamer");
 
 const userConfig = loadUserConfig(path.join(dataDir, "globalConfig.js"), {

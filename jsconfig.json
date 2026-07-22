@@ -4,9 +4,7 @@
         "module": "CommonJS",
         "moduleResolution": "Node10",
         "baseUrl": ".",
-        "paths": {
-            "pngjs": ["./userData.default/pngjs.d.ts"]
-        },
+        "paths": {},
         "ignoreDeprecations": "6.0",
         "lib": ["ES2022", "DOM"],
         "types": ["node"],
@@ -18,11 +16,11 @@
         "resolveJsonModule": false
     },
     "include": [
-        "index.js",
-        "inject.js",
-        "utils.js",
-        "config.default.js",
-        "loadUserConfig.js",
+        "src/main.js",
+        "src/inject.js",
+        "src/utils.js",
+        "src/config.default.js",
+        "src/loadUserConfig.js",
         "userData.default/**/*.js",
         "userData.default/**/*.d.ts"
     ],

@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-/// <reference types="./userData.default/autoGamer.d.ts" />
+/// <reference types="../userData.default/autoGamer.d.ts" />
 
 // @ts-check
 "use strict";

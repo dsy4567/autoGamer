@@ -17,7 +17,7 @@ const { parseArgs, styleText: _styleText } = require("util");
 const styleText = _styleText || ((_, text) => text);
 const config = require("./config.default.js");
 const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
-const loadUserConfig = require("./loadUserConfig");
+const loadUserConfig = require("./loadUserConfig.js");
 
 /** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, str: string) => void} */
 let _logWriteFile = () => {};
@@ -688,7 +688,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
     }
 
     // 源数据目录（项目内 userData.default/），用于 init/自动初始化时复制文件
-    const sourceDir = path.resolve(__dirname, "userData.default");
+    const sourceDir = path.resolve(__dirname, "../userData.default");
     const dataDir = config.dataDir;
 
     // init 命令：初始化数据目录后退出
