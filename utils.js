@@ -37,22 +37,21 @@ let _taskTimer = null;
 const _actionStateMap = new Map();
 
 // 文件缓存，避免重复读取同一文件
-/** @type {Map<string, { buffer: Buffer, mtime: number }>} */
-const _fileBufferCache = new Map();
+/** @type {Map<string, { buffer: Buffer }>} */
+let _fileBufferCache = new Map();
 
 /**
- * 读取文件并缓存，如果文件未修改则返回缓存内容
+ * 读取文件并缓存，如果文件已缓存则返回缓存内容
  * @param {string} filePath 文件绝对路径
  * @returns {Buffer}
  */
 function _getFileBuffer(filePath) {
-    const stats = fs.statSync(filePath);
     const cached = _fileBufferCache.get(filePath);
-    if (cached && cached.mtime === stats.mtimeMs) {
+    if (cached) {
         return cached.buffer;
     }
     const buffer = fs.readFileSync(filePath);
-    _fileBufferCache.set(filePath, { buffer, mtime: stats.mtimeMs });
+    _fileBufferCache.set(filePath, { buffer });
     return buffer;
 }
 
@@ -181,6 +180,10 @@ function createUtils(ctx, _eval = eval) {
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
     const info = ctx.getInstanceInfo?.();
     const instanceId = info?.instanceId ?? "default";
+
+    ctx.getInstanceInfo?.()?.cleanupFunctions.push(() => {
+        _fileBufferCache = new Map();
+    });
 
     /**
      * 检查当前实例是否已销毁，销毁时清理该实例的 action 状态
@@ -321,6 +324,22 @@ function createUtils(ctx, _eval = eval) {
             log("WARNING: 人工干预调用失败", /** @type {any} */ (e).message);
             return false;
         }
+    };
+
+    /**
+     * 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload）
+     * @param {boolean} [enabled=true] 为 true 时启用二次确认，为 false 时取消
+     * @returns {Promise<void>}
+     */
+    const setBeforeUnload = async (enabled = true) => {
+        await page.evaluate(
+            /** @param {boolean} enabled */
+            enabled => {
+                window.onbeforeunload = enabled ? () => false : null;
+            },
+            enabled,
+        );
+        log(`${enabled ? "已启用" : "已禁用"}关闭网页前二次确认`);
     };
 
     /**
@@ -899,22 +918,6 @@ function createUtils(ctx, _eval = eval) {
         }
 
         await _runActionCore();
-    };
-
-    /**
-     * 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload）
-     * @param {boolean} [enabled=true] 为 true 时启用二次确认，为 false 时取消
-     * @returns {Promise<void>}
-     */
-    const setBeforeUnload = async (enabled = true) => {
-        await page.evaluate(
-            /** @param {boolean} enabled */
-            enabled => {
-                window.onbeforeunload = enabled ? () => false : null;
-            },
-            enabled,
-        );
-        log(`${enabled ? "已启用" : "已禁用"}关闭网页前二次确认`);
     };
 
     /**
