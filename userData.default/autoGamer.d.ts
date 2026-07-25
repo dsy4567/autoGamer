@@ -486,6 +486,8 @@ declare global {
             };
             /** 游戏版本更新日是否运行脚本 */
             forceRun: boolean;
+            /** 检测到源文件变化时是否自动同步到数据目录（true=自动同步, false=仅警告并提示执行 init） */
+            autoSyncSourceFiles: boolean;
             /** 日志文件夹数量警告阈值，logs/ 下所有脚本子目录中文件夹总数超过此值时，退出时提醒清理 */
             logCleanupWarningThreshold: number;
             /** 检查点处理函数，可能被脚本调用 */

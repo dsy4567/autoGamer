@@ -469,7 +469,33 @@ function writeSourceMetadata(dataDir, metadata) {
 }
 
 /**
+ * 同步指定脚本相关的全部源文件到数据目录（用于元数据记录损坏时的全量同步）
+ * @param {string} sourceDir 项目内 userData.default 源目录
+ * @param {string} dataDir 数据目录
+ * @param {string} scriptId 当前脚本 id
+ */
+function _syncScriptFiles(sourceDir, dataDir, scriptId) {
+    const dirs = ["share", path.join("scripts", scriptId)];
+    const files = ["README.md", "autoGamer.d.ts"];
+    for (const item of [...dirs, ...files]) {
+        const src = path.join(sourceDir, item);
+        const dest = path.join(dataDir, item);
+        if (!fs.existsSync(src)) continue;
+        if (files.includes(item)) {
+            copyForce(src, dest);
+        } else {
+            copyDirForce(src, dest);
+        }
+    }
+}
+
+/**
  * 启动时检查源文件元数据是否一致
+ *
+ * 行为由 config.autoSyncSourceFiles 控制（默认 true）：
+ * - true：检测到不一致时自动把源文件同步到数据目录，并刷新元数据记录
+ * - false：仅输出警告，提示用户手动执行 init <scriptId>
+ *
  * @param {string} sourceDir 项目内 userData.default 源目录
  * @param {string} dataDir 数据目录
  * @param {string} scriptId 当前脚本 id
@@ -478,22 +504,60 @@ function writeSourceMetadata(dataDir, metadata) {
 function checkSourceMetadata(sourceDir, dataDir, scriptId) {
     const current = getSourceMetadata(sourceDir, scriptId);
     const stored = _readStoredSourceMetadata(dataDir);
+    // 归一化配置：接受 true/1/"1"/"true" 等可转换值，避免 === 严格比较失败（见避坑指南 #3）
+    const autoSync = Boolean(config.autoSyncSourceFiles);
+
     if (!stored || typeof stored.files !== "object") {
-        log(
-            `WARNING: 源文件元数据记录不存在或已损坏，正在重新生成；如需同步文件请执行 init ${scriptId}`,
-        );
+        if (autoSync) {
+            log(
+                "WARNING: 源文件元数据记录不存在或已损坏，已自动同步源文件并重新生成记录",
+            );
+            _syncScriptFiles(sourceDir, dataDir, scriptId);
+        } else {
+            log(
+                `WARNING: 源文件元数据记录不存在或已损坏，正在重新生成；如需同步文件请执行 init ${scriptId}`,
+            );
+        }
         writeSourceMetadata(dataDir, current);
         return true;
     }
 
     // 仅检查当前脚本相关文件：stored 可以是超集（例如 init 未指定脚本 id 时记录了全量文件）
     const currentKeys = Object.keys(current.files).sort();
+
+    if (autoSync) {
+        // 自动同步模式：收集所有不一致文件并复制，最后统一刷新元数据
+        /** @type {string[]} */
+        const changedKeys = [];
+        for (const key of currentKeys) {
+            const cur = current.files[key];
+            const sto = stored.files[key];
+            if (!sto || cur.size !== sto.size || cur.mtimeMs !== sto.mtimeMs) {
+                changedKeys.push(key);
+            }
+        }
+        if (changedKeys.length > 0) {
+            for (const key of changedKeys) {
+                log(`WARNING: 源文件 ${key} 需要更新，已自动同步最新文件`);
+                const src = path.join(sourceDir, key);
+                const dest = path.join(dataDir, key);
+                if (fs.existsSync(src)) {
+                    fs.mkdirSync(path.dirname(dest), { recursive: true });
+                    copyForce(src, dest);
+                }
+            }
+            writeSourceMetadata(dataDir, current);
+        }
+        return true;
+    }
+
+    // 仅警告模式：检测到首个不一致即返回，提示用户手动执行 init
     for (const key of currentKeys) {
         const cur = current.files[key];
         const sto = stored.files[key];
         if (!sto || cur.size !== sto.size || cur.mtimeMs !== sto.mtimeMs) {
             log(
-                `WARNING: 源文件 ${key} 与记录不一致，建议执行 init ${scriptId} 以同步最新文件`,
+                `WARNING: 源文件 ${key} 需要更新，建议执行 init ${scriptId} 以同步最新文件`,
             );
             return false;
         }
