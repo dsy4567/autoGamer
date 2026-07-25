@@ -136,8 +136,8 @@ if (options.threshold === 0.9) { ... }  // 不成立
 **正确做法**：对"类型极可能非预期但可转换"的参数，先显式转换再比较：
 
 ```js
-// 布尔型参数：接受 true/false/1/0/"1"/"0"/"true"/"false" 等
-const forceRun = [true, 1, "1", "true"].includes(config.forceRun);
+// 布尔型参数：使用 Boolean() 转换为布尔值
+const forceRun = Boolean(config.forceRun);
 
 // 数字型参数：先 Number() 再判断 NaN
 const threshold = Number(options.threshold);
