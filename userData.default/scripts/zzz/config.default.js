@@ -61,7 +61,7 @@ module.exports = function (ctx) {
             /** 等待页面 初始加载 */
             initialWait: 40 * 1000,
             /** 点击开始游戏后等待读条 */
-            afterStartGame: 30 * 1000,
+            afterStartGame: 20 * 1000,
         },
         /** 材料本-自定义模板序号，从0开始计数，范围 [0, 4]，默认浓缩咖啡 */
         coffeeIndex: 1,

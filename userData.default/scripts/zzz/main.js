@@ -554,23 +554,53 @@ module.exports = async function (ctx) {
             ["tt", 471, 242],
             ["sleep", 3000],
         ]);
-
-        await action("选择模板内卡组", [
-            [
-                "tt",
-                scriptConfig.customCardGroupSpacingOffset[0] +
-                    scriptConfig.customCardGroupSpacing *
-                        scriptConfig.customTemplateIndex,
-                scriptConfig.customCardGroupSpacingOffset[1],
-            ],
-            ["sleep", 1000],
-        ]);
-
         for (let i = 0; i < scriptConfig.dungeonRunCount; i++) {
             log(`----------第${i + 1}次战斗----------`);
 
+            await action("选择模板内卡组", [
+                [
+                    "tt",
+                    scriptConfig.customCardGroupSpacingOffset[0] +
+                        scriptConfig.customCardGroupSpacing *
+                            scriptConfig.customTemplateIndex,
+                    scriptConfig.customCardGroupSpacingOffset[1],
+                ],
+                ["sleep", 1000],
+            ]);
+
+            // 体力是否不足
+            let isTired = false;
+            await action("点击下一步", [
+                ["tt", 325, 458], // 空白处
+                ["sleep", 500],
+                ["tt", 325, 458],
+                ["sleep", 2000],
+
+                ["tt", 556, 398], // 下一步按钮
+                ["sleep", 2000],
+                [
+                    "cs",
+                    "电量补充-取消图标.png",
+                    {
+                        clip: { x: 204, y: 332, width: 16, height: 16 },
+                        threshold: 0.99,
+                    },
+                    [
+                        ["tt", 206, 340], // 关闭体力弹窗
+                        ["sleep", 3000],
+                        [
+                            "fn",
+                            () => {
+                                isTired = true;
+                                log("WARNING: 体力不足，正在离开副本");
+                            },
+                        ],
+                    ],
+                ],
+            ]);
+            if (isTired) break;
+
             await action("开始战斗", [
-                ["tt", 556, 398],
                 ["sleep", 5000],
                 ["tt", 556, 398],
                 ["sleep", 1000],
@@ -578,13 +608,12 @@ module.exports = async function (ctx) {
 
             // 等待副本加载完成
             try {
-                await action("等待副本加载完成");
+                log("等待副本加载完成");
                 await action("waitSceneChange", [], {
                     threshold: 0.98,
                     interval: 3000,
                     timeout: 60000,
                 });
-                await action("sleep", [["sleep", 3000]]);
             } catch (e) {
                 log("ERROR: 等待副本加载完成失败", e);
                 await action("等待副本加载完成-兜底", [["sleep", 10000]]);
@@ -592,7 +621,8 @@ module.exports = async function (ctx) {
 
             // 并行执行：waitSceneChange 检测结算画面 + 循环执行战斗操作
             try {
-                await action("执行战斗操作");
+                await action("sleep", [["sleep", 3000]]);
+                log("执行战斗操作");
                 await action(
                     "waitSceneChange",
                     scriptConfig.customFightActions,
@@ -618,6 +648,7 @@ module.exports = async function (ctx) {
                 ["sleep", 500],
 
                 ["tt", 556, 398],
+                ["sleep", 1000],
             ]);
             // 等待大世界加载完成
             try {
@@ -630,39 +661,15 @@ module.exports = async function (ctx) {
                 await action("sleep", [["sleep", 3000]]);
             } catch (e) {
                 log("ERROR: 等待大世界加载完成失败", e);
-                await action("等待大世界加载完成-兜底", [["sleep", 10000]]);
+                await action("等待大世界加载完成-兜底", [["sleep", 20000]]);
             }
 
-            // 体力是否不足
-            let isTired = false;
-            await action("点击完成并准备下一场", [
+            await action("关闭弹窗", [
                 ["tt", 325, 458], // 空白处
                 ["sleep", 500],
                 ["tt", 325, 458],
                 ["sleep", 500],
-
-                ["tt", 556, 398], // 下一步按钮
-                ["sleep", 20000],
-                [
-                    "cs",
-                    "电量补充-取消图标.png",
-                    {
-                        clip: { x: 204, y: 332, width: 16, height: 16 },
-                    },
-                    [
-                        ["tt", 206, 340],
-                        ["sleep", 3000],
-                        [
-                            "fn",
-                            () => {
-                                isTired = true;
-                                log("WARNING: 体力不足，正在离开副本");
-                            },
-                        ],
-                    ],
-                ],
             ]);
-            if (isTired) break;
         }
 
         await action("离开副本", [
@@ -671,9 +678,9 @@ module.exports = async function (ctx) {
             tapBackBtn.middleTop,
             ["sleep", 1000],
             tapBackBtn.middleTop,
-            ["sleep", 5000],
+            ["sleep", 1000],
             tapBackBtn.middleTop,
-            ["sleep", 5000],
+            ["sleep", 1000],
             ["fn", config.checkpoint],
         ]);
     }
