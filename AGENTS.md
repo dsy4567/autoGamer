@@ -26,7 +26,7 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 ### typing 规范
 
 - 关键变量或函数应该包含 `@type` 或 `@param` 注释。
-- 不允许忽略 typing lint error, 遇到修复结果困难/不优雅的情况，允许使用 `// @ts-ignore` 等注释，但在总结时必须说明原因。
+- 不允许忽略 typing lint error, 遇到修复结果困难/不优雅的情况，允许使用 `// @ts-ignore`、`any` 等，但在总结时必须说明原因。
 
 ### 日志使用
 
