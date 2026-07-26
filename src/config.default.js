@@ -90,13 +90,13 @@ const defaultConfig = {
     /** 默认UA */
     mobileUA:
         "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
-    /** 默认视口 */
+    /** 默认视口，极度不建议修改 */
     viewport: {
-        // WARN: 不要修改默认宽高
         width: 640,
         height: 480,
         hasTouch: true,
         isLandscape: true,
+        deviceScaleFactor: 1.0,
     },
     /** 页面加载选项 */
     pageloadOptions: {

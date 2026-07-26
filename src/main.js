@@ -839,14 +839,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     const browser = await puppeteer.launch({
         headless: false,
-        defaultViewport: {
-            ...(config.viewport ?? {
-                width: 640,
-                height: 480,
-                hasTouch: true,
-                isLandscape: true,
-            }),
-        },
+        defaultViewport: config.viewport,
         ...(config.chromeExecPath
             ? { executablePath: config.chromeExecPath }
             : { channel: "chrome" }),

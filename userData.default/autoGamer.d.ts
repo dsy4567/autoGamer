@@ -456,13 +456,8 @@ declare global {
             defaultLoginUrl: string;
             /** 移动端 User-Agent */
             mobileUA: string;
-            /** 视口配置 */
-            viewport: {
-                width: number;
-                height: number;
-                hasTouch: boolean;
-                isLandscape: boolean;
-            };
+            /** 视口配置，极度不建议修改 */
+            viewport: Viewport;
             /** 页面加载选项 */
             pageloadOptions: GoToOptions;
             /** 截图功能配置 */
