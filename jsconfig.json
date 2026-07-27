@@ -15,15 +15,7 @@
         "skipLibCheck": true,
         "resolveJsonModule": false
     },
-    "include": [
-        "src/loader.js",
-        "src/inject.js",
-        "src/utils.js",
-        "src/config.default.js",
-        "src/loadUserConfig.js",
-        "userData.default/**/*.js",
-        "userData.default/**/*.d.ts"
-    ],
+    "include": ["src/*", "userData.default/*"],
     "exclude": [
         "node_modules",
         "**/*.deprecated.*",

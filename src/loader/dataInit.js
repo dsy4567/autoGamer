@@ -7,7 +7,6 @@
  */
 
 // @ts-check
-/// <reference types="../../userData.default/autoGamer.d.ts" />
 
 "use strict";
 

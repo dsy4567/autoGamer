@@ -313,7 +313,6 @@ function createUtils(ctx, _eval = eval) {
             );
             const result = await page.evaluate(
                 (m, t) => {
-                    // @ts-ignore window.__autoGamer 由 inject.js 注入，TS 无法识别
                     return window.__autoGamer.requestManualIntervention(m, t);
                 },
                 msg,
