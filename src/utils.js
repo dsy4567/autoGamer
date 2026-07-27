@@ -847,7 +847,11 @@ function createUtils(ctx, _eval = eval) {
                         // 超时
                         shouldStop = true;
                         throw new Error("等待场景变化超时");
-                    })();
+                    })().finally(() => {
+                        // 兜底：任何退出路径（包括 calculateSimilarity 抛错等未预期异常）
+                        // 都确保 opsLoop 收到停止信号，避免孤儿 Promise 继续执行操作
+                        shouldStop = true;
+                    });
 
                     // 流程B：operations 循环流程（仅在有 sleep 且有 operations 时启动）
                     const opsLoop =
@@ -880,7 +884,16 @@ function createUtils(ctx, _eval = eval) {
                             : Promise.resolve();
 
                     // 等待两个流程都结束
-                    await Promise.all([sceneChangeDetector, opsLoop]);
+                    // 若 sceneChangeDetector 异常退出，Promise.all 会立即 reject，
+                    // 此时 opsLoop 仍可能在运行。需等 opsLoop 也停止后再抛错，
+                    // 否则 opsLoop 作为孤儿 Promise 会在上层人工干预期间继续执行操作
+                    try {
+                        await Promise.all([sceneChangeDetector, opsLoop]);
+                    } catch (e) {
+                        shouldStop = true; // 兜底确保 opsLoop 停止
+                        await opsLoop.catch(() => {}); // 等待 opsLoop 真正退出
+                        throw e;
+                    }
                 } finally {
                     state.waitSceneChangeInProgress = false;
                 }
