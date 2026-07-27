@@ -17,9 +17,10 @@ window.__autoGamer.mainFn = () => {
     if (document.getElementById("auto-gamer-mouse-indicator")) return;
 
     /** @type {{ alwaysHideOverlay: boolean }} */
-
     const autoGamerConfig = window.__autoGamer.config || {};
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
+
+    // #region ====================创建全屏遮罩元素====================
 
     // 创建透明度为 0.01 的全屏遮罩，用于遮挡包括游戏界面、auto-gamer-* 在内的其他所有元素
     const overlay = document.createElement("div");
@@ -49,6 +50,10 @@ window.__autoGamer.mainFn = () => {
         if (alwaysHideOverlay) return;
         overlay.style.setProperty("display", "block", "important");
     });
+
+    // #endregion
+
+    // #region ====================Page Visibility API 劫持====================
 
     // 挟持 Page Visibility API 及相关事件
     Object.defineProperty(document, "hidden", {
@@ -88,7 +93,10 @@ window.__autoGamer.mainFn = () => {
     // 立即触发一次 visibilitychange 事件，确保状态为 visible
     document.dispatchEvent(new Event("visibilitychange"));
 
-    // 创建一个显示坐标的指示器元素
+    // #endregion
+
+    // #region ====================创建鼠标坐标指示器元素====================
+
     const indicator = document.createElement("div");
     indicator.id = "auto-gamer-mouse-indicator";
     indicator.style.setProperty("position", "fixed", "important");
@@ -106,6 +114,10 @@ window.__autoGamer.mainFn = () => {
     indicator.style.setProperty("font-family", "cursive", "important");
     // indicator.textContent = "X: 0, Y: 0";
     document.documentElement.appendChild(indicator);
+
+    // #endregion
+
+    // #region ====================十字交叉线（触摸点指示）====================
 
     // 十字交叉线 + 坐标标签：展示最后一个触摸点
     // mix-blend-mode: difference 实现透明反色；不使用外层容器，各元素直接与游戏画面混合，
@@ -241,6 +253,10 @@ window.__autoGamer.mainFn = () => {
 
     window.__autoGamer.updateCrosshair = updateCrosshair;
 
+    // #endregion
+
+    // #region ====================鼠标坐标指示器更新逻辑====================
+
     let altPressed = false;
     /** 人工干预激活时为 true，使指示器保持可见 */
     let miActive = false;
@@ -313,7 +329,10 @@ window.__autoGamer.mainFn = () => {
         }
     });
 
-    // 隐藏/显示悬浮球
+    // #endregion
+
+    // #region ====================悬浮球显示/隐藏====================
+
     let ballVisible = true,
         hideBallStyle = document.createElement("style");
     hideBallStyle.textContent = `.gameSetingButton {
@@ -335,6 +354,10 @@ window.__autoGamer.mainFn = () => {
 
     window.__autoGamer.toggleBallVisible = toggleBallVisible;
     toggleBallVisible();
+
+    // #endregion
+
+    // #region ====================Alt+鼠标事件转发为触摸事件、indicator 快捷键、其他鼠标键盘事件处理====================
 
     // Alt+鼠标事件转发为 puppeteer 触摸事件
     let mouseLeftPressed = false;
@@ -541,11 +564,19 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         true,
     );
 
+    // #endregion
+
+    // #region ====================消息监听====================
+
     window.addEventListener("message", e => {
         if (e.data?.type === "auto-gamer-log" && e.data.content) {
             updateIndicator(null, null, ` [log: ${e.data.content}]`, "");
         }
     });
+
+    // #endregion
+
+    // #region ====================标题与图标修改====================
 
     // 移除标题，替换图标
     if (!alwaysHideOverlay) {
@@ -562,7 +593,10 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         }, 3000);
     }
 
-    // 隐藏指定元素
+    // #endregion
+
+    // #region ====================隐藏特定元素====================
+
     /** @type {string[]} */
     const selectors = [
         ".toastCommon", // 升画质提示
@@ -574,6 +608,10 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         .map(s => `${s} { display: none !important; }`)
         .join("\n");
     document.head.appendChild(style);
+
+    // #endregion
+
+    // #region ====================警告音播放====================
 
     /**
      * 播放警告音
@@ -619,6 +657,10 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     window.__autoGamer.playWarningSound = playWarningSound;
 
+    // #endregion
+
+    // #region ====================人工干预功能====================
+
     /**
      * 请求人工干预
      *
@@ -634,7 +676,6 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * @param {number} [timeout=15000] 超时毫秒
      * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false
      */
-
     window.__autoGamer.requestManualIntervention = (
         msg = "",
         timeout = 15000,
@@ -745,16 +786,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         });
     };
 
-    // 关闭网页前二次确认
-    // window.onbeforeunload = () => {
-    //     return false;
-    // };
-
-    // hook console.log
-    // let originalLog = console.log;
-    // console.log = function (...args) {
-    //     originalLog.apply(console, args);
-    // };
+    // #endregion
 };
 
 if (document.readyState === "loading") {
