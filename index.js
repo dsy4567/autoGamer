@@ -3,4 +3,4 @@
 // @ts-check
 "use strict";
 
-require("./src/main.js");
+require("./src/loader.js");
