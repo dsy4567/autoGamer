@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * @fileoverview autoGamer 主程序，负责初始化环境、运行脚本等。
  * @author dsy4567
@@ -20,6 +18,8 @@ const {
     logRaw,
     loggerHooks,
     setErrorLogFilePath,
+    exitWarnings,
+    onUncaughtException,
 } = require("./logger.js");
 const config = require("./config.default.js");
 const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
