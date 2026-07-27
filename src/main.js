@@ -14,15 +14,16 @@
 const path = require("path");
 const fs = require("fs");
 const { parseArgs, styleText: _styleText } = require("util");
-const styleText = _styleText || ((_, text) => text);
+
+const {
+    log,
+    logRaw,
+    loggerHooks,
+    setErrorLogFilePath,
+} = require("./logger.js");
 const config = require("./config.default.js");
 const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig.js");
-
-/** 日志增强钩子，初始为空函数，后续赋值以启用写文件 @type {(now: string, str: string) => void} */
-let _logWriteFile = () => {};
-/** 日志增强钩子，初始为空函数，后续赋值在网页展示日志 @type {(str: string) => void} */
-let _logWriteHtml = () => {};
 
 /** 浏览器实例引用，用于退出前关闭 @type {import("puppeteer-core").Browser | null} */
 let _browser = null;
@@ -113,132 +114,28 @@ async function _runInstanceCleanup(instance) {
 
 /** 关闭浏览器后退出进程 @param {number} code */
 async function _closeBrowserAndExit(code, exit = true) {
+    if (_isExiting) return;
     _isExiting = true;
     try {
         log("尝试正常关闭浏览器");
         await _browser?.close();
     } catch (e) {
-        log("浏览器似乎已经关闭，直接退出");
+        log("浏览器似乎已经关闭");
     }
-    exit && process.exit(code);
-}
-
-/**
- * 解析日志参数，识别级别并剥离前缀
- * @param {any[]} args
- * @returns {{ level: "INFO" | "WARNING" | "ERROR", color: "green" | "yellow" | "red", args: any[] }}
- */
-const _parseLogArgs = args => {
-    /** @type {"INFO" | "WARNING" | "ERROR"} */
-    let level = "INFO";
-    /** @type {"green" | "yellow" | "red"} */
-    let color = "green";
-    const first = args[0];
-    if (typeof first === "string") {
-        if (/^ERROR[:：]/.test(first)) {
-            level = "ERROR";
-            color = "red";
-        } else if (/^WARNING[:：]/.test(first)) {
-            level = "WARNING";
-            color = "yellow";
-        }
-        if (level !== "INFO") {
-            const rest = first.replace(/^(ERROR|WARNING)[:：]\s?/, "");
-            if (rest === "" && args.length === 1) {
-                args = [];
-            } else {
-                args = [rest, ...args.slice(1)];
-            }
-        }
-    }
-    return { level, color, args };
-};
-
-// 日志工具（只定义一次，通过钩子变量控制增强行为）
-/** 输出日志并触发写文件钩子 @param {...any} args */
-const log = (...args) => {
-    const now = new Date().toISOString();
-    const { level, color, args: processedArgs } = _parseLogArgs(args);
-    const tag = `[${level}]`;
-    const coloredTag = styleText(color, tag);
-    const consoleMethod =
-        level === "ERROR" ? "error" : level === "WARNING" ? "warn" : "log";
-    const str = [tag, ...processedArgs]
-        .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-        .join(" ");
-    console[consoleMethod](`[${now}]`, coloredTag, ...processedArgs);
-    _logWriteFile(now, str);
-    _logWriteHtml(str);
-};
-/** 原始日志，不触发截图钩子，供截图函数自身使用以避免递归 @param {...any} args */
-const logRaw = (...args) => {
-    const now = new Date().toISOString();
-    const { level, color, args: processedArgs } = _parseLogArgs(args);
-    const tag = `[${level}]`;
-    const coloredTag = styleText(color, tag);
-    const consoleMethod =
-        level === "ERROR" ? "error" : level === "WARNING" ? "warn" : "log";
-    const str = [tag, ...processedArgs]
-        .map(a => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-        .join(" ");
-    console[consoleMethod](`[${now}]`, coloredTag, ...processedArgs);
-    _logWriteFile(now, str);
-    _logWriteHtml(str);
-};
-
-/** 退出时要输出的警告消息 @type {string[]} */
-const _exitWarnings = [];
-
-/** 全局错误处理：捕获未捕获的异常和未处理的 Promise 拒绝 @type {string | null} */
-let _errorLogFile = null;
-
-process.on("uncaughtException", async err => {
-    // 例外：允许使用 console.error 而不是 log/logRaw
-    console.error("ERROR: 未捕获的异常:", err);
-    if (_errorLogFile) {
-        try {
-            fs.appendFileSync(
-                _errorLogFile,
-                `[${new Date().toISOString()}] ERROR: 未捕获的异常: ${err.stack || err}\n`,
-            );
-        } catch (e) {}
-    }
-    await _closeBrowserAndExit(1);
-});
-
-process.on("unhandledRejection", async (reason, promise) => {
-    // 例外：允许使用 console.error 而不是 log/logRaw
-    console.error("ERROR: 未处理的 Promise 拒绝:", reason);
-    if (_errorLogFile) {
-        try {
-            fs.appendFileSync(
-                _errorLogFile,
-                // @ts-ignore
-                `[${new Date().toISOString()}] ERROR: 未处理的 Promise 拒绝: ${reason?.stack || reason}\n`,
-            );
-        } catch (e) {}
-    }
-    await _closeBrowserAndExit(1);
-});
-
-// 退出时输出警告消息
-function _printExitWarnings() {
-    if (_exitWarnings.length > 0) {
-        for (const warning of _exitWarnings) {
-            log("WARNING:", warning);
-        }
+    if (exit) {
+        log("退出进程", code);
+        process.exit(code);
     }
 }
 
-process.on("exit", _printExitWarnings);
-process.on("beforeExit", () => _closeBrowserAndExit(0, false));
-
+onUncaughtException.push(() => {
+    _closeBrowserAndExit(1);
+});
+process.on("beforeExit", async () => await _closeBrowserAndExit(0, false));
 process.on("SIGINT", async () => {
-    _printExitWarnings();
     await _closeBrowserAndExit(0);
 });
 process.on("SIGTERM", async () => {
-    _printExitWarnings();
     await _closeBrowserAndExit(1);
 });
 
@@ -783,8 +680,8 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         const logFilePath = path.join(logDir, "log.txt");
 
         // 启用日志写入文件
-        _errorLogFile = logFilePath;
-        _logWriteFile = (now, str) => {
+        setErrorLogFilePath(logFilePath);
+        loggerHooks._logWriteFile = (now, str) => {
             try {
                 fs.appendFileSync(logFilePath, `[${now}] ${str}\n`);
             } catch (e) {}
@@ -810,7 +707,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
             }
             const threshold = config.logCleanupWarningThreshold ?? 50;
             if (totalFolders > threshold) {
-                _exitWarnings.push(
+                exitWarnings.push(
                     `logs/ 目录下共有 ${totalFolders} 个日志文件夹，超过阈值（${threshold} 个），建议清理旧日志以释放磁盘空间。日志目录: ${logsDir}`,
                 );
             }
@@ -897,7 +794,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         action,
     } = utils;
 
-    _logWriteHtml = async content => {
+    loggerHooks._logWriteHtml = async content => {
         try {
             await page.evaluate(content => {
                 window.postMessage({
