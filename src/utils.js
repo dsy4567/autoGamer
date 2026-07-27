@@ -884,6 +884,10 @@ function createUtils(ctx, _eval = eval) {
                 } finally {
                     state.waitSceneChangeInProgress = false;
                 }
+                // waitSceneChange 自行管理 operations 的执行（见 opsLoop），
+                // 正常完成路径必须 return，否则会落到下方通用 doOpsArray(operations)
+                // 导致 operations 被额外完整执行一次
+                return;
             }
 
             await doOpsArray(operations);
