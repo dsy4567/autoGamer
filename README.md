@@ -33,15 +33,27 @@
 
 
 ## 📁 目录结构
-- `index.js`             主入口
-- `inject.js`            注入脚本
-- `utils.js`             工具函数
-- `config.default.js`    全局默认配置
-- `loadUserConfig.js`    用户配置加载器
-- `userData.default/`    源数据目录（开发模式即为数据目录）
+- `index.js`                主入口
+- `src/`                    源代码目录
+  - `loader.js`             主程序，负责初始化环境、运行脚本等
+  - `config.default.js`     全局默认配置
+  - `loadUserConfig.js`     用户配置加载器
+  - `logger.js`             日志模块
+  - `utils.js`              工具函数
+  - `browser/`              浏览器相关
+    - `injectPage.js`       注入页面脚本
+  - `loader/`               加载器相关
+    - `dataInit.js`         数据初始化
+    - `injector.js`         注入器
+  - `utils/`                工具函数拆分
+    - `action.js`           操作相关
+    - `screenshot.js`       截屏相关
+- `userData.default/`       源数据目录（开发模式即为数据目录）
   - `scripts/<id>/main.js`           自动化脚本入口
   - `scripts/<id>/config.default.js` 脚本默认配置
+  - `scripts/<id>/resources/`        脚本资源文件（如图片）
   - `share/*.js`                     共享函数
+  - `autoGamer.d.ts`                 类型声明
   - `README.md`                      内置脚本说明
 - 数据目录（运行时生成，开发模式即 `userData.default/`，非开发模式即 `~/.autoGamer/`）：
   - `globalConfig.js`                用户全局配置
