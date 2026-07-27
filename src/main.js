@@ -11,7 +11,7 @@
 
 const path = require("path");
 const fs = require("fs");
-const { parseArgs, styleText: _styleText } = require("util");
+const { parseArgs } = require("util");
 
 const {
     log,
