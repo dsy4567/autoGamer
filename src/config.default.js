@@ -84,6 +84,9 @@ const defaultConfig = {
         "--disable-renderer-backgrounding", // 禁用渲染器后台化
         "--disable-restore-session-state", // 禁用会话恢复
         "--disable-sync", // 禁用Chrome同步功能
+
+        "--force-device-scale-factor=1.0",
+        "--disable-pinch", // 禁用触摸屏双指缩放
     ],
     /** 默认登录页 */
     defaultLoginUrl: "https://www.migufun.com/middleh5/",

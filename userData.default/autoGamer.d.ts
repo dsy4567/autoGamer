@@ -25,6 +25,20 @@
 
 import type { Browser, Page, GoToOptions, TouchHandle } from "puppeteer-core";
 
+type SimulateTouch = (msg: {
+    type:
+        | "auto-gamer-mouse-to-tap"
+        | "auto-gamer-mouse-to-drag"
+        | "auto-gamer-mouse-to-hold"
+        | "auto-gamer-log";
+    x?: number;
+    y?: number;
+    from?: { x: number; y: number };
+    to?: { x: number; y: number };
+    duration?: number;
+    content?: string;
+}) => Promise<void>;
+
 declare global {
     namespace AutoGamer {
         // ============ Operation 相关类型 ============
@@ -494,32 +508,24 @@ declare global {
         }
     }
     interface Window {
-        __autoGamer: {
+        __autoGamer?: {
             /** 向 Node 端转发触摸/日志事件（由 index.js exposeFunction 注入） */
-            simulateTouch(msg: {
-                type:
-                    | "auto-gamer-mouse-to-tap"
-                    | "auto-gamer-mouse-to-drag"
-                    | "auto-gamer-mouse-to-hold"
-                    | "auto-gamer-log";
-                x?: number;
-                y?: number;
-                from?: { x: number; y: number };
-                to?: { x: number; y: number };
-                duration?: number;
-                content?: string;
-            }): Promise<void>;
+            simulateTouch?: SimulateTouch;
 
             /** 全局配置（由 index.js 注入） */
-            config: {
-                alwaysHideOverlay: boolean;
+            config?: {
+                alwaysHideOverlay?: boolean;
+                viewport?: {
+                    width: number;
+                    height: number;
+                };
             };
 
             /** 初始化注入 UI 与事件监听 */
-            mainFn(): void;
+            mainFn?(): void;
 
             /** 显示/隐藏悬浮球 */
-            toggleBallVisible(show?: boolean | null): void;
+            toggleBallVisible?(show?: boolean | null): void;
 
             /**
              * 手动更新十字线坐标并记录操作次数
@@ -529,20 +535,25 @@ declare global {
              * @param x X 坐标
              * @param y Y 坐标
              */
-            updateCrosshair(x: number, y: number): void;
+            updateCrosshair?(x: number, y: number): void;
 
             /** 播放警告音 */
-            playWarningSound(): void;
+            playWarningSound?(): void;
 
             /** 请求人工干预，返回用户是否手动结束 */
-            requestManualIntervention(
+            requestManualIntervention?(
                 msg?: string,
                 timeout?: number,
             ): Promise<boolean>;
 
             /** 懒创建的音频上下文 */
             warningAudioCtx?: AudioContext;
+            /** 设置当前缩放比例 */
+            setScale?: (scaleX: number, scaleY: number) => void;
         };
+        __autoGamerSimulateTouch?: SimulateTouch;
+        /** 设置当前缩放比例 */
+        __autoGamerSetScale?: (width: number, height: number) => void;
     }
 }
 

@@ -22,7 +22,7 @@ const {
     onUncaughtException,
 } = require("./logger.js");
 const config = require("./config.default.js");
-const inject = require("./loader/injector.js");
+const { inject, getScale } = require("./loader/injector.js");
 const { createUtils, formatLocalTimeWithTz } = require("./utils.js");
 const loadUserConfig = require("./loadUserConfig.js");
 const {
@@ -296,6 +296,45 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     const userDataDir =
         config.dirs?.chromeDataDir ?? path.join(config.dataDir, "chromeData");
+
+    // 移除 Chrome Preferences 中的缩放偏好，避免页面缩放影响自动化操作
+    {
+        const preferencesPath = path.join(
+            userDataDir,
+            "Default",
+            "Preferences",
+        );
+        if (fs.existsSync(preferencesPath)) {
+            try {
+                const prefs = JSON.parse(
+                    fs.readFileSync(preferencesPath, "utf-8"),
+                );
+                let modified = false;
+                // 移除每个主机的缩放级别
+                if (prefs.partition?.per_host_zoom_levels) {
+                    prefs.partition.per_host_zoom_levels = {};
+                    modified = true;
+                }
+                // 移除默认缩放级别
+                if (prefs.partition?.default_zoom_level !== undefined) {
+                    prefs.partition.default_zoom_level = undefined;
+                    modified = true;
+                }
+                if (modified) {
+                    fs.writeFileSync(
+                        preferencesPath,
+                        JSON.stringify(prefs),
+                        "utf-8",
+                    );
+                    log("已移除 Chrome Preferences 中的缩放偏好设置");
+                }
+            } catch (e) {
+                log(
+                    `WARNING: 处理 Preferences 文件失败: ${/** @type {any} */ (e)?.message || e}`,
+                );
+            }
+        }
+    }
 
     const browser = await puppeteer.launch({
         headless: false,

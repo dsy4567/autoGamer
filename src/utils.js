@@ -313,7 +313,10 @@ function createUtils(ctx, _eval = eval) {
             );
             const result = await page.evaluate(
                 (m, t) => {
-                    return window.__autoGamer.requestManualIntervention(m, t);
+                    return window.__autoGamer?.requestManualIntervention?.(
+                        m,
+                        t,
+                    );
                 },
                 msg,
                 timeout,
