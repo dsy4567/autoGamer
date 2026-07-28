@@ -15,6 +15,8 @@ const fs = require("fs");
 const { PNG } = require("pngjs");
 const config = require("./config.default.js");
 
+//#region 模块作用域状态
+
 // 放在模块作用域，确保 createUtils 多次调用也只存在一个定时截图 timer
 /**
  * @type {string | number | NodeJS.Timeout | null | undefined}
@@ -40,6 +42,18 @@ const _actionStateMap = new Map();
 /** @type {Map<string, { buffer: Buffer }>} */
 let _fileBufferCache = new Map();
 
+/** 当前活跃的 REPL 会话，开发模式下复用 @type {import("readline").Interface | null} */
+let _activeRl = null;
+/** 当前 REPL 使用的 eval 函数，热重载时更新 @type {AutoGamer.EvalFn} */
+let _replEval = eval;
+
+/** 热重载前最后一次 action @type {string | null} */
+let lastAction = null;
+
+//#endregion
+
+//#region 模块私有辅助函数
+
 /**
  * 读取文件并缓存，如果文件已缓存则返回缓存内容
  * @param {string} filePath 文件绝对路径
@@ -54,14 +68,6 @@ function _getFileBuffer(filePath) {
     _fileBufferCache.set(filePath, { buffer });
     return buffer;
 }
-
-/** 当前活跃的 REPL 会话，开发模式下复用 @type {import("readline").Interface | null} */
-let _activeRl = null;
-/** 当前 REPL 使用的 eval 函数，热重载时更新 @type {AutoGamer.EvalFn} */
-let _replEval = eval;
-
-/** 热重载前最后一次 action @type {string | null} */
-let lastAction = null;
 
 /**
  * 创建默认的 action 状态
@@ -82,6 +88,8 @@ function _createDefaultActionState() {
         waitSceneChangeInProgress: false,
     };
 }
+
+//#endregion
 
 /**
  * 将 Date 格式化为本地时间字符串（带时区偏移），文件系统安全
@@ -177,6 +185,8 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
  * @param {AutoGamer.EvalFn} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
 function createUtils(ctx, _eval = eval) {
+    //#region 实例初始化
+
     const { puppeteer, browser, page, log, logRaw, pageOpenTime, logDir } = ctx;
     const info = ctx.getInstanceInfo?.();
     const instanceId = info?.instanceId ?? "default";
@@ -211,6 +221,10 @@ function createUtils(ctx, _eval = eval) {
         state.startAtChain = ctx.startAtChain ?? null;
         state.endAtChain = ctx.endAtChain ?? null;
     }
+
+    //#endregion
+
+    //#region 触摸与基础操作
 
     /**
      * 触摸开始 - 在指定坐标触发 touchStart 事件；如无特别需求，推荐使用 {@link tt} (touch tap) {@link hold} {@link drag}
@@ -344,6 +358,10 @@ function createUtils(ctx, _eval = eval) {
         log(`${enabled ? "已启用" : "已禁用"}关闭网页前二次确认`);
     };
 
+    //#endregion
+
+    //#region action 统一操作函数
+
     /**
      * 统一的自动化操作函数，自动处理流程控制、日志、截图
      * @overload
@@ -370,6 +388,8 @@ function createUtils(ctx, _eval = eval) {
      */
     const action = async (description, operations, options) => {
         if (isInstanceDestroyed()) return;
+
+        //#region 特殊指令处理
 
         // 特殊指令：覆盖 start-at
         if (description === "startAt") {
@@ -485,6 +505,10 @@ function createUtils(ctx, _eval = eval) {
             return;
         }
 
+        //#endregion
+
+        //#region 描述校验与 start-at / end-at 流程控制
+
         if (['"', "'", "\\", "#"].some(char => description?.includes(char))) {
             log(
                 "WARNING: action 简要描述包含 #\"'\\ 字符，可能引发一系列问题，例如影响 --start-at / --end-at 的匹配结果",
@@ -521,10 +545,14 @@ function createUtils(ctx, _eval = eval) {
             }
         }
 
+        //#endregion
+
         /** action 核心执行逻辑 */
         const _runActionCore = async () => {
             log("ACTION:", description);
             lastAction = description;
+
+            //#region _runActionCore：doOpsArray 操作执行器
 
             const doOpsArray = async (
                 /** @type {AutoGamer.OperationArray | string[] | string | undefined} */ ops,
@@ -607,6 +635,10 @@ function createUtils(ctx, _eval = eval) {
                     await fn(...args);
                 }
             };
+
+            //#endregion
+
+            //#region _runActionCore：waitSceneChange 等待场景变化
 
             // 特殊操作：等待场景大幅变化，里面有 return 语句
             if (description === "waitSceneChange") {
@@ -906,6 +938,10 @@ function createUtils(ctx, _eval = eval) {
                 return;
             }
 
+            //#endregion
+
+            //#region _runActionCore：常规执行与自动截图
+
             await doOpsArray(operations);
 
             /** @type {AutoGamer.ActionOptions} */
@@ -922,7 +958,11 @@ function createUtils(ctx, _eval = eval) {
             if (shouldPassAfterThis) {
                 state.endAtPassed = true;
             }
+
+            //#endregion
         };
+
+        //#region 调试模式挂起与执行
 
         if (state.dbgEnabled) {
             log(`action 调试挂起: ${description}`);
@@ -937,7 +977,13 @@ function createUtils(ctx, _eval = eval) {
         }
 
         await _runActionCore();
+
+        //#endregion
     };
+
+    //#endregion
+
+    //#region startRepl 实时测试
 
     /**
      * 启动实时测试 REPL，可在终端输入并执行 puppeteer 代码
@@ -1123,6 +1169,11 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             process.exit(0);
         });
     };
+
+    //#endregion
+
+    //#region setTaskTimeout 任务超时
+
     /**
      * 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时
      * @param {number} [ms=1800000] 超时毫秒数，<=0 时取消超时，默认 30 分钟
@@ -1153,6 +1204,10 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             _taskTimer = null;
         };
     };
+
+    //#endregion
+
+    //#region screenshot 截图相关
 
     /**
      * 截图并保存到日志目录，1秒内限一张
@@ -1517,6 +1572,10 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         }
     };
 
+    //#endregion
+
+    //#region 导出工具
+
     return {
         ts,
         te,
@@ -1535,6 +1594,8 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         setBeforeUnload,
         action,
     };
+
+    //#endregion
 }
 
 module.exports = { createUtils, formatLocalTimeWithTz };
