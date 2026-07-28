@@ -25,7 +25,7 @@ window.__autoGamer.mainFn = () => {
     const autoGamerConfig = window.__autoGamer.config || {};
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
-    // #region ====================创建全屏遮罩元素====================
+    // #region 创建全屏遮罩元素
 
     // 创建透明度为 0.01 的全屏遮罩，用于遮挡包括游戏界面、auto-gamer-* 在内的其他所有元素
     const overlay = document.createElement("div");
@@ -58,7 +58,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================Page Visibility API 劫持====================
+    // #region Page Visibility API 劫持
 
     // 挟持 Page Visibility API 及相关事件
     Object.defineProperty(document, "hidden", {
@@ -100,7 +100,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================创建鼠标坐标指示器元素====================
+    // #region 创建鼠标坐标指示器元素
 
     const indicator = document.createElement("div");
     indicator.id = "auto-gamer-mouse-indicator";
@@ -122,7 +122,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================十字交叉线（触摸点指示）====================
+    // #region 十字交叉线（触摸点指示）
 
     // 十字交叉线 + 坐标标签：展示最后一个触摸点
     // mix-blend-mode: difference 实现透明反色；不使用外层容器，各元素直接与游戏画面混合，
@@ -260,7 +260,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================鼠标坐标指示器更新逻辑====================
+    // #region 鼠标坐标指示器更新逻辑
 
     let altPressed = false;
     /** 人工干预激活时为 true，使指示器保持可见 */
@@ -336,7 +336,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================悬浮球显示/隐藏====================
+    // #region 悬浮球显示/隐藏
 
     let ballVisible = true,
         hideBallStyle = document.createElement("style");
@@ -362,7 +362,7 @@ window.__autoGamer.mainFn = () => {
 
     // #endregion
 
-    // #region ====================Alt+鼠标事件转发为触摸事件、indicator 快捷键、其他鼠标键盘事件处理====================
+    // #region Alt+鼠标事件转发为触摸事件、indicator 快捷键、其他鼠标键盘事件处理
 
     // Alt+鼠标事件转发为 puppeteer 触摸事件
     let mouseLeftPressed = false;
@@ -571,7 +571,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // #endregion
 
-    // #region ====================消息监听====================
+    // #region 消息监听
 
     window.addEventListener("message", e => {
         if (e.data?.type === "auto-gamer-log" && e.data.content) {
@@ -581,7 +581,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // #endregion
 
-    // #region ====================标题与图标修改====================
+    // #region 标题与图标修改
 
     // 移除标题，替换图标
     if (!alwaysHideOverlay) {
@@ -600,7 +600,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // #endregion
 
-    // #region ====================隐藏特定元素====================
+    // #region 隐藏特定元素
 
     /** @type {string[]} */
     const selectors = [
@@ -616,7 +616,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // #endregion
 
-    // #region ====================警告音播放====================
+    // #region 警告音播放
 
     /**
      * 播放警告音
@@ -665,7 +665,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // #endregion
 
-    // #region ====================人工干预功能====================
+    // #region 人工干预功能
 
     /**
      * 请求人工干预
@@ -705,7 +705,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 );
                 window.removeEventListener("keydown", onKeyDown, true);
                 miActive = false;
-                // 传 " " 以覆盖并清空旧的 extraHtml（updateIndicator 仅在 truthy 时覆盖）
+                // 传 " " 以覆盖并清空旧的 extraHtml（updateIndicator 仅在 extraHtml truthy 时覆盖）
                 updateIndicator(null, null, "", " ");
                 showIndicator();
             };
