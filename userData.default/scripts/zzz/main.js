@@ -687,15 +687,10 @@ module.exports = async function (ctx) {
 
     /** 进入主界面 */
     async function enterMain() {
-        setTimeout(async () => {
-            if (
-                !(
-                    ctx.getInstanceInfo?.()?.isHotReload ||
-                    ctx.getInstanceInfo?.()?.isDestroyed
-                )
-            )
-                await action("同意用户协议/点击开始游戏", [["tt", 384, 317]]);
-        }, 5000);
+        await action("同意用户协议/点击开始游戏", [
+            ["sleep", 5000],
+            ["tt", 384, 317],
+        ]);
         await action("初始等待", [
             ["sleep", scriptConfig.startupDelays.initialWait],
         ]);
