@@ -62,6 +62,10 @@ module.exports = async function (ctx) {
 
     enableHotReload();
 
+    /** 版本末期无纪行按钮时，打开手册按钮X轴偏移量 */
+    let manualBtnXOffset = 0;
+    +manualBtnXOffset;
+
     /** @type {Record<"top" | "middleTop", ["cs", string, AutoGamer.CompareScreenshotOptions?, AutoGamer.OperationArray?, AutoGamer.OperationArray?]>} */
     const tapBackBtn = {
         top: [
@@ -234,7 +238,7 @@ module.exports = async function (ctx) {
     /** 前往咖啡店 */
     async function goCoffeeShop() {
         // await action("打开手册", [
-        //     ["tt", 484, 30],
+        //     ["tt", 484+manualBtnXOffset, 30],
         //     ["sleep", 3000],
         // ]);
 
@@ -290,7 +294,7 @@ module.exports = async function (ctx) {
     /** 前往六分街报刊亭 */
     async function goMagazineShop() {
         await action("打开手册", [
-            ["tt", 484, 30],
+            ["tt", 484 + manualBtnXOffset, 30],
             ["sleep", 3000],
         ]);
 
@@ -352,7 +356,7 @@ module.exports = async function (ctx) {
     /** 前往录像店 */
     async function goVideoShop() {
         await action("打开手册", [
-            ["tt", 484, 30],
+            ["tt", 484 + manualBtnXOffset, 30],
             ["sleep", 3000],
         ]);
 
@@ -478,7 +482,7 @@ module.exports = async function (ctx) {
     /** 领取手册奖励 */
     async function getManualReward() {
         await action("打开手册", [
-            ["tt", 484, 30],
+            ["tt", 484 + manualBtnXOffset, 30],
             ["sleep", 3000],
         ]);
 
@@ -742,6 +746,29 @@ module.exports = async function (ctx) {
         ]);
 
         await action("关闭弹窗后等待", [["sleep", 3000]]);
+
+        await action("检查纪行按钮", [
+            [
+                "cs",
+                "纪行按钮.png",
+                {
+                    clip: { x: 515, y: 20, width: 20, height: 20 },
+                    threshold: 0.99,
+                    inverse: true,
+                },
+                [
+                    [
+                        "fn",
+                        async () => {
+                            manualBtnXOffset = 30;
+                            log("WARNING: 纪行按钮未找到，可能处于版本末期");
+                        },
+                    ],
+                ],
+                [["fn", () => log("WARN: 纪行按钮未找到/没有要领取的奖励")]],
+            ],
+            ["sleep", 1000],
+        ]);
     }
 
     async function main() {
