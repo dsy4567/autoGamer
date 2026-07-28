@@ -36,7 +36,8 @@ let _browser = null;
 /** 是否正在主动关闭浏览器，防止 disconnected 事件重复退出 @type {boolean} */
 let _isExiting = false;
 
-// ============ 热重载相关状态 ============
+// #region 热重载相关逻辑
+
 /** 当前脚本实例 @type {AutoGamer.InstanceInfo | null} */
 let _currentInstance = null;
 /** 上一次热重载时间戳，用于 5s 冷却 */
@@ -133,6 +134,8 @@ async function _closeBrowserAndExit(code, exit = true) {
         process.exit(code);
     }
 }
+
+// #endregion
 
 onUncaughtException.push(() => {
     _closeBrowserAndExit(1);
