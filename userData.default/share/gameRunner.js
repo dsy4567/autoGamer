@@ -131,9 +131,10 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
 请阅读数据目录下的 README.md 并手动进入游戏完成必要事项：
  - 同意新用户协议
  - 处理可能影响脚本运行的弹窗和活动
+ - 【请勿】领取日常任务内奖励/完成日常任务
 完成后可使用以下方式强制运行脚本：
-  - 或在全局配置中设置: forceRun: true
   - 或在命令行中添加参数: --force-run
+  - 或在全局配置中设置: forceRun: true
 注意监控程序是否操作异常
   `);
         await browser.close();
