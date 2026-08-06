@@ -57,7 +57,7 @@ module.exports = function (ctx) {
             /** 同意用户协议后等待，并检测场景变化 */
             // afterAgreement: 10 * 1000,
             /** 点击开始游戏后等待读条 */
-            afterStartGame: 30 * 1000,
+            afterStartGame: 40 * 1000,
         },
         /** 副本运行次数 */
         dungeonRunCount: 1,
