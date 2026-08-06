@@ -360,8 +360,6 @@ function createUtils(ctx, _eval = eval) {
 
     //#endregion
 
-    //#region action 统一操作函数
-
     /**
      * 统一的自动化操作函数，自动处理流程控制、日志、截图
      * @overload
@@ -980,8 +978,6 @@ function createUtils(ctx, _eval = eval) {
 
         //#endregion
     };
-
-    //#endregion
 
     //#region startRepl 实时测试
 
