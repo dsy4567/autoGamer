@@ -15,7 +15,7 @@
         "skipLibCheck": true,
         "resolveJsonModule": false
     },
-    "include": ["src/*", "userData.default/*"],
+    "include": ["src/**/*", "userData.default/**/*"],
     "exclude": [
         "node_modules",
         "**/*.deprecated.*",
