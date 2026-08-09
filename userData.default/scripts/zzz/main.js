@@ -389,14 +389,22 @@ module.exports = async function (ctx) {
         ]);
 
         // 使用默认宣传员
-        // TODO: 这写的不好，不知道为什么报错
-        // @ts-ignore
-        await action("选择宣传员", [
-            ...(scriptConfig.selectPromoterActions?.[0]
-                ? scriptConfig.selectPromoterActions
-                : [["tt", 205, 175]]),
-            ["sleep", 500],
-        ]);
+        // 直接对 ops 做 @type 声明 + 分支赋值，让 TS 借助赋值上下文正确推断元组类型，
+        // 否则三元 + 扩展运算符会让元组退化为 (string|number)[][]，无法匹配 Operation[]
+        /** @type {AutoGamer.Operation[]} */
+        let selectPromoterOps = [];
+        if (scriptConfig.selectPromoterActions?.[0]) {
+            selectPromoterOps = [
+                ...scriptConfig.selectPromoterActions,
+                ["sleep", 500],
+            ];
+        } else {
+            selectPromoterOps = [
+                ["tt", 205, 175],
+                ["sleep", 500],
+            ];
+        }
+        await action("选择宣传员", selectPromoterOps);
 
         await action("点击确定", [
             ["tt", 548, 401],
