@@ -362,6 +362,11 @@ function createUtils(ctx, _eval = eval) {
 
     /**
      * 统一的自动化操作函数，自动处理流程控制、日志、截图
+     *
+     * 描述以 `!` 开头时为"强制执行"标记：忽略 `--start-at` / `--end-at` 流程控制，
+     * 始终执行该 action（既不因未到达 startAt 锚点而跳过，也不推进/触发 endAt 锚点）。
+     * 该标记仅影响流程控制，不影响调试模式（toggleDbg）的挂起行为。
+     *
      * @overload
      * @param {string} description
      * @param {AutoGamer.OperationArray} [operations]
@@ -513,32 +518,44 @@ function createUtils(ctx, _eval = eval) {
             );
         }
 
-        // --start-at：未到达锚点前跳过
-        if (state.startAtChain && !state.startAtReached) {
-            if (description === state.startAtChain[state.startAtIndex]) {
-                state.startAtIndex++;
-                if (state.startAtIndex === state.startAtChain.length) {
-                    state.startAtReached = true;
+        // 描述以 ! 开头时为"强制执行该 action"标记：忽略 --start-at / --end-at 流程控制，
+        // 始终执行该 action（既不因未到达 startAt 锚点而跳过，也不推进/触发 endAt 锚点）。
+        // 注意：此处的 forceAction 是单 action 级别的强制执行，与 gameRunner.js 中脚本级别的
+        // forceRun（版本更新日强制运行整段脚本）是不同概念；且仅绕过流程控制，
+        // 不影响调试模式（toggleDbg）的挂起行为。
+        const forceAction =
+            typeof description === "string" && description.startsWith("!");
+
+        // --end-at：执行完后标记越过的标志（仅非 forceAction 且当前 action 命中 endAt 锚点时为 true）
+        let shouldPassAfterThis = false;
+
+        if (!forceAction) {
+            // --start-at：未到达锚点前跳过
+            if (state.startAtChain && !state.startAtReached) {
+                if (description === state.startAtChain[state.startAtIndex]) {
+                    state.startAtIndex++;
+                    if (state.startAtIndex === state.startAtChain.length) {
+                        state.startAtReached = true;
+                    }
+                }
+                if (!state.startAtReached) {
+                    return;
                 }
             }
-            if (!state.startAtReached) {
+
+            // --end-at：已越过锚点后跳过
+            if (state.endAtPassed) {
                 return;
             }
-        }
 
-        // --end-at：已越过锚点后跳过
-        if (state.endAtPassed) {
-            return;
-        }
-
-        // --end-at：推进匹配进度，若当前 action 恰好是锚点，执行完后标记越过
-        let shouldPassAfterThis = false;
-        if (state.endAtChain && !state.endAtReached) {
-            if (description === state.endAtChain[state.endAtIndex]) {
-                state.endAtIndex++;
-                if (state.endAtIndex === state.endAtChain.length) {
-                    state.endAtReached = true;
-                    shouldPassAfterThis = true;
+            // --end-at：推进匹配进度，若当前 action 恰好是锚点，执行完后标记越过
+            if (state.endAtChain && !state.endAtReached) {
+                if (description === state.endAtChain[state.endAtIndex]) {
+                    state.endAtIndex++;
+                    if (state.endAtIndex === state.endAtChain.length) {
+                        state.endAtReached = true;
+                        shouldPassAfterThis = true;
+                    }
                 }
             }
         }
@@ -1123,6 +1140,7 @@ action() 部分用法:
    — 前面的描述链辅助定位，到最后一个描述停止执行 action，覆盖 --end-at 命令行参数
   action('waitSceneChange', [操作数组], opts) - 等待场景大幅变化，每次循环执行一次操作数组
     opts: { timeout?, interval?, threshold?, inverse?, recheckCount? }
+  action('!描述', [操作数组]) - 描述以 ! 开头时强制执行，忽略 --start-at / --end-at 流程控制
 
 
 描述链:

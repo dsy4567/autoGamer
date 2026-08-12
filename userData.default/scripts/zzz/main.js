@@ -758,7 +758,7 @@ module.exports = async function (ctx) {
 
         await action("关闭弹窗后等待", [["sleep", 3000]]);
 
-        await action("检查纪行按钮", [
+        await action("!检查纪行按钮", [
             [
                 "cs",
                 "纪行按钮.png",
