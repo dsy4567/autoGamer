@@ -203,7 +203,7 @@ declare global {
                 pngPath: string,
                 options?: CompareScreenshotOptions,
             ): Promise<boolean>;
-            /** 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload） */
+            /** 设置关闭网页前是否弹出二次确认提示（window.onbeforeunload），无参数时默认开启 */
             setBeforeUnload(enabled?: boolean): Promise<void>;
             /** 进入实时测试模式 (REPL)，可输入并执行 puppeteer 代码 */
             startRepl(): Promise<void>;

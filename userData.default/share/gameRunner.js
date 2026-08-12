@@ -96,10 +96,8 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
         browser,
         getInstanceInfo,
     } = ctx;
-    const { startAutoScreenshot, setTaskTimeout, startRepl } = createUtils(
-        ctx,
-        _eval,
-    );
+    const { startAutoScreenshot, setTaskTimeout, startRepl, setBeforeUnload } =
+        createUtils(ctx, _eval);
     const config = getGlobalConfig();
     const info = getInstanceInfo?.();
 
@@ -178,7 +176,9 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
                           (scriptConfig.dungeonRunCount ?? 0)
                 : undefined,
         );
+        setBeforeUnload(true);
         await mainFn();
+        setBeforeUnload(false);
         await actionsInCloudGameBallAndExit(ctx);
         return;
     }
