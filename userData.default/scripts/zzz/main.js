@@ -64,18 +64,41 @@ module.exports = async function (ctx) {
 
     /** 版本末期无纪行按钮时，打开手册按钮X轴偏移量 */
     let manualBtnXOffset = 0;
-    +manualBtnXOffset;
 
-    /** @type {Record<"top" | "middleTop", ["cs", string, AutoGamer.CompareScreenshotOptions?, AutoGamer.OperationArray?, AutoGamer.OperationArray?]>} */
-    const tapBackBtn = {
-        top: [
+    /** @type {Record<"top" | "middleTop", [number, number]>} */
+    const backBtnPos = {
+        top: [46, 28],
+        middleTop: [28, 76],
+    };
+    /** @type {Record<"top" | "middleTop", (onMatch: AutoGamer.OperationArray, onError: AutoGamer.OperationArray, inverse?: boolean) => ["cs", string, AutoGamer.CompareScreenshotOptions?, AutoGamer.OperationArray?, AutoGamer.OperationArray?]>} */
+    const matchBackBtn = {
+        top: (onMatch, onError, inverse = false) => [
             "cs",
             "backBtn.png",
             {
                 clip: { x: 40, y: 10, width: 20, height: 20 },
                 threshold: 0.99,
+                inverse,
             },
-            [["tt", 46, 28]],
+            onMatch,
+            onError,
+        ],
+        middleTop: (onMatch, onError, inverse = false) => [
+            "cs",
+            "backBtn.png",
+            {
+                clip: { x: 40, y: 70, width: 20, height: 20 },
+                threshold: 0.99,
+                inverse,
+            },
+            onMatch,
+            onError,
+        ],
+    };
+    /** @type {Record<"top" | "middleTop", ["cs", string, AutoGamer.CompareScreenshotOptions?, AutoGamer.OperationArray?, AutoGamer.OperationArray?]>} */
+    const tapBackBtn = {
+        top: matchBackBtn.top(
+            [["tt", ...backBtnPos.top]],
             [
                 [
                     "fn",
@@ -83,17 +106,11 @@ module.exports = async function (ctx) {
                         log("WARNING: 检查返回按钮（top）是否可用失败");
                     },
                 ],
-                ["tt", 46, 28],
+                ["tt", ...backBtnPos.top],
             ],
-        ],
-        middleTop: [
-            "cs",
-            "backBtn.png",
-            {
-                clip: { x: 40, y: 70, width: 20, height: 20 },
-                threshold: 0.99,
-            },
-            [["tt", 28, 76]],
+        ),
+        middleTop: matchBackBtn.middleTop(
+            [["tt", ...backBtnPos.middleTop]],
             [
                 [
                     "fn",
@@ -101,9 +118,9 @@ module.exports = async function (ctx) {
                         log("WARNING: 检查返回按钮（middleTop）是否可用失败");
                     },
                 ],
-                ["tt", 28, 76],
+                ["tt", ...backBtnPos.middleTop],
             ],
-        ],
+        ),
     };
 
     /** 调整时间至凌晨 */
