@@ -131,7 +131,15 @@ module.exports = async function (ctx) {
                 if (scriptConfig.dungeonType === 4) {
                     await action("进入培养目标首个副本", [
                         ["tt", 533, 220], // 材料本
+                        ["sleep", 1500],
+                        ["tt", 358, 293], // 提前解锁提示
+
+                        ["sleep", 1000],
+
                         ["tt", 534, 257], // 遗器本，正常情况二者仅有一个点不中
+                        ["sleep", 1500],
+                        ["tt", 358, 293], // 提前解锁提示
+
                         ["sleep", 3000],
                     ]);
                 } else {
@@ -193,6 +201,16 @@ module.exports = async function (ctx) {
                     ["tt", 524, 435],
                     // ["sleep", scriptConfig.dungeonFightTime * 1000],
                     ["sleep", 15000],
+
+                    // 跳过教程
+                    ["tt", 8, 468],
+                    ["sleep", 3000],
+                    ["tt", 8, 468],
+                    ["sleep", 3000],
+                    ["tt", 8, 468],
+                    ["sleep", 3000],
+                    ["tt", 8, 468],
+                    ["sleep", 3000],
                 ]);
 
                 try {
@@ -200,7 +218,7 @@ module.exports = async function (ctx) {
                         threshold: 0.98,
                         inverse: true,
                         timeout:
-                            scriptConfig.dungeonFightTimeout ?? 15 * 60 * 1000,
+                            scriptConfig.dungeonFightTimeout ?? 25 * 60 * 1000,
                         interval: 10000,
                         recheckCount: 3,
                     });

@@ -49,7 +49,7 @@ module.exports = function (ctx) {
         /** 基础任务超时时间（毫秒），默认 15 分钟，会额外增加刷本次数*副本预计战斗时长 */
         taskTimeoutMs: 15 * 60 * 1000,
         /** 副本预计战斗时长（毫秒） */
-        dungeonFightTimeout: 15 * 60 * 1000,
+        dungeonFightTimeout: 25 * 60 * 1000,
         /** 启动阶段延时配置（毫秒） */
         startupDelays: {
             /** 等待页面初始加载 */
