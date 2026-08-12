@@ -180,6 +180,74 @@ module.exports = async function (ctx) {
         ]);
     }
 
+    /** 打开手册 */
+    async function openManual() {
+        if (manualBtnXOffset) {
+            // 特殊处理周年庆/版本末期
+            // 原理：手册页不适用 tapBackBtn.middleTop
+
+            // 周年庆期间按钮顺序参考:
+            // |好友            |活动            |手册            |纪行            |抽卡            |周年庆
+            // |-              |-              |-              |任何版本末期无     |-              |周年庆版本末期仍有
+            // 注：周年庆按钮仅在周年庆整个版本期间出现
+
+            let manualOpened = true;
+            const matchBackBtnMiddleTop = matchBackBtn.middleTop(
+                [
+                    ["tt", ...backBtnPos.middleTop],
+                    [
+                        "fn",
+                        () => {
+                            manualOpened = false;
+                        },
+                    ],
+                ],
+                [
+                    ["tt", ...backBtnPos.middleTop],
+                    [
+                        "fn",
+                        () =>
+                            log(
+                                "WARNING: 检查返回按钮（middleTop）是否可用失败",
+                            ),
+                    ],
+                ],
+            );
+
+            await action("打开手册", [
+                ["tt", 484 - manualBtnXOffset, 30], // 倒四按钮，(周年庆+平时)为手册，(非周年庆+版本末期)为好友，(非周年庆+平时)||(周年庆+版本末期)为活动
+                ["sleep", 3000],
+                matchBackBtnMiddleTop,
+                ["sleep", 1500],
+            ]);
+
+            if (!manualOpened) {
+                manualOpened = true;
+                await action("打开手册-2", [
+                    ["tt", 484, 30], // 倒三按钮，(周年庆+版本末期)||(非周年庆+平时)为手册，(非周年庆+版本末期)为活动；大概率点不到的有：(周年庆+平时)为纪行
+                    ["sleep", 3000],
+                    matchBackBtnMiddleTop,
+                    ["sleep", 1500],
+                ]);
+            }
+
+            if (!manualOpened) {
+                manualOpened = true;
+                await action("打开手册-3", [
+                    ["tt", 484 + manualBtnXOffset, 30], // 倒二按钮，(非周年庆+版本末期)为手册；大概率点不到的有：(周年庆+平时)||(周年庆+版本末期)为抽卡，(非周年庆+平时)为纪行
+                    ["sleep", 2000],
+                    matchBackBtnMiddleTop,
+                    ["sleep", 1500],
+                ]);
+            }
+        } else {
+            await action("打开手册", [
+                ["tt", 484, 30], // 倒三按钮
+                ["sleep", 3000],
+            ]);
+        }
+    }
+
     /** 传送到六分街-改装店-咖啡店 */
     async function goSixthStreet() {
         await action("点击首页快捷导航", [
@@ -257,16 +325,6 @@ module.exports = async function (ctx) {
 
     /** 前往咖啡店 */
     async function goCoffeeShop() {
-        // await action("打开手册", [
-        //     ["tt", 484+manualBtnXOffset, 30],
-        //     ["sleep", 3000],
-        // ]);
-
-        // await action("点击前往，品尝咖啡", [
-        //     ["tt", 319, 356],
-        //     ["sleep", 10 * 1000],
-        // ]);
-
         await action("进入咖啡店", [
             ["tt", 497, 387],
             ["sleep", 5000],
@@ -286,7 +344,7 @@ module.exports = async function (ctx) {
             ["fn", config.checkpoint],
         ]);
 
-        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒 关闭特效提示
+        // TODO: 体力达到上限后无法摄取咖啡，在readme提醒
 
         await action("点击确认和返回", [
             ["tt", 323, 318],
@@ -313,10 +371,7 @@ module.exports = async function (ctx) {
 
     /** 前往六分街报刊亭 */
     async function goMagazineShop() {
-        await action("打开手册", [
-            ["tt", 484 + manualBtnXOffset, 30],
-            ["sleep", 3000],
-        ]);
+        await openManual();
 
         await action("点击前往，去报刊亭", [
             ["tt", 319, 356],
@@ -375,10 +430,7 @@ module.exports = async function (ctx) {
 
     /** 前往录像店 */
     async function goVideoShop() {
-        await action("打开手册", [
-            ["tt", 484 + manualBtnXOffset, 30],
-            ["sleep", 3000],
-        ]);
+        await openManual();
 
         await action("点击前往，去录像店", [
             ["tt", 319, 356],
@@ -509,10 +561,7 @@ module.exports = async function (ctx) {
 
     /** 领取手册奖励 */
     async function getManualReward() {
-        await action("打开手册", [
-            ["tt", 484 + manualBtnXOffset, 30],
-            ["sleep", 3000],
-        ]);
+        await openManual();
 
         await action("领取全部奖励", [
             ["tt", 237, 154],
