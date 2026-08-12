@@ -115,8 +115,8 @@ const defaultConfig = {
         autoScreenshotInterval: 30000,
         /** 是否在日志事件时触发截图（true=启用, false=禁用） */
         screenshotOnLog: isDev ? false : screenshotOnLog,
-        /** 截图节流&超时时间（毫秒），同一秒内限一张截图；超时时间会预留 100 ms用于处理遮罩层 */
-        screenshotThrottleMs: 750,
+        /** 截图超时时间（毫秒），截图操作超过该时间未完成则抛出"截图超时" */
+        screenshotTimeoutMs: 5000,
     },
     /** 自动化行为配置 */
     automation: {

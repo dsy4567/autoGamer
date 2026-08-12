@@ -22,9 +22,8 @@ const config = require("./config.default.js");
  * @type {string | number | NodeJS.Timeout | null | undefined}
  */
 let _autoScreenshotTimer = null;
-// 放在模块作用域，确保 createUtils 多次调用时节流和防并发状态全局共享
-let _lastScreenshotTime = 0;
-let _screenshotInProgress = false;
+// 放在模块作用域，确保 createUtils 多次调用时截图排队串行执行状态全局共享
+let _screenshotChain = Promise.resolve();
 // 放在模块作用域，确保开发模式截图警告只输出一次
 let _devScreenshotWarned = false;
 
@@ -1224,7 +1223,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
     //#region screenshot 截图相关
 
     /**
-     * 截图并保存到日志目录，1秒内限一张
+     * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）
      *
      * @overload
      * @param {string} [label] 截图标签/日志内容
@@ -1239,23 +1238,13 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      * @param {string} [label="无描述"] 截图标签/日志内容
      * @param {AutoGamer.ScreenshotOptions} [options={}] 选项
      * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，否则返回文件路径
-     * @throws {Error} 以下情况抛出：options.clip 属性不完整；触发节流（throttleMs 内已有截图）；
-     *                 上一张截图正在处理中；截图超时；puppeteer 截图失败
+     * @throws {Error} 以下情况抛出：options.clip 属性不完整；截图超时；puppeteer 截图失败
      */
     const screenshot = async (label = "无描述", options = {}) => {
         const returnBuffer = Boolean(options.returnBuffer) === true;
         if (config.isDev && !_devScreenshotWarned) {
             _devScreenshotWarned = true;
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
-        }
-        const now = Date.now();
-        const throttleMs = config.screenshots?.screenshotThrottleMs ?? 750;
-        let msg = "";
-        if (now - _lastScreenshotTime < throttleMs) msg = "截图失败: 触发节流";
-        if (_screenshotInProgress) msg = "截图失败: 上一张截图正在处理中";
-        if (msg) {
-            logRaw(msg);
-            throw new Error(msg);
         }
         // clip 校验：未提供时使用默认视口（全屏）；提供时必须包含完整属性
         /** @type {{x: number, y: number, width: number, height: number} | undefined} */
@@ -1278,157 +1267,175 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                 height: Number(c.height),
             };
         }
-        let overlayWasVisible = false;
-        let crosshairWasVisible = false;
-        let scrollX = 0;
-        let scrollY = 0;
-        _lastScreenshotTime = now;
-        _screenshotInProgress = true;
 
-        try {
-            logRaw("准备截图");
-            ({
-                overlayVisible: overlayWasVisible,
-                crossVisible: crosshairWasVisible,
-                scrollX,
-                scrollY,
-            } = await page.evaluate(() => {
-                const overlay = document.getElementById("auto-gamer-overlay");
-                const indicator = document.getElementById(
-                    "auto-gamer-mouse-indicator",
-                );
-                const crossH = document.getElementById(
-                    "auto-gamer-crosshair-h",
-                );
-                const crossV = document.getElementById(
-                    "auto-gamer-crosshair-v",
-                );
-                const crossLabel = document.getElementById(
-                    "auto-gamer-crosshair-label",
-                );
+        // 排队执行，不允许并发：多次调用会按顺序串行执行，前一张完成（成功或失败）后才执行下一张
+        const execute = async () => {
+            let overlayWasVisible = false;
+            let crosshairWasVisible = false;
+            let scrollX = 0;
+            let scrollY = 0;
 
-                const overlayVisible =
-                    overlay?.style.getPropertyValue("display") !== "none";
-                const crossVisible =
-                    crossH?.style.getPropertyValue("display") !== "none";
+            try {
+                logRaw("准备截图");
+                ({
+                    overlayVisible: overlayWasVisible,
+                    crossVisible: crosshairWasVisible,
+                    scrollX,
+                    scrollY,
+                } = await page.evaluate(() => {
+                    const overlay =
+                        document.getElementById("auto-gamer-overlay");
+                    const indicator = document.getElementById(
+                        "auto-gamer-mouse-indicator",
+                    );
+                    const crossH = document.getElementById(
+                        "auto-gamer-crosshair-h",
+                    );
+                    const crossV = document.getElementById(
+                        "auto-gamer-crosshair-v",
+                    );
+                    const crossLabel = document.getElementById(
+                        "auto-gamer-crosshair-label",
+                    );
 
-                overlay?.style.setProperty("display", "none", "important");
-                indicator?.style.setProperty("display", "none", "important");
-                crossH?.style.setProperty("display", "none", "important");
-                crossV?.style.setProperty("display", "none", "important");
-                crossLabel?.style.setProperty("display", "none", "important");
+                    const overlayVisible =
+                        overlay?.style.getPropertyValue("display") !== "none";
+                    const crossVisible =
+                        crossH?.style.getPropertyValue("display") !== "none";
 
-                return {
-                    overlayVisible,
-                    crossVisible,
-                    scrollX: window.scrollX,
-                    scrollY: window.scrollY,
+                    overlay?.style.setProperty("display", "none", "important");
+                    indicator?.style.setProperty(
+                        "display",
+                        "none",
+                        "important",
+                    );
+                    crossH?.style.setProperty("display", "none", "important");
+                    crossV?.style.setProperty("display", "none", "important");
+                    crossLabel?.style.setProperty(
+                        "display",
+                        "none",
+                        "important",
+                    );
+
+                    return {
+                        overlayVisible,
+                        crossVisible,
+                        scrollX: window.scrollX,
+                        scrollY: window.scrollY,
+                    };
+                }));
+
+                const screenshotOptions = {
+                    fullPage: false,
+                    clip: clip || {
+                        x: scrollX,
+                        y: scrollY,
+                        width: config.viewport?.width ?? 640,
+                        height: config.viewport?.height ?? 480,
+                    },
+                    captureBeyondViewport: false,
+                    optimizeForSpeed: true,
                 };
-            }));
 
-            const screenshotOptions = {
-                fullPage: false,
-                clip: clip || {
-                    x: scrollX,
-                    y: scrollY,
-                    width: config.viewport?.width ?? 640,
-                    height: config.viewport?.height ?? 480,
-                },
-                captureBeyondViewport: false,
-                optimizeForSpeed: true,
-            };
+                const timeoutMs =
+                    config.screenshots?.screenshotTimeoutMs ?? 5000;
+                const raceTimeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("截图超时")), timeoutMs),
+                );
 
-            const raceTimeout = new Promise((_, reject) =>
-                setTimeout(
-                    () => reject(new Error("截图超时")),
-                    throttleMs - 100,
-                ),
-            );
+                if (returnBuffer) {
+                    const buffer = await Promise.race([
+                        page.screenshot(screenshotOptions),
+                        raceTimeout,
+                    ]);
+                    logRaw("截图已获取(buffer)");
+                    return Buffer.from(/** @type {Buffer} */ (buffer));
+                }
 
-            if (returnBuffer) {
-                const buffer = await Promise.race([
-                    page.screenshot(screenshotOptions),
+                const timeStr = formatLocalTimeWithTz();
+                const safeLabel = String(label)
+                    .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
+                    .substring(0, 80);
+                const filename = safeLabel
+                    ? `${timeStr}_${safeLabel}.png`
+                    : `${timeStr}.png`;
+                const filePath = path.join(logDir, filename);
+
+                await Promise.race([
+                    page.screenshot({ ...screenshotOptions, path: filePath }),
                     raceTimeout,
                 ]);
-                logRaw("截图已获取(buffer)");
-                return Buffer.from(/** @type {Buffer} */ (buffer));
-            }
+                logRaw("截图已保存:", filename);
+                return filePath;
+            } catch (e) {
+                logRaw("截图失败:", /** @type {any} */ (e).message || e);
+                throw e;
+            } finally {
+                try {
+                    await page.evaluate(
+                        ({ wasVisible, crossVisible }) => {
+                            const overlay =
+                                document.getElementById("auto-gamer-overlay");
+                            if (overlay) {
+                                overlay.style.setProperty(
+                                    "display",
+                                    wasVisible ? "block" : "none",
+                                    "important",
+                                );
+                            }
 
-            const timeStr = formatLocalTimeWithTz();
-            const safeLabel = String(label)
-                .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
-                .substring(0, 80);
-            const filename = safeLabel
-                ? `${timeStr}_${safeLabel}.png`
-                : `${timeStr}.png`;
-            const filePath = path.join(logDir, filename);
-
-            await Promise.race([
-                page.screenshot({ ...screenshotOptions, path: filePath }),
-                raceTimeout,
-            ]);
-            logRaw("截图已保存:", filename);
-            return filePath;
-        } catch (e) {
-            logRaw("截图失败:", /** @type {any} */ (e).message || e);
-            throw e;
-        } finally {
-            try {
-                await page.evaluate(
-                    ({ wasVisible, crossVisible }) => {
-                        const overlay =
-                            document.getElementById("auto-gamer-overlay");
-                        if (overlay) {
-                            overlay.style.setProperty(
+                            const indicator = document.getElementById(
+                                "auto-gamer-mouse-indicator",
+                            );
+                            indicator?.style.setProperty(
                                 "display",
-                                wasVisible ? "block" : "none",
+                                "block",
                                 "important",
                             );
-                        }
 
-                        const indicator = document.getElementById(
-                            "auto-gamer-mouse-indicator",
-                        );
-                        indicator?.style.setProperty(
-                            "display",
-                            "block",
-                            "important",
-                        );
+                            const crossDisplay = crossVisible
+                                ? "block"
+                                : "none";
+                            const crossH = document.getElementById(
+                                "auto-gamer-crosshair-h",
+                            );
+                            const crossV = document.getElementById(
+                                "auto-gamer-crosshair-v",
+                            );
+                            const crossLabel = document.getElementById(
+                                "auto-gamer-crosshair-label",
+                            );
+                            crossH?.style.setProperty(
+                                "display",
+                                crossDisplay,
+                                "important",
+                            );
+                            crossV?.style.setProperty(
+                                "display",
+                                crossDisplay,
+                                "important",
+                            );
+                            crossLabel?.style.setProperty(
+                                "display",
+                                crossDisplay,
+                                "important",
+                            );
+                        },
+                        {
+                            wasVisible: overlayWasVisible,
+                            crossVisible: crosshairWasVisible,
+                        },
+                    );
+                } catch (_) {}
+            }
+        };
 
-                        const crossDisplay = crossVisible ? "block" : "none";
-                        const crossH = document.getElementById(
-                            "auto-gamer-crosshair-h",
-                        );
-                        const crossV = document.getElementById(
-                            "auto-gamer-crosshair-v",
-                        );
-                        const crossLabel = document.getElementById(
-                            "auto-gamer-crosshair-label",
-                        );
-                        crossH?.style.setProperty(
-                            "display",
-                            crossDisplay,
-                            "important",
-                        );
-                        crossV?.style.setProperty(
-                            "display",
-                            crossDisplay,
-                            "important",
-                        );
-                        crossLabel?.style.setProperty(
-                            "display",
-                            crossDisplay,
-                            "important",
-                        );
-                    },
-                    {
-                        wasVisible: overlayWasVisible,
-                        crossVisible: crosshairWasVisible,
-                    },
-                );
-            } catch (_) {}
-            _screenshotInProgress = false;
-        }
+        const resultPromise = _screenshotChain.then(execute);
+        _screenshotChain = resultPromise.then(
+            () => undefined,
+            () => undefined,
+        );
+        return resultPromise;
     };
 
     /**

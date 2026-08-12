@@ -210,8 +210,8 @@ declare global {
             /** 设置任务超时，超时后自动关闭浏览器并退出进程，多次调用将重置超时（默认 30 分钟） */
             setTaskTimeout(ms?: number): () => void;
             /**
-             * 截图并保存到日志目录，1 秒内限一张；returnBuffer 为 true 时返回 Buffer
-             * @throws {Error} 以下情况抛出：clip 属性不完整；触发节流；上一张截图正在处理中；截图超时；puppeteer 截图失败
+             * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）；returnBuffer 为 true 时返回 Buffer
+             * @throws {Error} 以下情况抛出：clip 属性不完整；截图超时；puppeteer 截图失败
              */
             screenshot(
                 label?: string,
@@ -226,8 +226,8 @@ declare global {
                 },
             ): Promise<Buffer>;
             /**
-             * 截图并保存到日志目录，1 秒内限一张；返回保存的文件路径
-             * @throws {Error} 以下情况抛出：clip 属性不完整；触发节流；上一张截图正在处理中；截图超时；puppeteer 截图失败
+             * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）；返回保存的文件路径
+             * @throws {Error} 以下情况抛出：clip 属性不完整；截图超时；puppeteer 截图失败
              */
             screenshot(
                 label?: string,
@@ -483,7 +483,7 @@ declare global {
                 autoScreenshotEnabled: boolean;
                 autoScreenshotInterval: number;
                 screenshotOnLog: boolean;
-                screenshotThrottleMs: number;
+                screenshotTimeoutMs: number;
             };
             /** 自动化行为配置 */
             automation: {
