@@ -88,8 +88,6 @@ const defaultConfig = {
         "--force-device-scale-factor=1.0",
         "--disable-pinch", // 禁用触摸屏双指缩放
     ],
-    /** 默认登录页 */
-    defaultLoginUrl: "https://www.migufun.com/middleh5/",
     /** 默认UA */
     mobileUA:
         "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
@@ -148,6 +146,8 @@ const defaultConfig = {
             ...args,
         );
     },
+    /** 登录脚本 id，login 命令时执行此脚本 */
+    loginScriptId: "miguLogin",
 };
 
 module.exports = { ...defaultConfig, ...userConfig };

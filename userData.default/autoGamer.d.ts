@@ -470,8 +470,6 @@ declare global {
             dataDir: string;
             /** Puppeteer 启动参数 */
             puppeteerArgs: string[];
-            /** 默认登录页 URL */
-            defaultLoginUrl: string;
             /** 移动端 User-Agent */
             mobileUA: string;
             /** 视口配置，极度不建议修改 */
@@ -509,6 +507,8 @@ declare global {
                 ctx: ScriptCtx | UtilsCtx,
                 ...args: any[]
             ) => any;
+            /** 登录脚本 id，login 命令时执行此脚本 */
+            loginScriptId: string;
         }
     }
     interface Window {

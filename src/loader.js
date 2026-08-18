@@ -171,7 +171,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
 命令:
   init [脚本id]         初始化数据目录（开发模式为 userData.default/，否则为 ~/.autoGamer/）；指定脚本 id 时仅同步该脚本相关文件
-  login [URL]           打开登录页面（默认 URL 可配置）
+  login|logout         打开配置的自动脚本，以完成登录/注销操作
   <脚本id>              执行指定的自动化脚本（如 sr、zzz、example）
 
 选项:
@@ -205,14 +205,23 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
     // 命令判定：init / login / <脚本id> 三者互斥
     const command = arg;
     const isInit = command === "init";
-    const isLogin = command === "login";
-    const scriptId = !isInit && !isLogin ? command : null;
+    // node index.js [login|logout]
+    const isLoginOrLogout = command === "login" || command === "logout";
 
-    if ((startAtChain || endAtChain) && !scriptId) {
-        log(
-            "WARNING: --start-at / --end-at 仅在运行脚本时生效，当前命令已忽略",
-        );
+    // 初始化不使用 scriptId
+    let scriptId = !isInit && !isLoginOrLogout ? command : null;
+    // 登录时使用 loginScriptId 作为 scriptId
+    let loginScriptId = null;
+    if (isLoginOrLogout) {
+        loginScriptId = config.loginScriptId || "_login";
+        scriptId = loginScriptId;
     }
+
+    // if ((startAtChain || endAtChain) && !scriptId) {
+    //     log(
+    //         "WARNING: --start-at / --end-at 仅在运行脚本时生效，当前命令已忽略",
+    //     );
+    // }
 
     // 源数据目录（项目内 userData.default/），用于 init/自动初始化时复制文件
     const sourceDir = path.resolve(__dirname, "../userData.default");
@@ -231,16 +240,15 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
     }
 
     // 非开发模式且运行脚本时：检查源文件元数据是否仍与 init 时一致
-    if (config.isDev !== 1 && !isLogin && scriptId) {
+    if (config.isDev !== 1 && scriptId) {
         checkSourceMetadata(sourceDir, dataDir, scriptId);
     }
 
     // 推导脚本名，用于日志目录
-    const scriptName = isLogin ? "_login" : (scriptId ?? "unknown");
     const startTimeStr = formatLocalTimeWithTz();
     const logDir = config.isDev
         ? path.join(dataDir, "logs", "devTemp")
-        : path.join(dataDir, "logs", scriptName, startTimeStr);
+        : path.join(dataDir, "logs", scriptId || "_unknown", startTimeStr);
     fs.mkdirSync(logDir, { recursive: true });
     if (!config.isDev) {
         const logFilePath = path.join(logDir, "log.txt");
@@ -403,25 +411,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     await inject(page, tt, drag, hold);
 
-    if (isLogin) {
-        // 支持 node index.js login [url]
-        let loginUrl =
-            config.defaultLoginUrl ?? "https://www.migufun.com/middleh5/";
-        // 允许 node index.js login https://xxx
-        const url = positionals[1];
-        if (url) {
-            try {
-                loginUrl = new URL(url).toString();
-            } catch (e) {
-                log("WARNING: 无效的 URL，使用配置或默认登录页");
-            }
-        }
-        log(`打开登录页面: ${loginUrl}`);
-        await page.goto(loginUrl, config.pageloadOptions);
-        log("请在浏览器中完成登录操作，完成后关闭页面即可退出");
-
-        await startRepl();
-    } else {
+    {
         // 执行操作脚本（按脚本 id 解析）
         if (!scriptId) {
             log("ERROR: 脚本 id 无效");
@@ -476,7 +466,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
             }
         };
 
-        if (config.isDev) {
+        if (!isLoginOrLogout && config.isDev) {
             // 开发模式：启用热重载循环
             _reloadPromise = new Promise(resolve => {
                 _reloadResolve = resolve;
