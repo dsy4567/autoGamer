@@ -301,15 +301,21 @@ module.exports = async function (ctx) {
 
     /** 进入主界面 */
     async function enterMain() {
+        await action("同意用户协议/点击开始游戏", [
+            [
+                "fn",
+                async () => {
+                    await sleep(15000);
+                    await tt(432, 290);
+                },
+            ],
+        ]);
+
         await action("初始等待", [
             ["sleep", scriptConfig.startupDelays.initialWait],
         ]);
 
         // NOTE: 已废弃点击同意用户协议
-        // await action("同意用户协议/点击开始游戏", [
-        //     ["tt", 432, 290],
-        //     ["sleep", scriptConfig.startupDelays.afterAgreement],
-        // ]);
 
         try {
             await action(
