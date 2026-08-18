@@ -97,6 +97,7 @@ const defaultConfig = {
         height: 480,
         hasTouch: true,
         isLandscape: true,
+        isMobile: true,
         deviceScaleFactor: 1.0,
     },
     /** 页面加载选项 */

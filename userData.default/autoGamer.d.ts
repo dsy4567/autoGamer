@@ -23,7 +23,13 @@
 
 // @ts-check
 
-import type { Browser, Page, GoToOptions, TouchHandle } from "puppeteer-core";
+import type {
+    Browser,
+    Page,
+    GoToOptions,
+    TouchHandle,
+    Viewport,
+} from "puppeteer-core";
 
 type SimulateTouch = (msg: {
     type:
