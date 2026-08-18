@@ -14,6 +14,46 @@
 
 /// <reference path="../../autoGamer.d.ts" />
 
+/** 咪咕平台需要管理的 cookie 名称列表 */
+const MIGU_COOKIE_NAMES = ["userToken", "userId", "deviceId", "cookieId"];
+
+/**
+ * 将 migufun.com 域下 userToken / userId / deviceId / cookieId 的有效期设为永久。
+ * 基于 browserContext cookie API（cookies + setCookie），可处理 HttpOnly cookie。
+ * @param {AutoGamer.ScriptCtx} ctx
+ * @returns {Promise<void>}
+ */
+async function persistMiguCookies(ctx) {
+    const { page, log } = ctx;
+    if (!isMiguDomain(ctx)) {
+        log(
+            "WARNING: persistMiguCookies: 当前页面不在 migufun.com 域名下，已跳过设置 cookie",
+        );
+        return;
+    }
+    const context = page.browserContext();
+    /** @type {import("puppeteer-core").Cookie[]} */
+    const all = await context.cookies();
+    // 仅保留 migufun.com 域下的目标 cookie
+    const targets = all.filter(
+        c =>
+            MIGU_COOKIE_NAMES.includes(c.name) &&
+            (c.domain === "migufun.com" || c.domain.endsWith(".migufun.com")),
+    );
+    if (!targets.length) {
+        log(
+            "WARNING: 未找到待设置的 cookie（userToken/userId/deviceId/cookieId）",
+        );
+        return;
+    }
+    // 永久有效期：unix 秒时间戳 4000000000，即 2096 年
+    const expires = 4000000000;
+    await context.setCookie(...targets.map(c => ({ ...c, expires })));
+    // log(
+    //     `已将以下 cookie 有效期设为永久: ${targets.map(c => c.name).join(", ")}`,
+    // );
+}
+
 /**
  * @param {AutoGamer.ScriptCtx} ctx
  */
@@ -58,6 +98,7 @@ async function actionsInCloudGameBallAndExit(ctx) {
     } catch (e) {
         log("ERROR: 签到失败", e);
     } finally {
+        await persistMiguCookies(ctx);
         await browser.close();
         process.exit(0);
     }
@@ -136,10 +177,26 @@ async function miguInit(ctx, gameUrl) {
             await sleep(5000);
             log("咪咕快游加载完成");
             resolve();
+
+            await persistMiguCookies(ctx);
         });
 
         await page.goto(gameUrl, config.pageloadOptions);
     });
 }
 
-module.exports = { actionsInCloudGameBallAndExit, miguInit };
+/**
+ * 检查当前页面是否处于 migufun.com 域名下
+ * @param {AutoGamer.ScriptCtx} ctx
+ * @returns {boolean}
+ */
+function isMiguDomain(ctx) {
+    const hostname = new URL(ctx.page.url()).hostname;
+    return hostname === "migufun.com" || hostname.endsWith(".migufun.com");
+}
+
+module.exports = {
+    actionsInCloudGameBallAndExit,
+    miguInit,
+    persistMiguCookies,
+};
