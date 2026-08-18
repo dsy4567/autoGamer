@@ -109,8 +109,9 @@ async function miguInit(ctx, gameUrl) {
             await sleep(5000);
             if (!config.isDev) {
                 const errBtn =
-                    (await page.$("div.dialogBox b.iknowGoback")) ||
-                    (await page.$("div.dialogBox b.quitToHome"));
+                    (await page.$("div.dialogBox b.iknowGoback")) || // 平台维护
+                    (await page.$("div.dialogBox b.quitToHome")) ||
+                    (await page.$(".c-update-dialog")); // 游戏更新
                 if (errBtn) {
                     const msg = await page.$eval(
                         "div.dialogBox div.dialogMsg",
