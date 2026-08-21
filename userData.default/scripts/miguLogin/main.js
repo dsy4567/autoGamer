@@ -83,7 +83,11 @@ module.exports = async function (ctx) {
         // login 模式：打开页面等待用户登录
         log(`打开登录页面: ${loginUrl}`);
         await page.goto(loginUrl, config.pageloadOptions);
-        log(">>>>>>>>>>请在浏览器中完成登录操作，完成后关闭页面<<<<<<<<<<");
+        setTimeout(() => {
+            logRaw(
+                ">>>>>>>>>>请在浏览器中完成登录操作，完成后关闭页面<<<<<<<<<<",
+            );
+        }, 3000);
         await startRepl();
     }
 };
