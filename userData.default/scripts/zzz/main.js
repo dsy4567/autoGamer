@@ -64,6 +64,8 @@ module.exports = async function (ctx) {
 
     /** 版本末期无纪行按钮时，打开手册按钮X轴偏移量 */
     let manualBtnXOffset = 0;
+    /** @type {number|null} 版本末期无纪行按钮时，打开纪行按钮Y轴偏移量，null表示不打开 */
+    let jiXingBtnXOffset = 0;
 
     /** @type {Record<"top" | "middleTop", [number, number]>} */
     const backBtnPos = {
@@ -220,6 +222,7 @@ module.exports = async function (ctx) {
                 matchBackBtnMiddleTop,
                 ["sleep", 1500],
             ]);
+            jiXingBtnXOffset = -30; // 周年庆+平时倒三，平时倒二
 
             if (!manualOpened) {
                 manualOpened = true;
@@ -229,6 +232,7 @@ module.exports = async function (ctx) {
                     matchBackBtnMiddleTop,
                     ["sleep", 1500],
                 ]);
+                jiXingBtnXOffset = 0; // 非周年庆+平时
             }
 
             if (!manualOpened) {
@@ -239,6 +243,7 @@ module.exports = async function (ctx) {
                     matchBackBtnMiddleTop,
                     ["sleep", 1500],
                 ]);
+                jiXingBtnXOffset = null; // 非周年庆+版本末期
             }
         } else {
             await action("打开手册", [
@@ -507,55 +512,40 @@ module.exports = async function (ctx) {
 
     /** 领取纪行奖励 */
     async function getJiXingReward() {
-        await action("检查纪行按钮", [
-            [
-                "cs",
-                "纪行按钮.png",
-                {
-                    clip: { x: 515, y: 20, width: 20, height: 20 },
-                    threshold: 0.99,
-                },
-                [
-                    [
-                        "fn",
-                        async () => {
-                            await action("进入纪行界面", [
-                                ["tt", 517, 30],
-                                ["sleep", 3000],
-                            ]);
+        if (jiXingBtnXOffset === null)
+            return log("WARN: 纪行按钮未找到/没有要领取的奖励");
 
-                            await action("点击成长任务", [
-                                ["tt", 463, 80],
-                                ["sleep", 500],
-                            ]);
+        await action("进入纪行界面", [
+            ["tt", 517 + jiXingBtnXOffset, 30],
+            ["sleep", 3000],
+        ]);
 
-                            await action("点击全部领取", [
-                                ["tt", 556, 397],
-                                ["sleep", 1000],
-                            ]);
+        await action("点击成长任务", [
+            ["tt", 463, 80],
+            ["sleep", 500],
+        ]);
 
-                            await action("点击等级回馈", [
-                                ["tt", 369, 81],
-                                ["sleep", 500],
-                            ]);
+        await action("点击全部领取", [
+            ["tt", 556, 397],
+            ["sleep", 1000],
+        ]);
 
-                            await action("点击全部领取", [
-                                ["tt", 400, 395],
-                                ["sleep", 1000],
-                                ["tt", 400, 395],
-                                ["sleep", 1000],
-                                ["fn", config.checkpoint],
-                            ]);
+        await action("点击等级回馈", [
+            ["tt", 369, 81],
+            ["sleep", 500],
+        ]);
 
-                            await action("关闭纪行奖励页面", [
-                                ["tt", 38, 84],
-                                ["sleep", 5000],
-                            ]);
-                        },
-                    ],
-                ],
-                [["fn", () => log("WARN: 纪行按钮未找到/没有要领取的奖励")]],
-            ],
+        await action("点击全部领取", [
+            ["tt", 400, 395],
+            ["sleep", 1000],
+            ["tt", 400, 395],
+            ["sleep", 1000],
+            ["fn", config.checkpoint],
+        ]);
+
+        await action("关闭纪行奖励页面", [
+            ["tt", 38, 84],
+            ["sleep", 5000],
         ]);
     }
 
@@ -843,7 +833,9 @@ module.exports = async function (ctx) {
                         "fn",
                         async () => {
                             manualBtnXOffset = 30;
-                            log("WARNING: 纪行按钮未找到，可能处于版本末期");
+                            log(
+                                "WARNING: 纪行按钮未找到，可能处于版本末期/周年庆",
+                            );
                         },
                     ],
                 ],
