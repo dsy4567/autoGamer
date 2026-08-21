@@ -390,6 +390,7 @@ window.__autoGamer.mainFn = () => {
                 null,
                 "",
                 `<br>
+[提示] 遇到快捷键冲突，可将 Alt 替换为 Shift + Alt 或 Ctrl + Alt<br>
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
