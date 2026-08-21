@@ -338,15 +338,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         }
     }
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        defaultViewport: config.viewport,
-        ...(config.chromeExecPath
-            ? { executablePath: config.chromeExecPath }
-            : { channel: "chrome" }),
-        userDataDir,
-        args: config.puppeteerArgs,
-    });
+    const browser = await require("./chromeLauncher")(config, userDataDir);
     _browser = browser;
     browser.on("disconnected", () => {
         if (_isExiting) return;
