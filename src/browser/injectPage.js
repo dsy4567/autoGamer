@@ -364,13 +364,14 @@ window.__autoGamer.mainFn = () => {
 
     // #region Alt+鼠标事件转发为触摸事件、indicator 快捷键、其他鼠标键盘事件处理
 
-    // Alt+鼠标事件转发为 puppeteer 触摸事件
     let mouseLeftPressed = false;
     let dragStart = {
         x: 0,
         y: 0,
     };
     let dragConfirmed = false;
+    /** @type {number|null} - 拖动开始时间，null表示未开始拖动 */
+    let dragStartTime = null;
     let mousedownTime = 0;
     window.addEventListener("keydown", e => {
         if (e.repeat) return;
@@ -494,7 +495,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 e.preventDefault();
                 mouseLeftPressed = true;
                 dragStart = { x: e.clientX, y: e.clientY };
-                mousedownTime = Date.now();
+                mousedownTime = dragStartTime = Date.now();
                 dragConfirmed = false;
             }
         },
@@ -508,8 +509,9 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             if (altPressed && mouseLeftPressed) {
                 const dx = Math.abs(e.clientX - dragStart.x);
                 const dy = Math.abs(e.clientY - dragStart.y);
-                if (dx >= 5 || dy >= 5) {
+                if ((dx >= 5 || dy >= 5) && !dragConfirmed) {
                     dragConfirmed = true;
+                    dragStartTime = Date.now();
                 }
             }
         },
@@ -525,7 +527,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
             if (altPressed && e.button === 0) {
                 e.preventDefault();
-                const duration = Date.now() - mousedownTime;
+                const duration = Date.now() - (dragStartTime || mousedownTime);
                 let cmd = "";
 
                 if (dragConfirmed) {
