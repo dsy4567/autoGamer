@@ -445,6 +445,45 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         }
     });
 
+    // 屏蔽触摸事件，防止转发鼠标事件时，浏览器额外合成鼠标事件
+    // window.addEventListener(
+    //     "touchstart",
+    //     e => {
+    //         if (altPressed) {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //         }
+    //     },
+    //     {
+    //         passive: false,
+    //     },
+    // );
+    // window.addEventListener(
+    //     "touchmove",
+    //     e => {
+    //         if (altPressed) {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //         }
+    //     },
+    //     {
+    //         passive: false,
+    //     },
+    // );
+    // window.addEventListener(
+    //     "touchend",
+    //     e => {
+    //         if (altPressed) {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //         }
+    //     },
+    //     {
+    //         passive: false,
+    //     },
+    // );
+
+    // 初始化鼠标转发相关变量
     window.addEventListener(
         "touchstart",
         e => {
