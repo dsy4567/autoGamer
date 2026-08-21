@@ -326,13 +326,13 @@ window.__autoGamer.mainFn = () => {
         showIndicator();
     });
 
-    document.addEventListener("touchmove", function (e) {
-        if (e.touches.length > 0) {
-            const touch = e.touches[0];
-            updateIndicator(touch.clientX, touch.clientY);
-            showIndicator();
-        }
-    });
+    // document.addEventListener("touchmove", function (e) {
+    //     if (e.touches.length > 0) {
+    //         const touch = e.touches[0];
+    //         updateIndicator(touch.clientX, touch.clientY);
+    //         showIndicator();
+    //     }
+    // });
 
     // #endregion
 
