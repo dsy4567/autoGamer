@@ -51,6 +51,11 @@ const chromePath = {
  */
 module.exports = async function (config, userDataDir) {
     try {
+        let args = config.puppeteerArgs || [];
+        if (config.mute) {
+            args.push("--mute-audio");
+        }
+
         const browser = await puppeteer.launch({
             headless: false,
             defaultViewport: config.viewport,

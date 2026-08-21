@@ -149,6 +149,8 @@ const defaultConfig = {
     },
     /** 登录脚本 id，login 命令时执行此脚本 */
     loginScriptId: "miguLogin",
+    /** 是否静音浏览器音频 */
+    mute: false,
 };
 
 module.exports = { ...defaultConfig, ...userConfig };

@@ -515,6 +515,8 @@ declare global {
             ) => any;
             /** 登录脚本 id，login 命令时执行此脚本 */
             loginScriptId: string;
+            /** 是否静音浏览器音频 */
+            mute: boolean;
         }
     }
     interface Window {
