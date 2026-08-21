@@ -485,44 +485,9 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     // 初始化鼠标转发相关变量
     window.addEventListener(
-        "touchstart",
+        "pointerdown",
         e => {
-            if (altPressed) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        },
-        {
-            passive: false,
-        },
-    );
-    window.addEventListener(
-        "touchmove",
-        e => {
-            if (altPressed) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        },
-        {
-            passive: false,
-        },
-    );
-    window.addEventListener(
-        "touchend",
-        e => {
-            if (altPressed) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        },
-        {
-            passive: false,
-        },
-    );
-    window.addEventListener(
-        "mousedown",
-        e => {
+            if (e.pointerType !== "mouse") return;
             console.log("mousedown", e);
             if (altPressed && e.button === 0) {
                 e.preventDefault();
@@ -534,9 +499,11 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         },
         true,
     );
+    // 检测是否触发 drag
     window.addEventListener(
-        "mousemove",
+        "pointermove",
         e => {
+            if (e.pointerType !== "mouse") return;
             if (altPressed && mouseLeftPressed) {
                 const dx = Math.abs(e.clientX - dragStart.x);
                 const dy = Math.abs(e.clientY - dragStart.y);
@@ -548,8 +515,9 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         true,
     );
     window.addEventListener(
-        "mouseup",
+        "pointerup",
         e => {
+            if (e.pointerType !== "mouse") return;
             console.log(mouseLeftPressed, e);
             if (!mouseLeftPressed) return;
             mouseLeftPressed = false;
