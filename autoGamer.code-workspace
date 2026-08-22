@@ -49,7 +49,7 @@
         "prettier.trailingComma": "all",
         "prettier.useTabs": false,
         "typescript.tsc.autoDetect": "off",
-        "typescript.tsdk": "autoGamer/node_modules/typescript/lib",
+        "typescript.tsdk": "node_modules/typescript/lib",
         "files.eol": "\n",
     },
 }
