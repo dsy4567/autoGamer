@@ -308,14 +308,19 @@ function createUtils(ctx, _eval = eval) {
      * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
      *
      * 通过 page.evaluate 调用页面端 window.__autoGamer.requestManualIntervention
-     * 并 await 其返回的 Promise。如果页面端调用失败，会打印 WARNING 并静默返回，
-     * 避免脚本因页面未注入或执行异常而中断。
+     * 并 await 其返回的 Promise。超时或手动结束均属于正常结束，始终正常 return；
+     * 其他失败（如页面未注入、执行异常）在传入 onError 时调用 onError 并返回 false，
+     * 未传入 onError 时直接抛出原始异常。
      *
      * @param {string} [msg=""] 干预说明
      * @param {number} [timeout=15000] 超时毫秒
-     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false；调用失败时返回 false
+     * @param {(result: boolean) => void} [onFinish] 正常结束（手动结束/超时）回调，参数为返回值
+     * @param {(err: Error) => void} [onError] 失败回调，传入时失败不抛错而是调用该回调并返回 false
+     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false；失败且传入 onError 时返回 false
+     * @throws {Error} 调用失败且未传入 onError 时抛出原始异常
      */
-    const mi = async (msg = "", timeout = 15000) => {
+    const mi = async (msg = "", timeout = 15000, onFinish, onError) => {
+        let result;
         try {
             log(
                 "请求人工干预，超时毫秒:",
@@ -324,7 +329,7 @@ function createUtils(ctx, _eval = eval) {
                 msg,
                 "==========",
             );
-            const result = await page.evaluate(
+            result = await page.evaluate(
                 (m, t) => {
                     return window.__autoGamer?.requestManualIntervention?.(
                         m,
@@ -334,11 +339,17 @@ function createUtils(ctx, _eval = eval) {
                 msg,
                 timeout,
             );
-            return Boolean(result);
         } catch (e) {
             log("WARNING: 人工干预调用失败", /** @type {any} */ (e).message);
-            return false;
+            if (onError) {
+                onError(/** @type {Error} */ (e));
+                return false;
+            }
+            throw e;
         }
+        const bool = Boolean(result);
+        onFinish?.(bool);
+        return bool;
     };
 
     /**

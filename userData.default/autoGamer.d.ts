@@ -90,7 +90,13 @@ declare global {
                       ...args: any[]
                   ) => any,
               ]
-            | ["mi", string?, number?]
+            | [
+                  "mi",
+                  string?,
+                  number?,
+                  ((success: boolean) => any)?,
+                  ((error: Error) => any)?,
+              ]
             | ["setBeforeUnload", boolean?]
             | [
                   "cs",
