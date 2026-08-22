@@ -55,7 +55,14 @@ const defaultConfig = {
     isDev,
     /** 数据目录（开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/） */
     dataDir,
-    /** Chrome 可执行文件路径（默认自动寻找已安装的 Chrome 浏览器） */
+    /** Chrome 可执行文件路径配置
+     *
+     * null: 按操作系统自动寻找内置路径（Linux 下内置路径全部未命中时回退 flatpak 路径）
+     * 手动配置优先于内置路径，path 不存在时直接报错，例如：
+     * { path: "/var/lib/flatpak/exports/bin/com.google.Chrome", isFlatpak: true }
+     * isFlatpak: 是否为 flatpak 应用，仅 Linux 下生效（启动前会检查并添加
+     * chromeData 目录读写权限），其他平台忽略并警告
+     */
     chromeExecPath: null,
     /** Puppeteer 启动参数 */
     puppeteerArgs: [

@@ -470,8 +470,21 @@ declare global {
              *
              */
             isDev: 0 | 1 | 2;
-            /** Chrome 可执行文件路径（默认自动寻找已安装的 Chrome 浏览器） */
-            chromeExecPath: string | null;
+            /** Chrome 可执行文件路径配置
+             *
+             * null: 按操作系统自动寻找内置路径（Linux 下内置路径全部未命中时回退 flatpak 路径）
+             * 手动配置优先于内置路径，path 不存在时直接报错
+             */
+            chromeExecPath:
+                | {
+                      /** 可执行文件路径 */
+                      path: string;
+                      /** 是否为 flatpak 应用（仅 Linux 生效，启动前检查并添加
+                       * chromeData 目录读写权限；其他平台忽略并警告） */
+                      isFlatpak?: boolean;
+                  }
+                | string
+                | null;
             /** 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/ */
             dataDir: string;
             /** Puppeteer 启动参数 */

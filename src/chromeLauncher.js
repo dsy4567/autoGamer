@@ -2,6 +2,8 @@ const puppeteer = require("puppeteer-core");
 const { log } = require("./logger.js");
 const os = require("os");
 const path = require("path");
+const fs = require("fs");
+const { execSync } = require("child_process");
 
 const chromePath = {
     windows: [
@@ -44,6 +46,143 @@ const chromePath = {
 };
 
 /**
+ * 解析 Chrome 可执行文件路径
+ *
+ * 优先使用手动配置（config.chromeExecPath，path 不存在时直接报错），
+ * 未配置时按操作系统在内置路径中自动查找；
+ * Linux 下内置路径全部未命中时回退到 linux_flatpak 路径组
+ *
+ * @param {AutoGamer.GlobalConfig} config 配置对象
+ * @returns {{ execPath: string, isFlatpak: boolean }} 可执行文件路径及是否为 flatpak 模式
+ */
+function resolveExecPath(config) {
+    const platform = os.platform();
+    const isLinux = platform === "linux";
+
+    // 归一化手动配置（兼容旧版 string 格式，视为 { path }）
+    /** @type {{ path: string, isFlatpak?: boolean } | null} */
+    let manual = null;
+    if (typeof config.chromeExecPath === "string") {
+        manual = { path: config.chromeExecPath };
+    } else if (
+        config.chromeExecPath &&
+        typeof config.chromeExecPath === "object" &&
+        config.chromeExecPath.path
+    ) {
+        manual = {
+            path: String(config.chromeExecPath.path),
+            isFlatpak: Boolean(config.chromeExecPath.isFlatpak),
+        };
+    }
+
+    if (manual) {
+        if (!fs.existsSync(manual.path)) {
+            throw new Error(
+                `chromeExecPath.path 指向的文件不存在: ${manual.path}`,
+            );
+        }
+        let isFlatpak = Boolean(manual.isFlatpak);
+        if (isFlatpak && !isLinux) {
+            log("WARNING: isFlatpak 仅在 Linux 下可用，已忽略该标志");
+            isFlatpak = false;
+        }
+        log(`使用手动配置的浏览器路径: ${manual.path}`);
+        return { execPath: manual.path, isFlatpak };
+    }
+
+    // 自动查找内置路径
+    /** @type {"windows"|"macos"|"linux"|null} */
+    const group =
+        platform === "win32"
+            ? "windows"
+            : platform === "darwin"
+              ? "macos"
+              : platform === "linux"
+                ? "linux"
+                : null;
+    if (!group) {
+        throw new Error(`不支持的操作系统: ${platform}`);
+    }
+    for (const p of chromePath[group]) {
+        if (fs.existsSync(p)) {
+            log(`自动找到浏览器: ${p}`);
+            return { execPath: p, isFlatpak: false };
+        }
+    }
+    if (isLinux) {
+        for (const p of chromePath.linux_flatpak) {
+            if (fs.existsSync(p)) {
+                log(`自动找到 flatpak 浏览器: ${p}`);
+                return { execPath: p, isFlatpak: true };
+            }
+        }
+    }
+    throw new Error(
+        "未找到可用的 Chrome/Edge 浏览器，请通过 globalConfig.js 配置 chromeExecPath",
+    );
+}
+
+/**
+ * flatpak 模式前置准备：确保用户数据目录可被 flatpak 应用读写
+ *
+ * 通过 `flatpak info --file-access` 检查访问级别，非 read-write 时
+ * 尝试 `flatpak override` 添加读写权限（先 --user 后 --system），并复查结果
+ *
+ * @param {string} execPath 可执行文件路径（flatpak 导出脚本，文件名即应用 id）
+ * @param {string} userDataDir Chrome 用户数据目录
+ */
+function prepareFlatpakAccess(execPath, userDataDir) {
+    const pkgName = path.basename(execPath);
+    // flatpak info 对不存在的路径可能异常，先确保目录存在
+    fs.mkdirSync(userDataDir, { recursive: true });
+
+    /**
+     * 检查 flatpak 应用对目录的访问级别是否为 read-write
+     * @returns {boolean}
+     */
+    const checkAccess = () => {
+        try {
+            const out = execSync(
+                `flatpak info --file-access="${userDataDir}" ${pkgName}`,
+                { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
+            );
+            return out.trim() === "read-write";
+        } catch (e) {
+            throw new Error(
+                `flatpak info 检查权限失败（${pkgName} 可能未安装）: ${/** @type {any} */ (e)?.message || e}`,
+            );
+        }
+    };
+
+    if (checkAccess()) {
+        log(`flatpak 应用 ${pkgName} 已有 ${userDataDir} 读写权限`);
+        return;
+    }
+
+    log(`flatpak 应用 ${pkgName} 缺少 ${userDataDir} 读写权限，尝试添加...`);
+    for (const scope of ["--user", "--system"]) {
+        try {
+            execSync(
+                `flatpak override ${scope} --filesystem="${userDataDir}":rw ${pkgName}`,
+                { stdio: ["pipe", "pipe", "pipe"] },
+            );
+        } catch {
+            // 当前安装域不可用（如应用为 system 安装），尝试下一个
+            continue;
+        }
+        if (checkAccess()) {
+            log(
+                `已为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限（${scope}）`,
+            );
+            return;
+        }
+    }
+    throw new Error(
+        `无法为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限，请手动执行: flatpak override --user --filesystem="${userDataDir}":rw ${pkgName}`,
+    );
+}
+
+/**
  * 启动 Chrome 浏览器
  * @param {AutoGamer.GlobalConfig} config 配置对象
  * @param {string} userDataDir 用户数据目录
@@ -51,6 +190,11 @@ const chromePath = {
  */
 module.exports = async function (config, userDataDir) {
     try {
+        const { execPath, isFlatpak } = resolveExecPath(config);
+        if (isFlatpak) {
+            prepareFlatpakAccess(execPath, userDataDir);
+        }
+
         let args = config.puppeteerArgs || [];
         if (config.mute) {
             args.push("--mute-audio");
@@ -59,15 +203,15 @@ module.exports = async function (config, userDataDir) {
         const browser = await puppeteer.launch({
             headless: false,
             defaultViewport: config.viewport,
-            ...(config.chromeExecPath
-                ? { executablePath: config.chromeExecPath }
-                : { channel: "chrome" }),
+            executablePath: execPath,
             userDataDir,
-            args: config.puppeteerArgs,
+            args,
         });
         return browser;
     } catch (e) {
-        log(`启动 Chrome 浏览器失败: ${/** @type {any} */ (e)?.message || e}`);
+        log(
+            `ERROR: 启动 Chrome 浏览器失败: ${/** @type {any} */ (e)?.message || e}`,
+        );
         throw e;
     }
 };
