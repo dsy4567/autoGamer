@@ -1262,6 +1262,11 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
     /**
      * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）
      *
+     * 截图范围说明：
+     * - 会截取：当前视口（viewport）内可见的页面内容；若 options.clip 提供，则截取 clip 指定的矩形区域
+     *
+     * - 不会截取：视口外的内容（fullPage=false、captureBeyondViewport=false）；本工具注入的 UI 元素（overlay / 鼠标指示器 / 十字准星与标签）在截图前会被临时隐藏
+     *
      * @overload
      * @param {string} [label] 截图标签/日志内容
      * @param {{returnBuffer: true}} options 必须显式传 returnBuffer: true
