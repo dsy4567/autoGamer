@@ -6,6 +6,12 @@ const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
 
+// 模块作用域，缓存已启动的浏览器实例，避免重复启动
+/** @type {import("puppeteer-core").Browser | null} */
+let _launchedBrowser = null;
+/** @type {{ puppeteer: typeof import("puppeteer-core"), browser: import("puppeteer-core").Browser, execPath: string, isFlatpak: boolean } | null} */
+let _launchedInfo = null;
+
 const chromePath = {
     windows: [
         // chrome
@@ -195,6 +201,15 @@ function prepareFlatpakAccess(execPath, userDataDir) {
  */
 module.exports = async function (config) {
     try {
+        // 已有启动且仍连接的 browser 实例，直接复用，避免重复启动
+        if (_launchedBrowser && _launchedBrowser.connected && _launchedInfo) {
+            log("已有启动的浏览器实例，直接复用");
+            return _launchedInfo;
+        }
+        // 清理失效缓存
+        _launchedBrowser = null;
+        _launchedInfo = null;
+
         const userDataDir =
             config.dirs?.chromeDataDir ??
             path.join(config.dataDir, "chromeData");
@@ -254,6 +269,13 @@ module.exports = async function (config) {
             executablePath: execPath,
             userDataDir,
             args,
+        });
+        // 缓存已启动的实例，监听 disconnected 事件自动清理失效缓存
+        _launchedBrowser = browser;
+        _launchedInfo = { puppeteer, browser, execPath, isFlatpak };
+        browser.on("disconnected", () => {
+            _launchedBrowser = null;
+            _launchedInfo = null;
         });
         return { puppeteer, browser, execPath, isFlatpak };
     } catch (e) {
