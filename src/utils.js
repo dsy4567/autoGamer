@@ -824,14 +824,14 @@ function createUtils(ctx, _eval = eval) {
                     const sceneChangeDetector = (async () => {
                         log("waitSceneChange 开始二次截图比对流程");
                         while (Date.now() - startTime < timeout) {
-                            if (isInstanceDestroyed()) {
-                                shouldStop = true;
-                                return;
-                            }
                             // 手动暂停：Alt+M 触发后挂起，直到后端调用 resolve
                             // 阻塞粒度为 sceneChangeDetector 循环迭代边界
                             if (state.manualPausePromise) {
                                 await state.manualPausePromise;
+                            }
+                            if (isInstanceDestroyed()) {
+                                shouldStop = true;
+                                return;
                             }
                             const elapsed = Date.now() - startTime;
 
