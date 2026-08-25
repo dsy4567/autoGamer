@@ -167,23 +167,21 @@ function prepareFlatpakAccess(execPath, userDataDir) {
     }
 
     log(`flatpak 应用 ${pkgName} 缺少 ${userDataDir} 读写权限，尝试添加...`);
-    for (const scope of ["--user", "--system"]) {
-        try {
-            execSync(
-                `flatpak override ${scope} --filesystem="${userDataDir}":rw ${pkgName}`,
-                { stdio: ["pipe", "pipe", "pipe"] },
-            );
-        } catch {
-            // 当前安装域不可用（如应用为 system 安装），尝试下一个
-            continue;
-        }
-        if (checkAccess()) {
-            log(
-                `已为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限（${scope}）`,
-            );
-            return;
-        }
+    try {
+        execSync(
+            `flatpak override --user --filesystem="${userDataDir}":rw ${pkgName}`,
+            { stdio: ["pipe", "pipe", "pipe"] },
+        );
+    } catch {
+        log("ERROR: flatpak override 失败");
     }
+    if (checkAccess()) {
+        log(
+            `已为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限（--user）`,
+        );
+        return;
+    }
+
     throw new Error(
         `无法为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限，请手动执行: flatpak override --user --filesystem="${userDataDir}":rw ${pkgName}`,
     );

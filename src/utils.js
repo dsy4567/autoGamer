@@ -1658,7 +1658,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             }
         }
         state.pauseEnabled = true;
-        log("已启用操作暂停功能（Alt+M 触发，阻塞粒度为 op 边界）");
+        log("已启用操作暂停功能");
     };
 
     /**

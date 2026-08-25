@@ -30,7 +30,7 @@ function loadUserConfig(userConfigPath, ctx) {
 /// <reference path="./autoGamer.d.ts" />
 /**
  * @type {Partial<AutoGamer.GlobalConfig>}
- * @see https://github.com/dsy4567/autoGamer/blob/main/config.default.js
+ * @see https://github.com/dsy4567/autoGamer/blob/main/src/config.default.js
  */
 const config = {};
 module.exports = config;
