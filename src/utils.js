@@ -308,23 +308,33 @@ function createUtils(ctx, _eval = eval) {
      * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
      *
      * 通过 page.evaluate 调用页面端 window.__autoGamer.requestManualIntervention
-     * 并 await 其返回的 Promise。如果页面端调用失败，会打印 WARNING 并静默返回，
-     * 避免脚本因页面未注入或执行异常而中断。
+     * 并 await 其返回的 Promise。
+     *
+     * 行为约定：
+     * - 成功（用户按 Alt+M 结束）：调用 onFinish(true)，返回 true
+     * - 超时：调用 onFinish(false)，返回 false
+     * - 调用出错 + 提供 onError：调用 onError(err)，**不调用 onFinish**，返回 false（不抛错）
+     * - 调用出错 + 未提供 onError：抛出原始错误
+     *
+     * 即：出错/超时且能执行到 return 时一律返回 false。
      *
      * @param {string} [msg=""] 干预说明
      * @param {number} [timeout=15000] 超时毫秒
-     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false；调用失败时返回 false
+     * @param {(result: boolean) => void} [onFinish] 结束回调（成功/超时都会调用；出错时不调用）
+     * @param {(err: any) => void} [onError] 出错回调，提供时错误通过回调传递而不抛错
+     * @returns {Promise<boolean>}
      */
-    const mi = async (msg = "", timeout = 15000) => {
+    const mi = async (msg = "", timeout = 15000, onFinish, onError) => {
+        log(
+            "请求人工干预，超时毫秒:",
+            timeout,
+            "\n==========",
+            msg,
+            "==========",
+        );
+        let result;
         try {
-            log(
-                "请求人工干预，超时毫秒:",
-                timeout,
-                "\n==========",
-                msg,
-                "==========",
-            );
-            const result = await page.evaluate(
+            result = await page.evaluate(
                 (m, t) => {
                     return window.__autoGamer?.requestManualIntervention?.(
                         m,
@@ -334,11 +344,18 @@ function createUtils(ctx, _eval = eval) {
                 msg,
                 timeout,
             );
-            return Boolean(result);
         } catch (e) {
-            log("WARNING: 人工干预调用失败", /** @type {any} */ (e).message);
-            return false;
+            if (typeof onError === "function") {
+                onError(e);
+                return false;
+            }
+            throw e;
         }
+        const ok = Boolean(result);
+        if (typeof onFinish === "function") {
+            onFinish(ok);
+        }
+        return ok;
     };
 
     /**

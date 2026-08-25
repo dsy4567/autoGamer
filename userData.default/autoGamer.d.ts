@@ -90,7 +90,13 @@ declare global {
                       ...args: any[]
                   ) => any,
               ]
-            | ["mi", string?, number?]
+            | [
+                  "mi",
+                  string?,
+                  number?,
+                  ((result: boolean) => void)?,
+                  ((err: any) => void)?,
+              ]
             | ["setBeforeUnload", boolean?]
             | [
                   "cs",
@@ -182,11 +188,26 @@ declare global {
             sleep(ms: number): Promise<void>;
             /**
              * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
+             *
+             * 行为约定：
+             * - 成功（用户按 Alt+M 结束）：调用 onFinish(true)，返回 true
+             * - 超时：调用 onFinish(false)，返回 false
+             * - 调用出错 + 提供 onError：调用 onError(err)，**不调用 onFinish**，返回 false（不抛错）
+             * - 调用出错 + 未提供 onError：抛出原始错误
+             *
+             * 即：出错/超时且能执行到 return 时一律返回 false。
+             *
              * @param [msg=""] 干预说明
              * @param [timeout=15000] 超时毫秒
-             * @returns 用户按 Alt+M 手动结束时返回 true，超时返回 false；调用失败时返回 false
+             * @param [onFinish] 结束回调（成功/超时都会调用；出错时不调用）
+             * @param [onError] 出错回调，提供时错误通过回调传递而不抛错
              */
-            mi(msg?: string, timeout?: number): Promise<boolean>;
+            mi(
+                msg?: string,
+                timeout?: number,
+                onFinish?: (result: boolean) => void,
+                onError?: (err: any) => void,
+            ): Promise<boolean>;
             /** 启动定时自动截图（默认间隔 30000ms），返回停止定时器的函数 */
             startAutoScreenshot(interval?: number): () => void;
             /**
