@@ -1,3 +1,4 @@
+process.env.PUPPETEER_SKIP_DOWNLOAD = "true";
 const puppeteer = require("puppeteer-core");
 const { log } = require("./logger.js");
 const os = require("os");
@@ -190,14 +191,56 @@ function prepareFlatpakAccess(execPath, userDataDir) {
 /**
  * 启动 Chrome 浏览器
  * @param {AutoGamer.GlobalConfig} config 配置对象
- * @param {string} userDataDir 用户数据目录
- * @returns {Promise<puppeteer.Browser>} 浏览器实例
+ * @returns {Promise<{ puppeteer: typeof import("puppeteer-core"), browser: import("puppeteer-core").Browser, execPath: string, isFlatpak: boolean }>}
  */
-module.exports = async function (config, userDataDir) {
+module.exports = async function (config) {
     try {
+        const userDataDir =
+            config.dirs?.chromeDataDir ??
+            path.join(config.dataDir, "chromeData");
+
         const { execPath, isFlatpak } = resolveExecPath(config);
         if (isFlatpak) {
             prepareFlatpakAccess(execPath, userDataDir);
+        }
+
+        // 移除 Chrome Preferences 中的缩放偏好，避免页面缩放影响自动化操作
+        {
+            const preferencesPath = path.join(
+                userDataDir,
+                "Default",
+                "Preferences",
+            );
+            if (fs.existsSync(preferencesPath)) {
+                try {
+                    const prefs = JSON.parse(
+                        fs.readFileSync(preferencesPath, "utf-8"),
+                    );
+                    let modified = false;
+                    // 移除每个主机的缩放级别
+                    if (prefs.partition?.per_host_zoom_levels) {
+                        prefs.partition.per_host_zoom_levels = {};
+                        modified = true;
+                    }
+                    // 移除默认缩放级别
+                    if (prefs.partition?.default_zoom_level !== undefined) {
+                        prefs.partition.default_zoom_level = undefined;
+                        modified = true;
+                    }
+                    if (modified) {
+                        fs.writeFileSync(
+                            preferencesPath,
+                            JSON.stringify(prefs),
+                            "utf-8",
+                        );
+                        log("已移除 Chrome Preferences 中的缩放偏好设置");
+                    }
+                } catch (e) {
+                    log(
+                        `WARNING: 处理 Preferences 文件失败: ${/** @type {any} */ (e)?.message || e}`,
+                    );
+                }
+            }
         }
 
         let args = config.puppeteerArgs || [];
@@ -212,7 +255,7 @@ module.exports = async function (config, userDataDir) {
             userDataDir,
             args,
         });
-        return browser;
+        return { puppeteer, browser, execPath, isFlatpak };
     } catch (e) {
         log(
             `ERROR: 启动 Chrome 浏览器失败: ${/** @type {any} */ (e)?.message || e}`,
