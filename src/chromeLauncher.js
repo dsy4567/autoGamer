@@ -23,8 +23,9 @@ const chromePath = {
     linux: [
         // chrome
         "/usr/bin/google-chrome",
-        "/usr/bin/chromium-browser",
         "/usr/bin/google-chrome-stable",
+        // chromium
+        "/usr/bin/chromium-browser",
         // edge
         "/usr/bin/microsoft-edge",
         "/usr/bin/microsoft-edge-stable",
@@ -42,6 +43,10 @@ const chromePath = {
             os.homedir(),
             ".local/share/flatpak/exports/bin/com.microsoft.Edge",
         ),
+    ],
+    android: [
+        // chromium
+        "/data/data/com.termux/files/usr/bin/chromium-browser",
     ],
 };
 
@@ -91,7 +96,7 @@ function resolveExecPath(config) {
     }
 
     // 自动查找内置路径
-    /** @type {"windows"|"macos"|"linux"|null} */
+    /** @type {"windows"|"macos"|"linux"|"android"|null} */
     const group =
         platform === "win32"
             ? "windows"
@@ -99,7 +104,9 @@ function resolveExecPath(config) {
               ? "macos"
               : platform === "linux"
                 ? "linux"
-                : null;
+                : platform === "android"
+                  ? "android"
+                  : null;
     if (!group) {
         throw new Error(`不支持的操作系统: ${platform}`);
     }

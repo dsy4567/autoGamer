@@ -382,6 +382,7 @@ window.__autoGamer.mainFn = () => {
             indicator.style.setProperty("background", "#66ccff", "important");
             indicator.style.setProperty("color", "#000", "important");
 
+            // 这里阻止默认事件，下面就不需要再阻止了
             e.preventDefault();
             e.stopPropagation();
         }
@@ -397,7 +398,7 @@ Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
 Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
-Alt + m       人工干预后继续（仅干预期间生效）<br>
+Alt + m       手动触发干预/结束本次干预<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
             );
         }
@@ -420,6 +421,23 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         if (e.key === "x" && e.altKey) {
             crosshairEnabled = !crosshairEnabled;
             updateCrosshairVisibility();
+        }
+        if (e.key === "m" && e.altKey && !miActive) {
+            // 非干预态下：触发后端 manualPauseHandler，由后端创建 manualPausePromise
+            // 阻塞 doOpsArray / sceneChangeDetector（阻塞粒度为 op 边界）；
+            // 干预态下走 requestManualIntervention 内部 capture 阶段的 onKeyDown
+            updateIndicator(
+                null,
+                null,
+                " [手动暂停触发中]",
+                `<br><span style="color: #66ccff;">已请求暂停，等待后端响应...</span>`,
+            );
+            showIndicator();
+            try {
+                window.__autoGamer?.manualPauseTrigger?.();
+            } catch (err) {
+                console.error("[autoGamer] manualPauseTrigger 调用失败:", err);
+            }
         }
     });
     window.addEventListener("keyup", e => {

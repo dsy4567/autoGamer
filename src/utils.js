@@ -49,6 +49,11 @@ let _replEval = eval;
 /** 热重载前最后一次 action @type {string | null} */
 let lastAction = null;
 
+// 手动暂停功能的配置：放在模块作用域，让 loader.js 的 manualPauseHandler
+// 和 gameRunner.js 的 enableActionPause 共享同一份配置（多次 createUtils 调用不会各自独立）
+let _pauseMsg = "手动干预已触发，操作将在当前步骤完成后暂停";
+let _pauseTimeout = 60000;
+
 //#endregion
 
 //#region 模块私有辅助函数
@@ -85,6 +90,12 @@ function _createDefaultActionState() {
         dbgEnabled: false,
         dbgQueue: [],
         waitSceneChangeInProgress: false,
+        // 手动暂停功能：enableActionPause 启用后，Alt+M 触发会创建 manualPausePromise，
+        // doOpsArray / sceneChangeDetector 在循环顶部 await 该 Promise，
+        // 直到 manualPauseResolve 被调用才会继续执行后续操作
+        pauseEnabled: false,
+        manualPausePromise: null,
+        manualPauseResolve: null,
     };
 }
 
@@ -303,7 +314,6 @@ function createUtils(ctx, _eval = eval) {
      * @returns {Promise<void>}
      */
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    // TODO: 执行自定义函数
     /**
      * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
      *
@@ -587,12 +597,17 @@ function createUtils(ctx, _eval = eval) {
 
             const doOpsArray = async (
                 /** @type {AutoGamer.OperationArray | string[] | string | undefined} */ ops,
-                /** @type {() => boolean} */ shouldPauseCheck = () => false,
+                /** @type {() => boolean} */ shouldCsPauseCheck = () => false,
             ) => {
                 if (!ops || !Array.isArray(ops)) return;
                 for (const op of ops || []) {
-                    // 检查是否需要暂停，如需要则立即退出循环
-                    if (shouldPauseCheck()) break;
+                    // 手动暂停：Alt+M 触发后挂起，直到后端调用 resolve
+                    // 阻塞粒度为 op 边界（当前 op 已在执行中的不会被打断）
+                    if (state.manualPausePromise) {
+                        await state.manualPausePromise;
+                    }
+                    // 检查是否需要暂停（截图比对用），如需要则立即退出循环
+                    if (shouldCsPauseCheck()) break;
                     if (isInstanceDestroyed()) break;
 
                     if (!Array.isArray(op)) continue;
@@ -629,7 +644,7 @@ function createUtils(ctx, _eval = eval) {
                                 /** @type {AutoGamer.OperationArray | undefined} */ (
                                     onError
                                 ),
-                                shouldPauseCheck,
+                                shouldCsPauseCheck,
                             );
                             continue;
                         }
@@ -638,7 +653,7 @@ function createUtils(ctx, _eval = eval) {
                                 /** @type {AutoGamer.OperationArray | undefined} */ (
                                     onMatch
                                 ),
-                                shouldPauseCheck,
+                                shouldCsPauseCheck,
                             );
                         } else {
                             log("截图比对未通过，已跳过操作");
@@ -812,6 +827,11 @@ function createUtils(ctx, _eval = eval) {
                             if (isInstanceDestroyed()) {
                                 shouldStop = true;
                                 return;
+                            }
+                            // 手动暂停：Alt+M 触发后挂起，直到后端调用 resolve
+                            // 阻塞粒度为 sceneChangeDetector 循环迭代边界
+                            if (state.manualPausePromise) {
+                                await state.manualPausePromise;
                             }
                             const elapsed = Date.now() - startTime;
 
@@ -1612,6 +1632,95 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
 
     //#endregion
 
+    //#region 手动暂停功能（enableActionPause + manualPauseHandler）
+
+    /**
+     * 启用"在 OpsArray 执行时可暂停"功能
+     *
+     * 启用后，在非干预态按下 Alt+M 会触发后端调用 mi，
+     * 并立即创建 manualPausePromise 阻塞 doOpsArray / sceneChangeDetector，
+     * 直到 mi 返回（用户按 Alt+M 结束干预或超时）才解除阻塞。
+     *
+     * 阻塞粒度为 op 边界：当前正在执行中的 op 不会被中断，
+     * 暂停会在当前 op 完成后、下一个 op 开始前生效。
+     *
+     * @param {{ msg?: string, timeout?: number }} [options]
+     * @returns {void}
+     */
+    const enableActionPause = (options = {}) => {
+        if (typeof options === "object" && options !== null) {
+            if (typeof options.msg === "string") {
+                _pauseMsg = options.msg;
+            }
+            const t = Number(options.timeout);
+            if (!Number.isNaN(t) && t > 0) {
+                _pauseTimeout = t;
+            }
+        }
+        state.pauseEnabled = true;
+        log("已启用操作暂停功能（Alt+M 触发，阻塞粒度为 op 边界）");
+    };
+
+    /**
+     * 页面端 Alt+M 触发回调（由 injector.js 暴露为 __autoGamerManualPauseTrigger）
+     *
+     * **重要**：本函数由 loader.js 的 createUtils 调用闭包捕获，
+     * 但其闭包内的 `state` 是 instanceId="default" 的 state
+     * （因为 loader.js 调用 createUtils 时 _currentInstance 尚未创建）。
+     * 而 `enableActionPause` 在脚本实例（instanceId 为随机串）的 state 上设置 pauseEnabled。
+     * 因此本函数不能直接用闭包 `state`，必须动态通过 ctx.getInstanceInfo 查找
+     * 当前活跃脚本实例的 state，否则会读到永远为 false 的 pauseEnabled。
+     *
+     * 行为：
+     * - 若未启用 enableActionPause（当前活跃实例的 state），直接返回
+     * - 若已有挂起的 manualPausePromise，直接返回（防重入）
+     * - 否则创建 manualPausePromise 阻塞 doOpsArray / sceneChangeDetector，
+     *   并调用 mi 请求干预，mi 结束后 resolve Promise 解除阻塞
+     *
+     * mi 的错误通过 onError 静默记录，不会抛出。
+     *
+     * @returns {Promise<void>}
+     */
+    const manualPauseHandler = async () => {
+        // 动态查找当前活跃实例的 state，避免读到 loader.js 的 "default" 实例 state
+        const info = ctx.getInstanceInfo?.();
+        const instanceId = info?.instanceId ?? "default";
+        const currentState = _actionStateMap.get(instanceId);
+        if (!currentState) {
+            // 当前没有活跃实例的 state（可能脚本尚未加载），直接忽略
+            return;
+        }
+        if (!currentState.pauseEnabled) {
+            return;
+        }
+        if (currentState.manualPausePromise !== null) {
+            // 已有挂起的暂停，忽略重复触发
+            return;
+        }
+        log("WARNING: 手动暂停已触发，等待当前 op 完成后阻塞 doOpsArray");
+        currentState.manualPausePromise = new Promise(resolve => {
+            currentState.manualPauseResolve = resolve;
+        });
+        try {
+            await mi(_pauseMsg, _pauseTimeout, undefined, e => {
+                log(
+                    "WARNING: 手动触发 mi 调用失败:",
+                    /** @type {any} */ (e)?.message ?? e,
+                );
+            });
+        } finally {
+            const resolve = currentState.manualPauseResolve;
+            currentState.manualPausePromise = null;
+            currentState.manualPauseResolve = null;
+            if (typeof resolve === "function") {
+                resolve();
+            }
+            log("手动暂停已解除，doOpsArray 将继续执行");
+        }
+    };
+
+    //#endregion
+
     //#region 导出工具
 
     return {
@@ -1631,6 +1740,8 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         compareScreenshot,
         setBeforeUnload,
         action,
+        enableActionPause,
+        manualPauseHandler,
     };
 
     //#endregion

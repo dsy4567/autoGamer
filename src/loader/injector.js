@@ -42,8 +42,9 @@ function posWithScale(x, y) {
  * @param {(x: number, y: number) => any} tt
  * @param {(x: number, y: number, toX: number, toY: number, duration: number | undefined) => any} drag
  * @param {(x: number, y: number, duration: number | undefined) => any} hold
+ * @param {(() => Promise<void>) | undefined} [manualPauseHandler] 手动暂停回调（Alt+M 触发），由 createUtils 提供
  */
-async function inject(page, tt, drag, hold) {
+async function inject(page, tt, drag, hold, manualPauseHandler) {
     async function _rewriteWebdriver() {
         await page.evaluateOnNewDocument(() => {
             // 隐藏 navigator.webdriver，绕过最常见的 Puppeteer/自动化检测
@@ -154,6 +155,20 @@ async function inject(page, tt, drag, hold) {
             { width: config.viewport.width, height: config.viewport.height },
         );
     }
+    async function _manualPause() {
+        if (typeof manualPauseHandler !== "function") return;
+        // 暴露 node 端 manualPauseHandler 给页面端调用，Alt+M 触发时转发
+        await page.exposeFunction(
+            "__autoGamerManualPauseTrigger",
+            manualPauseHandler,
+        );
+        await page.evaluateOnNewDocument(() => {
+            if (!window.__autoGamer || !window.__autoGamer.config) return;
+            if (window.__autoGamer.manualPauseTrigger) return;
+            window.__autoGamer.manualPauseTrigger =
+                window.__autoGamerManualPauseTrigger;
+        });
+    }
 
     try {
         const injectPath = path.resolve(__dirname, "../browser/injectPage.js");
@@ -162,6 +177,7 @@ async function inject(page, tt, drag, hold) {
         await _initAutoGamerObj();
         await _simulateTouch();
         await _ScaleChangeListener();
+        await _manualPause();
 
         let identifier = (
             await page.evaluateOnNewDocument(

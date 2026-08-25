@@ -96,8 +96,13 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
         browser,
         getInstanceInfo,
     } = ctx;
-    const { startAutoScreenshot, setTaskTimeout, startRepl, setBeforeUnload } =
-        createUtils(ctx, _eval);
+    const {
+        startAutoScreenshot,
+        setTaskTimeout,
+        startRepl,
+        setBeforeUnload,
+        enableActionPause,
+    } = createUtils(ctx, _eval);
     const config = getGlobalConfig();
     const info = getInstanceInfo?.();
 
@@ -151,6 +156,7 @@ async function runGame(ctx, gameName, scriptConfig, mainFn, _eval) {
     log(`游戏：${gameName}`);
     log("等待页面加载");
 
+    enableActionPause();
     // 如果游戏已经启动，点击继续游戏
     await miguInit(ctx, scriptConfig.gameUrl);
     page.on("load", async () => {

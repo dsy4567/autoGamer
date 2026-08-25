@@ -208,6 +208,28 @@ declare global {
                 onFinish?: (result: boolean) => void,
                 onError?: (err: any) => void,
             ): Promise<boolean>;
+            /**
+             * 启用"在 OpsArray 执行时可暂停"功能
+             *
+             * 启用后，在非干预态按下 Alt+M 会触发后端调用 mi，
+             * 并立即创建 manualPausePromise 阻塞 doOpsArray / sceneChangeDetector，
+             * 直到 mi 返回（用户按 Alt+M 结束干预或超时）才解除阻塞。
+             *
+             * 阻塞粒度为 op 边界：当前正在执行中的 op 不会被中断，
+             * 暂停会在当前 op 完成后、下一个 op 开始前生效。
+             *
+             * 注意：阻塞期间 _taskTimer / _autoScreenshotTimer 不会被暂停，
+             * 任务超时与自动截图仍会按原计划运行。
+             */
+            enableActionPause(options?: {
+                msg?: string;
+                timeout?: number;
+            }): void;
+            /**
+             * 页面端 Alt+M 触发回调（由 injector.js 暴露为 __autoGamerManualPauseTrigger）
+             * 不需要脚本直接调用
+             */
+            manualPauseHandler(): Promise<void>;
             /** 启动定时自动截图（默认间隔 30000ms），返回停止定时器的函数 */
             startAutoScreenshot(interval?: number): () => void;
             /**
@@ -388,6 +410,12 @@ declare global {
             }>;
             /** 是否有 waitSceneChange 正在执行 */
             waitSceneChangeInProgress: boolean;
+            /** 是否启用 enableActionPause 手动暂停功能 */
+            pauseEnabled: boolean;
+            /** 手动暂停挂起的 Promise（非 null 表示正在阻塞 doOpsArray / sceneChangeDetector） */
+            manualPausePromise: Promise<void> | null;
+            /** manualPausePromise 的 resolve 函数 */
+            manualPauseResolve: (() => void) | null;
         }
 
         // ============ 数据目录源文件元数据类型 ============
@@ -596,10 +624,14 @@ declare global {
             warningAudioCtx?: AudioContext;
             /** 设置当前缩放比例 */
             setScale?: (scaleX: number, scaleY: number) => void;
+            /** 触发后端手动暂停（非干预态 Alt+M 调用），由 injector.js 注入 */
+            manualPauseTrigger?: () => void;
         };
         __autoGamerSimulateTouch?: SimulateTouch;
         /** 设置当前缩放比例 */
         __autoGamerSetScale?: (width: number, height: number) => void;
+        /** 手动暂停触发器（由 injector.js exposeFunction 注入，与 __autoGamer.manualPauseTrigger 等价） */
+        __autoGamerManualPauseTrigger?: () => Promise<void>;
     }
 }
 

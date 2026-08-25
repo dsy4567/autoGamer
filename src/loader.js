@@ -370,6 +370,10 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
             logDir,
             startAtChain,
             endAtChain,
+            // 注意：此时 _currentInstance 尚未创建（脚本加载时才创建），
+            // 但 manualPauseHandler 在用户按下 Alt+M 时才会动态调用 getInstanceInfo 查找 state，
+            // 届时 _currentInstance 已是脚本实例
+            getInstanceInfo: _getInstanceInfo,
         },
         (/** @type {string} */ code) => eval(code),
     );
@@ -388,6 +392,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         setTaskTimeout,
         compareScreenshot,
         action,
+        manualPauseHandler,
     } = utils;
 
     loggerHooks._logWriteHtml = async content => {
@@ -401,7 +406,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         } catch (e) {}
     };
 
-    await inject(page, tt, drag, hold);
+    await inject(page, tt, drag, hold, manualPauseHandler);
 
     {
         // 执行操作脚本（按脚本 id 解析）
