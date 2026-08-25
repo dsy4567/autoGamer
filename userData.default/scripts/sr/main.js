@@ -239,7 +239,16 @@ module.exports = async function (ctx) {
                 ["sleep", 10000],
             ]);
 
-            await action("关闭副本页", [tapBackBtn.top, ["sleep", 5000]]);
+            await action("关闭副本页", [
+                ["tt", 8, 468],
+                ["sleep", 3000],
+                ["tt", 8, 468],
+                ["sleep", 3000],
+                ["tt", 8, 468],
+                ["sleep", 3000],
+                tapBackBtn.top,
+                ["sleep", 5000],
+            ]);
 
             if (index === 0) {
                 await action("重新进入每日实训", [

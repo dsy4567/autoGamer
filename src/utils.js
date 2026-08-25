@@ -778,6 +778,11 @@ function createUtils(ctx, _eval = eval) {
                     const takeScreenshot = async label => {
                         return await screenshot(label, {
                             returnBuffer: true,
+                            showElements: {
+                                overlay: false,
+                                indicator: false,
+                                crosshair: false,
+                            },
                             ...(clip ? { clip } : {}),
                         });
                     };
@@ -1003,7 +1008,13 @@ function createUtils(ctx, _eval = eval) {
                 config.screenshots?.screenshotOnLog !== false &&
                 aOpts?.screenshot !== false
             ) {
-                screenshot(description).catch(() => {});
+                screenshot(description, {
+                    showElements: {
+                        overlay: true,
+                        indicator: true,
+                        crosshair: true,
+                    },
+                }).catch(() => {});
             }
 
             if (shouldPassAfterThis) {
@@ -1214,7 +1225,13 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         }).on("close", async () => {
             _activeRl = null;
             log("REPL结束，关闭浏览器...");
-            await screenshot("退出前").catch(() => {});
+            await screenshot("退出前", {
+                showElements: {
+                    overlay: true,
+                    indicator: true,
+                    crosshair: true,
+                },
+            }).catch(() => {});
             await browser.close();
             process.exit(0);
         });
@@ -1241,7 +1258,13 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         log(`设置任务超时: ${ms}ms`);
         _taskTimer = setTimeout(async () => {
             log(`WARNING: 任务超时(${ms}ms)，正在关闭浏览器...`);
-            await screenshot("退出前").catch(() => {});
+            await screenshot("退出前", {
+                showElements: {
+                    overlay: true,
+                    indicator: true,
+                    crosshair: true,
+                },
+            }).catch(() => {});
             try {
                 await browser.close();
             } catch (e) {
@@ -1265,16 +1288,18 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      * 截图范围说明：
      * - 会截取：当前视口（viewport）内可见的页面内容；若 options.clip 提供，则截取 clip 指定的矩形区域
      *
-     * - 不会截取：视口外的内容（fullPage=false、captureBeyondViewport=false）；本工具注入的 UI 元素（overlay / 鼠标指示器 / 十字准星与标签）在截图前会被临时隐藏
+     * - 不会截取：视口外的内容（fullPage=false、captureBeyondViewport=false）；
+     *   本工具注入的 UI 元素（overlay / 鼠标指示器 / 十字准星）默认在截图期间隐藏、
+     *   截图后恢复先前可见性，可通过 options.showElements 指定某元素组在截图期间保持显示
      *
      * @overload
      * @param {string} [label] 截图标签/日志内容
-     * @param {{returnBuffer: true}} options 必须显式传 returnBuffer: true
+     * @param {AutoGamer.ScreenshotOptions & {returnBuffer: true}} options 必须显式传 returnBuffer: true
      * @returns {Promise<Buffer>}
      *
      * @overload
      * @param {string} [label] 截图标签/日志内容
-     * @param {{returnBuffer?: false}} [options] 不返回 Buffer
+     * @param {AutoGamer.ScreenshotOptions & {returnBuffer?: false}} [options] 不返回 Buffer
      * @returns {Promise<string>} 保存的文件路径
      *
      * @param {string} [label="无描述"] 截图标签/日志内容
@@ -1313,18 +1338,27 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         // 排队执行，不允许并发：多次调用会按顺序串行执行，前一张完成（成功或失败）后才执行下一张
         const execute = async () => {
             let overlayWasVisible = false;
+            let indicatorWasVisible = false;
             let crosshairWasVisible = false;
             let scrollX = 0;
             let scrollY = 0;
+
+            // 解析 showElements：未指定字段默认 false（截图期间隐藏，截图后恢复先前可见性）
+            const show = {
+                overlay: Boolean(options.showElements?.overlay),
+                indicator: Boolean(options.showElements?.indicator),
+                crosshair: Boolean(options.showElements?.crosshair),
+            };
 
             try {
                 logRaw("准备截图");
                 ({
                     overlayVisible: overlayWasVisible,
+                    indicatorVisible: indicatorWasVisible,
                     crossVisible: crosshairWasVisible,
                     scrollX,
                     scrollY,
-                } = await page.evaluate(() => {
+                } = await page.evaluate(show => {
                     const overlay =
                         document.getElementById("auto-gamer-overlay");
                     const indicator = document.getElementById(
@@ -1340,32 +1374,37 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                         "auto-gamer-crosshair-label",
                     );
 
+                    // 记录先前可见性，用于截图后恢复
                     const overlayVisible =
                         overlay?.style.getPropertyValue("display") !== "none";
+                    const indicatorVisible =
+                        indicator?.style.getPropertyValue("display") !== "none";
                     const crossVisible =
                         crossH?.style.getPropertyValue("display") !== "none";
 
-                    overlay?.style.setProperty("display", "none", "important");
-                    indicator?.style.setProperty(
-                        "display",
-                        "none",
-                        "important",
-                    );
-                    crossH?.style.setProperty("display", "none", "important");
-                    crossV?.style.setProperty("display", "none", "important");
-                    crossLabel?.style.setProperty(
-                        "display",
-                        "none",
-                        "important",
-                    );
+                    // 截图期间可见性：show=true 显示，false 隐藏
+                    /** @type {(el: HTMLElement | null, showEl: boolean) => void} */
+                    const applyDisplay = (el, showEl) => {
+                        el?.style.setProperty(
+                            "display",
+                            showEl ? "block" : "none",
+                            "important",
+                        );
+                    };
+                    applyDisplay(overlay, show.overlay);
+                    applyDisplay(indicator, show.indicator);
+                    applyDisplay(crossH, show.crosshair);
+                    applyDisplay(crossV, show.crosshair);
+                    applyDisplay(crossLabel, show.crosshair);
 
                     return {
                         overlayVisible,
+                        indicatorVisible,
                         crossVisible,
                         scrollX: window.scrollX,
                         scrollY: window.scrollY,
                     };
-                }));
+                }, show));
 
                 const screenshotOptions = {
                     fullPage: false,
@@ -1415,56 +1454,52 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             } finally {
                 try {
                     await page.evaluate(
-                        ({ wasVisible, crossVisible }) => {
-                            const overlay =
-                                document.getElementById("auto-gamer-overlay");
-                            if (overlay) {
-                                overlay.style.setProperty(
+                        ({
+                            overlayVisible,
+                            indicatorVisible,
+                            crossVisible,
+                        }) => {
+                            // 截图后恢复先前可见性
+                            /** @type {(el: HTMLElement | null, wasVisible: boolean) => void} */
+                            const applyDisplay = (el, wasVisible) => {
+                                el?.style.setProperty(
                                     "display",
                                     wasVisible ? "block" : "none",
                                     "important",
                                 );
-                            }
-
-                            const indicator = document.getElementById(
-                                "auto-gamer-mouse-indicator",
+                            };
+                            applyDisplay(
+                                document.getElementById("auto-gamer-overlay"),
+                                overlayVisible,
                             );
-                            indicator?.style.setProperty(
-                                "display",
-                                "block",
-                                "important",
+                            applyDisplay(
+                                document.getElementById(
+                                    "auto-gamer-mouse-indicator",
+                                ),
+                                indicatorVisible,
                             );
-
-                            const crossDisplay = crossVisible
-                                ? "block"
-                                : "none";
-                            const crossH = document.getElementById(
-                                "auto-gamer-crosshair-h",
+                            applyDisplay(
+                                document.getElementById(
+                                    "auto-gamer-crosshair-h",
+                                ),
+                                crossVisible,
                             );
-                            const crossV = document.getElementById(
-                                "auto-gamer-crosshair-v",
+                            applyDisplay(
+                                document.getElementById(
+                                    "auto-gamer-crosshair-v",
+                                ),
+                                crossVisible,
                             );
-                            const crossLabel = document.getElementById(
-                                "auto-gamer-crosshair-label",
-                            );
-                            crossH?.style.setProperty(
-                                "display",
-                                crossDisplay,
-                                "important",
-                            );
-                            crossV?.style.setProperty(
-                                "display",
-                                crossDisplay,
-                                "important",
-                            );
-                            crossLabel?.style.setProperty(
-                                "display",
-                                crossDisplay,
-                                "important",
+                            applyDisplay(
+                                document.getElementById(
+                                    "auto-gamer-crosshair-label",
+                                ),
+                                crossVisible,
                             );
                         },
                         {
-                            wasVisible: overlayWasVisible,
+                            overlayVisible: overlayWasVisible,
+                            indicatorVisible: indicatorWasVisible,
                             crossVisible: crosshairWasVisible,
                         },
                     );
@@ -1490,14 +1525,26 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
     ) => {
         if (_autoScreenshotTimer) clearInterval(_autoScreenshotTimer);
         _autoScreenshotTimer = setInterval(() => {
-            screenshot("auto")
+            screenshot("auto", {
+                showElements: {
+                    overlay: true,
+                    indicator: true,
+                    crosshair: true,
+                },
+            })
                 .then(() => logRaw("自动截图成功"))
                 .catch(() => {});
         }, interval);
         return () => {
             if (_autoScreenshotTimer) clearInterval(_autoScreenshotTimer);
             _autoScreenshotTimer = null;
-            screenshot("退出前").catch(() => {});
+            screenshot("退出前", {
+                showElements: {
+                    overlay: true,
+                    indicator: true,
+                    crosshair: true,
+                },
+            }).catch(() => {});
         };
     };
 
@@ -1580,6 +1627,11 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                 try {
                     return await screenshot("compareScreenshot", {
                         returnBuffer: true,
+                        showElements: {
+                            overlay: false,
+                            indicator: false,
+                            crosshair: false,
+                        },
                         ...(opts.clip ? { clip: opts.clip } : {}),
                     });
                 } catch (e) {

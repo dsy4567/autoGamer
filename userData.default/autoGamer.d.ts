@@ -141,6 +141,17 @@ declare global {
             returnBuffer?: boolean;
             /** 截图区域，未提供时使用默认视口区域 */
             clip?: { x: number; y: number; width: number; height: number };
+            /**
+             * 截图期间各 UI 元素组的可见性；未指定字段默认 false（截图期间隐藏，截图后恢复先前可见性）
+             */
+            showElements?: {
+                /** auto-gamer-overlay（操作面板） */
+                overlay?: boolean;
+                /** auto-gamer-mouse-indicator（鼠标指示器） */
+                indicator?: boolean;
+                /** auto-gamer-crosshair-h / -v / -label（十字准星，整体联动） */
+                crosshair?: boolean;
+            };
         }
 
         /** compareScreenshot 选项 */
@@ -272,6 +283,11 @@ declare global {
                         width: number;
                         height: number;
                     };
+                    showElements?: {
+                        overlay?: boolean;
+                        indicator?: boolean;
+                        crosshair?: boolean;
+                    };
                 },
             ): Promise<Buffer>;
             /**
@@ -287,6 +303,11 @@ declare global {
                         y: number;
                         width: number;
                         height: number;
+                    };
+                    showElements?: {
+                        overlay?: boolean;
+                        indicator?: boolean;
+                        crosshair?: boolean;
                     };
                 },
             ): Promise<string>;

@@ -321,7 +321,7 @@ window.__autoGamer.mainFn = () => {
     showIndicator();
 
     // 鼠标移动时更新坐标
-    document.addEventListener("mousemove", function (e) {
+    document.addEventListener("pointermove", function (e) {
         updateIndicator(e.clientX, e.clientY);
         showIndicator();
     });
