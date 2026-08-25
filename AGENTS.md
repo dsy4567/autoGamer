@@ -34,6 +34,10 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 
 ## 编码规范
 
+### 定义暴露函数
+
+- 所有暴露到浏览器端的函数都必须在 `src/loader/injector.js` 中定义，定义后可在其他文件中调用。
+
 ### typing 规范
 
 - 关键变量或函数应该包含 `@type` 或 `@param` 注释。
@@ -45,9 +49,9 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 - info类日志无需标注级别，但是warning/error类日志内容必须包含日志级别（字符串以`WARNING:`、`ERROR:` 开头）。
 
 ### 解构规范
-- 对于所有文件，解构 `ctx` 或 `createUtils` 返回的对象时，必须写出所有可解构的属性，即使未使用。
-  - 这不适用于 `userData.default/share/` `userData.default/scripts/*/*.config.default.js` 目录下的文件，这里不应该包含未使用的属性。
-- 目的：保证代码可读性，方便后续维护时直接引用已有变量，避免遗漏可用工具。
+- 对于所有文件，解构 `ctx` 或 `createUtils`（不含 `require("utils.js")`） 返回的对象时，必须写出所有可解构的属性，即使未使用。
+  - 这不适用于 `userData.default/share/` `userData.default/scripts/*/*.config.default.js` 目录下的文件，这里为保持简洁，不应该包含未使用的属性。
+- 目的：方便后续维护时直接引用已有变量，避免遗漏可用工具。
 
 ### 已废弃的脚本
 
@@ -60,6 +64,8 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 ### 兼容性
 
 - 项目刚刚起步且暂未正式发布，如有必要，允许破坏兼容性的更改
+  - 对于先规划再编码的场景：告知影响范围，询问用户是否更改
+  - 对于直接编码的场景：暂时不碰受影响的调用方，在编码完成后，询问用户是否需要接着修改；或者最好调用 AskUserQuestion 工具（如有）。
 
 ### 排除文件
 
@@ -206,4 +212,32 @@ function createUtils(ctx) {
   - 全局共享状态（如节流时间戳、定时器、锁）放在模块作用域
   - 每次调用独立的状态 放在函数作用域
 - 添加注释说明变量放在模块/函数作用域的原因
+
+***
+
+### 5. createUtils 的 state 实例与 ctx.getInstanceInfo 必须配套使用
+
+**场景**：`loader.js` 调用 `createUtils(ctx, ...)` 拿到 `manualPauseHandler` 等函数注入页面，脚本里 `main.js` / `share/gameRunner.js` 又各自调用 `createUtils(ctx, ...)` 拿 `enableActionPause` / `action` 等函数。`manualPauseHandler` 闭包捕获 `state`，`enableActionPause` 也写 `state`，期望两者操作同一份 state。
+
+**现象**：`enableActionPause` 设置 `state.pauseEnabled = true` 后日志确认生效，但用户按 Alt+M 时 `manualPauseHandler` 读到 `state.pauseEnabled === false`，功能完全失效。
+
+**根本原因**：`createUtils` 内部用 `ctx.getInstanceInfo?.()` 取 `instanceId`，再从 `_actionStateMap.get(instanceId)` 取 state。
+- `loader.js` 调 createUtils 时若 ctx 未传 `getInstanceInfo`，则 `instanceId` fallback 为 `"default"`
+- 而脚本里调用 createUtils 时 ctx 带了 `getInstanceInfo`，返回 `_currentInstance`（instanceId 为随机串如 `lxabcd-ef123`）
+
+于是 `manualPauseHandler`（loader 闭包）和 `enableActionPause`（脚本闭包）拿到的是**两份不同的 state 对象**，互不可见。
+
+**正确做法**：
+1. `loader.js` 调 createUtils 时务必传 `getInstanceInfo: _getInstanceInfo`
+2. 由 loader 注入页面、需要操作"当前活跃实例 state"的回调函数（如 `manualPauseHandler`），不能依赖闭包 `state`，必须在函数体内**动态**通过 `ctx.getInstanceInfo?.()` → `_actionStateMap.get(instanceId)` 查找最新 state，否则会锁死在调用 createUtils 时的实例上，热重载/实例切换后失效
+3. 跨 createUtils 调用共享的配置变量（如 `_pauseMsg` / `_pauseTimeout`）放模块作用域，见避坑指南 #4
+
+**预防措施**：
+
+- 任何由 loader.js 闭包捕获、稍后被页面回调的函数，若依赖 state
+  - 要么一律动态查找
+  - 要么寻求其他可直接拿到正确`instanceId`的方案
+- 在 `createUtils` 中传给页面的回调函数注释里说明"必须动态查找 state"的原因
+- 提交前用 grep 确认 `loader.js` 的 createUtils ctx 包含 `getInstanceInfo`
+
 
