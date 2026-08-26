@@ -647,7 +647,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                         },
                         "*",
                     );
-                    cmd = `await action("", [["drag", ${dragStart.x}, ${dragStart.y}, ${e.clientX}, ${e.clientY}, ${duration}], ["sleep", 3000]]);`;
+                    cmd = `await action("", [["drag", ${Math.round(dragStart.x)}, ${Math.round(dragStart.y)}, ${Math.round(e.clientX)}, ${Math.round(e.clientY)}, ${duration}], ["sleep", 3000]]);`;
                 } else if (duration >= 300) {
                     // 未移动且持续时间 >= 300ms，触发 hold
                     window.postMessage(
@@ -659,7 +659,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                         },
                         "*",
                     );
-                    cmd = `await action("", [["hold", ${e.clientX}, ${e.clientY}, ${duration}], ["sleep", 3000]]);`;
+                    cmd = `await action("", [["hold", ${Math.round(e.clientX)}, ${Math.round(e.clientY)}, ${duration}], ["sleep", 3000]]);`;
                 } else {
                     // 未移动且持续时间 < 300ms，触发 tap
                     window.postMessage(
@@ -670,7 +670,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                         },
                         "*",
                     );
-                    cmd = `await action("", [["tt", ${e.clientX}, ${e.clientY}], ["sleep", 3000]]);`;
+                    cmd = `await action("", [["tt", ${Math.round(e.clientX)}, ${Math.round(e.clientY)},], ["sleep", 3000]]);`;
                 }
 
                 if (clipboardEnabled) {
