@@ -826,22 +826,22 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     let configWidth = autoGamerConfig.viewport?.width ?? window.innerWidth,
         configHeight = autoGamerConfig.viewport?.height ?? window.innerHeight;
-    window.addEventListener("resize", () => {
-        if (!window.__autoGamer) return;
-        window.__autoGamer.setScale?.(window.innerWidth, window.innerHeight);
-    });
-    /**
-     * 计算缩放比例后的坐标，其结果不建议跨函数传递
-     * @param {number | null} x x 坐标
-     * @param {number | null} y y 坐标
-     * @returns {{x: number, y: number}} 缩放比例后的坐标
-     * */
-    function posWithScale(x, y) {
-        return {
-            x: Math.round(Number(x) * (configWidth / window.innerWidth)),
-            y: Math.round(Number(y) * (configHeight / window.innerHeight)),
-        };
-    }
+    // window.addEventListener("resize", () => {
+    //     if (!window.__autoGamer) return;
+    //     window.__autoGamer.setScale?.(window.innerWidth, window.innerHeight);
+    // });
+    // /**
+    //  * 计算缩放比例后的坐标，其结果不建议跨函数传递
+    //  * @param {number | null} x x 坐标
+    //  * @param {number | null} y y 坐标
+    //  * @returns {{x: number, y: number}} 缩放比例后的坐标
+    //  * */
+    // function posWithScale(x, y) {
+    //     return {
+    //         x: Math.round(Number(x) * (configWidth / window.innerWidth)),
+    //         y: Math.round(Number(y) * (configHeight / window.innerHeight)),
+    //     };
+    // }
 
     // 屏蔽浏览器原生缩放快捷键（Ctrl+滚轮 / Ctrl++ / Ctrl+-），
     // 避免页面缩放破坏 posWithScale 的坐标换算比例
