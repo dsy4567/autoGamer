@@ -695,7 +695,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 id: "log",
                 priority: INDICATOR_PRIORITY.log,
                 content: ` [log: ${e.data.content}]`,
-                ttl: 5000,
+                ttl: 114514,
             });
         }
     });
