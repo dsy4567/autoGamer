@@ -144,6 +144,11 @@ declare global {
              * 与 returnBuffer 互斥，同时传入时以 returnBuffer 为准
              */
             returnBase64?: boolean;
+            /**
+             * 截图结果是否存盘（写入日志目录），默认 true（存盘）；
+             * 设为 false 时不落盘，此时必须搭配 returnBuffer 或 returnBase64 使用
+             */
+            saveFile?: boolean;
             /** 截图区域，未提供时使用默认视口区域 */
             clip?: { x: number; y: number; width: number; height: number };
             /**
@@ -283,6 +288,7 @@ declare global {
                 label?: string,
                 options?: {
                     returnBuffer: true;
+                    saveFile?: boolean;
                     clip?: {
                         x: number;
                         y: number;
@@ -304,6 +310,7 @@ declare global {
                 label?: string,
                 options?: {
                     returnBase64: true;
+                    saveFile?: boolean;
                     clip?: {
                         x: number;
                         y: number;
@@ -326,6 +333,8 @@ declare global {
                 options?: {
                     returnBuffer?: false;
                     returnBase64?: false;
+                    /** 不存盘必须搭配 returnBuffer 或 returnBase64，此重载默认存盘 */
+                    saveFile?: never;
                     clip?: {
                         x: number;
                         y: number;

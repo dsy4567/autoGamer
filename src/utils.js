@@ -779,6 +779,8 @@ function createUtils(ctx, _eval = eval) {
                     const takeScreenshot = async label => {
                         return await screenshot(label, {
                             returnBuffer: true,
+                            // 内部比对用，显式不存盘
+                            saveFile: false,
                             showElements: {
                                 overlay: false,
                                 indicator: false,
@@ -1284,7 +1286,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
     //#region screenshot 截图相关
 
     /**
-     * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）
+     * 截图并保存到日志目录（默认存盘，可通过 saveFile: false 关闭），不允许并发（多次调用按顺序排队执行）
      *
      * 截图范围说明：
      * - 会截取：当前视口（viewport）内可见的页面内容；若 options.clip 提供，则截取 clip 指定的矩形区域
@@ -1318,6 +1320,14 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         // returnBase64 与 returnBuffer 同时传入时以 returnBuffer 为准
         const returnBase64 =
             !returnBuffer && Boolean(options.returnBase64) === true;
+        // 是否存盘（写入日志目录），默认存盘；saveFile: false 时必须搭配 returnBuffer 或 returnBase64
+        const saveFile =
+            options.saveFile === undefined ? true : Boolean(options.saveFile);
+        if (!saveFile && !returnBuffer && !returnBase64) {
+            throw new Error(
+                "saveFile: false 时必须同时指定 returnBuffer 或 returnBase64",
+            );
+        }
         if (config.isDev && !_devScreenshotWarned) {
             _devScreenshotWarned = true;
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
@@ -1433,15 +1443,6 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                     setTimeout(() => reject(new Error("截图超时")), timeoutMs),
                 );
 
-                if (returnBuffer) {
-                    const buffer = await Promise.race([
-                        page.screenshot(screenshotOptions),
-                        raceTimeout,
-                    ]);
-                    logRaw("截图已获取(buffer)");
-                    return Buffer.from(/** @type {Buffer} */ (buffer));
-                }
-
                 const timeStr = formatLocalTimeWithTz();
                 const safeLabel = String(label)
                     .replace(/[/\\?%*:|"<>\n\r\t]/g, "_")
@@ -1451,9 +1452,23 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                     : `${timeStr}.png`;
                 const filePath = path.join(logDir, filename);
 
+                if (returnBuffer) {
+                    const buffer = await Promise.race([
+                        page.screenshot(screenshotOptions),
+                        raceTimeout,
+                    ]);
+                    const buf = Buffer.from(/** @type {Buffer} */ (buffer));
+                    if (saveFile) {
+                        fs.writeFileSync(filePath, buf);
+                        logRaw("截图已保存:", filename);
+                    }
+                    logRaw("截图已获取(buffer)");
+                    return buf;
+                }
+
                 if (returnBase64) {
                     // 注意：puppeteer 的 encoding: "base64" 只返回字符串不落盘，
-                    // 这里取回 base64 后自行解码保存
+                    // 这里取回 base64 后按需解码保存
                     const base64 = await Promise.race([
                         page.screenshot({
                             ...screenshotOptions,
@@ -1461,11 +1476,16 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                         }),
                         raceTimeout,
                     ]);
-                    fs.writeFileSync(
-                        filePath,
-                        Buffer.from(/** @type {string} */ (base64), "base64"),
-                    );
-                    logRaw("截图已保存:", filename);
+                    if (saveFile) {
+                        fs.writeFileSync(
+                            filePath,
+                            Buffer.from(
+                                /** @type {string} */ (base64),
+                                "base64",
+                            ),
+                        );
+                        logRaw("截图已保存:", filename);
+                    }
                     logRaw("截图已获取(base64)");
                     return /** @type {string} */ (base64) || "";
                 }
@@ -1655,6 +1675,8 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                 try {
                     return await screenshot("compareScreenshot", {
                         returnBuffer: true,
+                        // 内部比对用，显式不存盘
+                        saveFile: false,
                         showElements: {
                             overlay: false,
                             indicator: false,
