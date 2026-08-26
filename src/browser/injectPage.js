@@ -286,10 +286,14 @@ window.__autoGamer.mainFn = () => {
     const INDICATOR_PRIORITY = {
         /** 瞬态日志（auto-gamer-log 消息，带 ttl 自动过期回落） */
         log: 10,
+        /** 手动截图结果反馈（带 ttl 自动过期回落） */
+        manualScreenshot: 20,
         /** Alt+M 手动暂停请求（带 ttl 兜底过期回落） */
         manualPause: 40,
         /** 人工干预倒计时（cleanup 时显式移除） */
         intervention: 50,
+        /** Alt+P 选区截图操作提示（退出选区模式时显式移除） */
+        screenshotSelect: 60,
         /** Alt+H 帮助（始终最高） */
         help: 100,
     };
@@ -484,6 +488,7 @@ Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
 Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
+Alt + p       手动截图：进入选区模式（拖拽框选，可重复框选），选完后再按一次确认；连按两次全屏截图；ESC 取消<br>
 Alt + m       手动触发干预/结束本次干预<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
             });
@@ -681,6 +686,346 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                     y: 0,
                 };
             }
+        },
+        true,
+    );
+
+    // #endregion
+
+    // #region 手动截图（Alt+P 选区截图，连按两次全屏截图）
+
+    /**
+     * 选区 UI 通用样式：与十字线一致的 difference 反色风格（参考 crosshairCommonStyle）
+     * @type {[string, string][]}
+     */
+    const selectionCommonStyle = [
+        ["position", "fixed"],
+        ["top", "0"],
+        ["left", "0"],
+        ["margin", "0"],
+        ["mix-blend-mode", "difference"],
+        ["z-index", "10000"],
+        ["pointer-events", "none"],
+        ["display", "none"],
+        ["transform", "translate3d(0,0,0)"],
+    ];
+
+    // 选区框：无背景 + 1px 反色边框（颜色参考十字线标签 rgba(255,255,255,0.8)）
+    const selectionBox = document.createElement("div");
+    selectionBox.id = "auto-gamer-screenshot-selection";
+    applyStyle(selectionBox, selectionCommonStyle);
+    applyStyle(selectionBox, [
+        ["background", "transparent"],
+        ["border", "1px solid rgba(255,255,255,0.8)"],
+        ["box-sizing", "border-box"],
+    ]);
+    document.documentElement.appendChild(selectionBox);
+
+    /** 坐标标签样式：参考十字线坐标标签（crosshairLabel） */
+    const selectionLabelStyle = /** @type {[string, string][]} */ ([
+        ...selectionCommonStyle,
+        ["background", "transparent"],
+        ["color", "rgba(255,255,255,0.8)"],
+        ["font-size", "12px"],
+        ["line-height", "1"],
+        ["white-space", "nowrap"],
+    ]);
+
+    // 始点坐标标签
+    const selectionStartLabel = document.createElement("div");
+    selectionStartLabel.id = "auto-gamer-screenshot-start-label";
+    applyStyle(selectionStartLabel, selectionLabelStyle);
+    document.documentElement.appendChild(selectionStartLabel);
+
+    // 末点坐标标签（拖拽时跟随鼠标）
+    const selectionEndLabel = document.createElement("div");
+    selectionEndLabel.id = "auto-gamer-screenshot-end-label";
+    applyStyle(selectionEndLabel, selectionLabelStyle);
+    document.documentElement.appendChild(selectionEndLabel);
+
+    /** 是否处于选区截图模式 */
+    let screenshotSelectActive = false;
+    /** 是否正在拖拽选区 */
+    let screenshotDragging = false;
+    /** @type {{x: number, y: number} | null} 拖拽起点（视口坐标） */
+    let screenshotDragStart = null;
+    /** @type {{x: number, y: number, width: number, height: number} | null} 已完成的选区（视口坐标） */
+    let screenshotSelection = null;
+    /** 上一次 Alt+P 按下时间戳，用于连按两次判定 */
+    let lastAltPTime = 0;
+    /** Alt+P 连按两次判定窗口（毫秒） */
+    const ALT_P_DOUBLE_PRESS_MS = 500;
+
+    /**
+     * 将坐标标签定位到指定坐标右下 4px 处，越界时紧贴视口边缘
+     * @param {HTMLElement} label
+     * @param {number} x
+     * @param {number} y
+     */
+    const positionSelectionLabel = (label, x, y) => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const lw = label.offsetWidth;
+        const lh = label.offsetHeight;
+        const lx = lw > 0 ? Math.max(0, Math.min(x + 4, vw - lw)) : x + 4;
+        const ly = lh > 0 ? Math.max(0, Math.min(y + 4, vh - lh)) : y + 4;
+        label.style.setProperty(
+            "transform",
+            `translate3d(${lx}px,${ly}px,0)`,
+            "important",
+        );
+    };
+
+    /**
+     * 隐藏选区 UI（选区框与始末坐标标签）
+     */
+    const hideSelectionUI = () => {
+        selectionBox.style.setProperty("display", "none", "important");
+        selectionStartLabel.style.setProperty("display", "none", "important");
+        selectionEndLabel.style.setProperty("display", "none", "important");
+    };
+
+    /**
+     * 渲染选区 UI：选区框 + 始末坐标标签（显示坐标取四舍五入整数），
+     * 拖拽超出视口时钳制到视口范围内
+     * @param {{x: number, y: number}} start 始点（视口坐标）
+     * @param {{x: number, y: number}} end 末点（视口坐标）
+     */
+    const renderSelectionUI = (start, end) => {
+        const clamp = (/** @type {number} */ v, /** @type {number} */ max) =>
+            Math.max(0, Math.min(v, max));
+        const sx = clamp(start.x, window.innerWidth);
+        const sy = clamp(start.y, window.innerHeight);
+        const ex = clamp(end.x, window.innerWidth);
+        const ey = clamp(end.y, window.innerHeight);
+        selectionBox.style.setProperty(
+            "width",
+            `${Math.abs(ex - sx)}px`,
+            "important",
+        );
+        selectionBox.style.setProperty(
+            "height",
+            `${Math.abs(ey - sy)}px`,
+            "important",
+        );
+        selectionBox.style.setProperty(
+            "transform",
+            `translate3d(${Math.min(sx, ex)}px,${Math.min(sy, ey)}px,0)`,
+            "important",
+        );
+        selectionStartLabel.textContent = `(${Math.round(sx)},${Math.round(sy)})`;
+        selectionEndLabel.textContent = `(${Math.round(ex)},${Math.round(ey)})`;
+        selectionBox.style.setProperty("display", "block", "important");
+        selectionStartLabel.style.setProperty("display", "block", "important");
+        selectionEndLabel.style.setProperty("display", "block", "important");
+        positionSelectionLabel(selectionStartLabel, sx, sy);
+        positionSelectionLabel(selectionEndLabel, ex, ey);
+    };
+
+    /**
+     * 调用后端手动截图接口（截图自动保存到日志目录），结果通过指示器反馈
+     * @param {{x: number, y: number, width: number, height: number} | null} clip 截图区域（页面坐标，已含滚动偏移），null 为全屏
+     */
+    const takeManualScreenshot = async clip => {
+        setIndicatorContent({
+            id: "manualScreenshot",
+            priority: INDICATOR_PRIORITY.manualScreenshot,
+            content: " [截图中...]",
+            ttl: 10000,
+        });
+        try {
+            const base64 = await window.__autoGamer?.manualScreenshot?.(
+                clip ? { clip } : {},
+            );
+            setIndicatorContent({
+                id: "manualScreenshot",
+                priority: INDICATOR_PRIORITY.manualScreenshot,
+                content:
+                    typeof base64 === "string" && base64
+                        ? " [截图已保存]"
+                        : " [截图失败]",
+                ttl: 5000,
+            });
+        } catch (e) {
+            console.error("[autoGamer] manualScreenshot 调用失败:", e);
+            setIndicatorContent({
+                id: "manualScreenshot",
+                priority: INDICATOR_PRIORITY.manualScreenshot,
+                content: " [截图失败]",
+                ttl: 5000,
+            });
+        }
+    };
+
+    /**
+     * 进入选区截图模式
+     */
+    const enterScreenshotSelect = () => {
+        screenshotSelectActive = true;
+        screenshotSelection = null;
+        hideSelectionUI();
+        document.documentElement.style.setProperty(
+            "cursor",
+            "crosshair",
+            "important",
+        );
+        setIndicatorContent({
+            id: "screenshotSelect",
+            priority: INDICATOR_PRIORITY.screenshotSelect,
+            content: " [选区截图]",
+            html: `<br>拖拽鼠标框选区域（无需按住 Alt，可重复框选）<br>选完后按 <span style="color: #39c5bb;">Alt+P</span> 确认，<span style="color: #39c5bb;">ESC</span> 取消`,
+        });
+    };
+
+    /**
+     * 退出选区截图模式并清理 UI
+     */
+    const exitScreenshotSelect = () => {
+        screenshotSelectActive = false;
+        screenshotDragging = false;
+        screenshotDragStart = null;
+        screenshotSelection = null;
+        hideSelectionUI();
+        removeIndicatorContent("screenshotSelect");
+        document.documentElement.style.removeProperty("cursor");
+    };
+
+    /**
+     * 确认选区截图：视口坐标 + 滚动偏移换算为页面坐标 clip 后调用后端；
+     * 剪贴板开启（Alt+C）时，将 clip 参数以 {clip:{...}} 形式复制到剪贴板
+     */
+    const confirmScreenshotSelection = () => {
+        const rect = screenshotSelection;
+        // exitScreenshotSelect 会重置 screenshotSelection，先暂存剪贴板开关
+        const clipboard = clipboardEnabled;
+        exitScreenshotSelect();
+        if (!rect) return;
+        const clip = {
+            x: Math.round(rect.x + window.scrollX),
+            y: Math.round(rect.y + window.scrollY),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+        };
+        if (clipboard) {
+            navigator.clipboard
+                .writeText(
+                    `{clip: {x: ${clip.x}, y: ${clip.y}, width: ${clip.width}, height: ${clip.height}}}`,
+                )
+                .catch(() => {});
+        }
+        takeManualScreenshot(clip);
+    };
+
+    /**
+     * Alt+P 处理：
+     * - 未激活选区模式：进入选区模式
+     * - 已有选区：确认并按 clip 截图
+     * - 激活但无选区且距上次按下 < 500ms：连按两次，全屏截图
+     * - 激活但无选区且间隔 >= 500ms：刷新时间戳，继续保持选区模式
+     */
+    const handleAltP = () => {
+        const now = Date.now();
+        if (!screenshotSelectActive) {
+            lastAltPTime = now;
+            enterScreenshotSelect();
+            return;
+        }
+        if (screenshotDragging) return;
+        if (screenshotSelection) {
+            confirmScreenshotSelection();
+            return;
+        }
+        if (now - lastAltPTime < ALT_P_DOUBLE_PRESS_MS) {
+            lastAltPTime = 0;
+            exitScreenshotSelect();
+            takeManualScreenshot(null);
+            return;
+        }
+        lastAltPTime = now;
+    };
+
+    // 选区模式专用按键监听（capture 阶段拦截，避免 ESC / Alt+P 传给游戏）
+    window.addEventListener(
+        "keydown",
+        e => {
+            if (e.repeat) return;
+            if (screenshotSelectActive && e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                exitScreenshotSelect();
+                return;
+            }
+            if (e.key === "p" && e.altKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAltP();
+            }
+        },
+        true,
+    );
+
+    // 选区拖拽：普通鼠标左键拖拽（不按 Alt），与 Alt+鼠标左键的触摸模拟互不冲突；
+    // stopPropagation 避免拖拽事件传给游戏
+    window.addEventListener(
+        "pointerdown",
+        e => {
+            if (!screenshotSelectActive || screenshotDragging) return;
+            if (e.pointerType !== "mouse" || e.button !== 0) return;
+            if (e.altKey) return;
+            e.preventDefault();
+            e.stopPropagation();
+            screenshotDragging = true;
+            screenshotDragStart = { x: e.clientX, y: e.clientY };
+            renderSelectionUI(screenshotDragStart, screenshotDragStart);
+        },
+        true,
+    );
+    window.addEventListener(
+        "pointermove",
+        e => {
+            if (!screenshotDragging || !screenshotDragStart) return;
+            e.preventDefault();
+            e.stopPropagation();
+            renderSelectionUI(screenshotDragStart, {
+                x: e.clientX,
+                y: e.clientY,
+            });
+        },
+        true,
+    );
+    window.addEventListener(
+        "pointerup",
+        e => {
+            if (!screenshotDragging) return;
+            screenshotDragging = false;
+            e.preventDefault();
+            e.stopPropagation();
+            const start = screenshotDragStart;
+            screenshotDragStart = null;
+            if (!start) return;
+            const clamp = (
+                /** @type {number} */ v,
+                /** @type {number} */ max,
+            ) => Math.max(0, Math.min(v, max));
+            const sx = clamp(start.x, window.innerWidth);
+            const sy = clamp(start.y, window.innerHeight);
+            const ex = clamp(e.clientX, window.innerWidth);
+            const ey = clamp(e.clientY, window.innerHeight);
+            const width = Math.abs(ex - sx);
+            const height = Math.abs(ey - sy);
+            // 过小的选区（单击/误触）视为无效，清除已有选区
+            if (width < 2 || height < 2) {
+                screenshotSelection = null;
+                hideSelectionUI();
+                return;
+            }
+            screenshotSelection = {
+                x: Math.min(sx, ex),
+                y: Math.min(sy, ey),
+                width,
+                height,
+            };
+            renderSelectionUI({ x: sx, y: sy }, { x: ex, y: ey });
         },
         true,
     );

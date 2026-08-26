@@ -1299,16 +1299,24 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      *
      * @overload
      * @param {string} [label] 截图标签/日志内容
-     * @param {AutoGamer.ScreenshotOptions & {returnBuffer?: false}} [options] 不返回 Buffer
+     * @param {AutoGamer.ScreenshotOptions & {returnBase64: true}} options 必须显式传 returnBase64: true
+     * @returns {Promise<string>} base64 字符串（同时仍自动保存到日志目录）
+     *
+     * @overload
+     * @param {string} [label] 截图标签/日志内容
+     * @param {AutoGamer.ScreenshotOptions & {returnBuffer?: false, returnBase64?: false}} [options] 不返回 Buffer / base64
      * @returns {Promise<string>} 保存的文件路径
      *
      * @param {string} [label="无描述"] 截图标签/日志内容
      * @param {AutoGamer.ScreenshotOptions} [options={}] 选项
-     * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，否则返回文件路径
+     * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，returnBase64 为 true 时返回 base64 字符串，否则返回文件路径
      * @throws {Error} 以下情况抛出：options.clip 属性不完整；截图超时；puppeteer 截图失败
      */
     const screenshot = async (label = "无描述", options = {}) => {
         const returnBuffer = Boolean(options.returnBuffer) === true;
+        // returnBase64 与 returnBuffer 同时传入时以 returnBuffer 为准
+        const returnBase64 =
+            !returnBuffer && Boolean(options.returnBase64) === true;
         if (config.isDev && !_devScreenshotWarned) {
             _devScreenshotWarned = true;
             logRaw("WARNING: 开发模式下截图将写入项目临时目录:", logDir);
@@ -1441,6 +1449,25 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                     ? `${timeStr}_${safeLabel}.png`
                     : `${timeStr}.png`;
                 const filePath = path.join(logDir, filename);
+
+                if (returnBase64) {
+                    // 注意：puppeteer 的 encoding: "base64" 只返回字符串不落盘，
+                    // 这里取回 base64 后自行解码保存
+                    const base64 = await Promise.race([
+                        page.screenshot({
+                            ...screenshotOptions,
+                            encoding: "base64",
+                        }),
+                        raceTimeout,
+                    ]);
+                    fs.writeFileSync(
+                        filePath,
+                        Buffer.from(/** @type {string} */ (base64), "base64"),
+                    );
+                    logRaw("截图已保存:", filename);
+                    logRaw("截图已获取(base64)");
+                    return /** @type {string} */ (base64) || "";
+                }
 
                 await Promise.race([
                     page.screenshot({ ...screenshotOptions, path: filePath }),

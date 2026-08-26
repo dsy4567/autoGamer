@@ -338,13 +338,16 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         pc,
         hold,
         sleep,
+        mi,
         drag,
         screenshot,
         startAutoScreenshot,
         startRepl,
         setTaskTimeout,
         compareScreenshot,
+        setBeforeUnload,
         action,
+        enableActionPause,
         manualPauseHandler,
     } = utils;
 
@@ -359,7 +362,14 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
         } catch (e) {}
     };
 
-    await inject(page, tt, drag, hold, manualPauseHandler);
+    await inject({
+        page,
+        tt,
+        drag,
+        hold,
+        manualPauseHandler,
+        screenshot,
+    });
 
     {
         // 执行操作脚本（按脚本 id 解析）

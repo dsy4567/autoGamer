@@ -38,13 +38,16 @@ function posWithScale(x, y) {
 
 /**
  * 注入 injectPage.js 到页面
- * @param {import("puppeteer-core").Page} page
- * @param {(x: number, y: number) => any} tt
- * @param {(x: number, y: number, toX: number, toY: number, duration: number | undefined) => any} drag
- * @param {(x: number, y: number, duration: number | undefined) => any} hold
- * @param {(() => Promise<void>) | undefined} [manualPauseHandler] 手动暂停回调（Alt+M 触发），由 createUtils 提供
+ * @param {object} fns
+ * @param {import("puppeteer-core").Page} fns.page
+ * @param {(x: number, y: number) => any} fns.tt
+ * @param {(x: number, y: number, toX: number, toY: number, duration: number | undefined) => any} fns.drag
+ * @param {(x: number, y: number, duration: number | undefined) => any} fns.hold
+ * @param {(() => Promise<void>) | undefined} [fns.manualPauseHandler] 手动暂停回调（Alt+M 触发），由 createUtils 提供
+ * @param {((label?: string, options?: any) => Promise<string | Buffer>) | undefined} [fns.screenshot] 截图函数（Alt+P 触发），由 createUtils 提供；因 utils.js 的 screenshot 带 JSDoc 重载（returnBuffer/returnBase64 模式），无法精确赋给单一函数签名，options 放宽为 any
  */
-async function inject(page, tt, drag, hold, manualPauseHandler) {
+async function inject(fns) {
+    const { page, tt, drag, hold, manualPauseHandler, screenshot } = fns;
     async function _rewriteWebdriver() {
         await page.evaluateOnNewDocument(() => {
             // 隐藏 navigator.webdriver，绕过最常见的 Puppeteer/自动化检测
@@ -169,6 +172,43 @@ async function inject(page, tt, drag, hold, manualPauseHandler) {
                 window.__autoGamerManualPauseTrigger;
         });
     }
+    async function _manualScreenshot() {
+        if (typeof screenshot !== "function") return;
+        // 暴露 node 端截图函数给页面端调用，Alt+P 触发时转发；
+        // 截图自动保存到日志目录，成功返回 base64 字符串，失败返回 null
+        await page.exposeFunction(
+            "__autoGamerManualScreenshot",
+            /**
+             * @param {{ clip?: { x: number, y: number, width: number, height: number } } | null | undefined} [msg]
+             * @returns {Promise<string | null>}
+             */
+            async msg => {
+                const clip =
+                    msg && typeof msg === "object" ? msg.clip : undefined;
+                try {
+                    const result = await screenshot(
+                        clip ? "手动选区截图" : "手动全屏截图",
+                        clip
+                            ? { clip, returnBase64: true }
+                            : { returnBase64: true },
+                    );
+                    return typeof result === "string" ? result : null;
+                } catch (e) {
+                    log(
+                        "ERROR: 手动截图失败:",
+                        /** @type {any} */ (e)?.message ?? e,
+                    );
+                    return null;
+                }
+            },
+        );
+        await page.evaluateOnNewDocument(() => {
+            if (!window.__autoGamer || !window.__autoGamer.config) return;
+            if (window.__autoGamer.manualScreenshot) return;
+            window.__autoGamer.manualScreenshot =
+                window.__autoGamerManualScreenshot;
+        });
+    }
 
     try {
         const injectPath = path.resolve(__dirname, "../browser/injectPage.js");
@@ -178,6 +218,7 @@ async function inject(page, tt, drag, hold, manualPauseHandler) {
         await _simulateTouch();
         await _ScaleChangeListener();
         await _manualPause();
+        await _manualScreenshot();
 
         let identifier = (
             await page.evaluateOnNewDocument(

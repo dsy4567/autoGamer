@@ -139,6 +139,11 @@ declare global {
         interface ScreenshotOptions {
             /** 为 true 时返回 Buffer 而非写入文件 */
             returnBuffer?: boolean;
+            /**
+             * 为 true 时返回 base64 字符串（同时仍自动保存到日志目录）；
+             * 与 returnBuffer 互斥，同时传入时以 returnBuffer 为准
+             */
+            returnBase64?: boolean;
             /** 截图区域，未提供时使用默认视口区域 */
             clip?: { x: number; y: number; width: number; height: number };
             /**
@@ -291,6 +296,27 @@ declare global {
                 },
             ): Promise<Buffer>;
             /**
+             * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）；returnBase64 为 true 时返回 base64 字符串（同时仍保存文件）
+             * @throws {Error} 以下情况抛出：clip 属性不完整；截图超时；puppeteer 截图失败
+             */
+            screenshot(
+                label?: string,
+                options?: {
+                    returnBase64: true;
+                    clip?: {
+                        x: number;
+                        y: number;
+                        width: number;
+                        height: number;
+                    };
+                    showElements?: {
+                        overlay?: boolean;
+                        indicator?: boolean;
+                        crosshair?: boolean;
+                    };
+                },
+            ): Promise<string>;
+            /**
              * 截图并保存到日志目录，不允许并发（多次调用按顺序排队执行）；返回保存的文件路径
              * @throws {Error} 以下情况抛出：clip 属性不完整；截图超时；puppeteer 截图失败
              */
@@ -298,6 +324,7 @@ declare global {
                 label?: string,
                 options?: {
                     returnBuffer?: false;
+                    returnBase64?: false;
                     clip?: {
                         x: number;
                         y: number;
@@ -647,12 +674,24 @@ declare global {
             setScale?: (scaleX: number, scaleY: number) => void;
             /** 触发后端手动暂停（非干预态 Alt+M 调用），由 injector.js 注入 */
             manualPauseTrigger?: () => void;
+            /**
+             * 手动截图（Alt+P 触发，由 injector.js 注入），截图自动保存到日志目录
+             * @param msg clip 为截图区域（页面坐标），缺省时截取整个视口
+             * @returns base64 字符串，失败时返回 null
+             */
+            manualScreenshot?(msg?: {
+                clip?: { x: number; y: number; width: number; height: number };
+            }): Promise<string | null>;
         };
         __autoGamerSimulateTouch?: SimulateTouch;
         /** 设置当前缩放比例 */
         __autoGamerSetScale?: (width: number, height: number) => void;
         /** 手动暂停触发器（由 injector.js exposeFunction 注入，与 __autoGamer.manualPauseTrigger 等价） */
         __autoGamerManualPauseTrigger?: () => Promise<void>;
+        /** 手动截图（由 injector.js exposeFunction 注入，与 __autoGamer.manualScreenshot 等价） */
+        __autoGamerManualScreenshot?: (msg?: {
+            clip?: { x: number; y: number; width: number; height: number };
+        }) => Promise<string | null>;
     }
 }
 
