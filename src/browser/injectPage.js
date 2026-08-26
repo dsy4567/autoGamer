@@ -275,30 +275,65 @@ window.__autoGamer.mainFn = () => {
             x: 0,
             y: 0,
         },
-        extraContent = "",
-        extraHtml = "",
         /** @type {number|undefined} - 用于延迟显示指示器的定时器 ID */
         setOpacityTimer = undefined;
+
+    // #region 指示器内容注册表（优先级仲裁）
+
     /**
-     * 更新指示器的坐标和额外内容
-     * @param {number|null|string} _x - 鼠标 X 坐标
-     * @param {number|null|string} _y - 鼠标 Y 坐标
-     * @param {string} _extraContent - 额外的文本内容
-     * @param {string} _extraHtml - 额外的 HTML 内容
+     * 指示器内容优先级（越大越优先；help 始终最高，不被其他内容覆盖）
      */
-    const updateIndicator = (
-        _x = null,
-        _y = null,
-        _extraContent = "",
-        _extraHtml = "",
-    ) => {
-        if (_x !== null && _x !== undefined && _x !== "") mousePos.x = +_x;
-        if (_y !== null && _y !== undefined && _y !== "") mousePos.y = +_y;
-        if (_extraHtml) extraHtml = _extraHtml;
-        if (_extraContent)
-            extraContent =
-                _extraContent.substring(0, 80) +
-                (_extraContent.length > 80 ? "..." : "");
+    const INDICATOR_PRIORITY = {
+        /** 瞬态日志（auto-gamer-log 消息，带 ttl 自动过期回落） */
+        log: 10,
+        /** Alt+M 手动暂停请求（带 ttl 兜底过期回落） */
+        manualPause: 40,
+        /** 人工干预倒计时（cleanup 时显式移除） */
+        intervention: 50,
+        /** Alt+H 帮助（始终最高） */
+        help: 100,
+    };
+
+    /**
+     * @typedef {object} IndicatorEntry
+     * @property {string} id 条目归属方（如 "log" / "help" / "manualPause" / "intervention"）
+     * @property {number} priority 优先级（越大越优先）
+     * @property {string} content 文本内容（已按 80 字符截断）
+     * @property {string} html HTML 内容
+     * @property {number} updatedAt 最近更新时间戳
+     * @property {number | undefined} expiresAt 过期时间戳（无 ttl 时为 undefined）
+     */
+
+    /**
+     * 指示器内容条目注册表：各来源（日志/帮助/人工干预等）按 id 各自持有条目，
+     * 渲染时按优先级取最高者，避免多个来源写入同一槽位互相覆盖
+     * @type {Map<string, IndicatorEntry>}
+     */
+    const indicatorEntries = new Map();
+
+    /**
+     * 渲染指示器：清理过期条目后，取优先级最高（同优先级取最近更新）的条目，
+     * 与坐标、Alt/剪贴板状态前缀组合输出；无条目时仅显示前缀与坐标
+     */
+    const renderIndicator = () => {
+        const now = Date.now();
+        for (const entry of indicatorEntries.values()) {
+            if (entry.expiresAt !== undefined && entry.expiresAt <= now)
+                indicatorEntries.delete(entry.id);
+        }
+
+        /** @type {IndicatorEntry | null} */
+        let top = null;
+        for (const entry of indicatorEntries.values()) {
+            if (
+                !top ||
+                entry.priority > top.priority ||
+                (entry.priority === top.priority &&
+                    entry.updatedAt > top.updatedAt)
+            )
+                top = entry;
+        }
+
         // 鼠标距页面顶部 <= <像素> 时，指示器靠下显示，避免遮挡
         if (mousePos.y <= 240) {
             indicator.style.setProperty("top", "auto", "important");
@@ -309,8 +344,57 @@ window.__autoGamer.mainFn = () => {
         }
         indicator.textContent = `${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
-        }${clipboardEnabled ? " [剪贴板开]" : ""}${extraContent}`;
-        indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${extraHtml}`;
+        }${clipboardEnabled ? " [剪贴板开]" : ""}${top?.content ?? ""}`;
+        indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${top?.html ?? ""}`;
+    };
+
+    /**
+     * 按 id 注册/更新（upsert）一条指示器内容条目并重新渲染
+     * @param {object} entry
+     * @param {string} entry.id 条目归属方（如 "log" / "help" / "manualPause" / "intervention"）
+     * @param {number} entry.priority 优先级（见 INDICATOR_PRIORITY）
+     * @param {string} [entry.content] 文本内容（超过 80 字符截断）
+     * @param {string} [entry.html] HTML 内容
+     * @param {number} [entry.ttl] 存活毫秒数，过期后自动移除
+     */
+    const setIndicatorContent = ({
+        id,
+        priority,
+        content = "",
+        html = "",
+        ttl = 0,
+    }) => {
+        indicatorEntries.set(id, {
+            id,
+            priority,
+            content:
+                content.substring(0, 80) + (content.length > 80 ? "..." : ""),
+            html,
+            updatedAt: Date.now(),
+            expiresAt: ttl > 0 ? Date.now() + ttl : undefined,
+        });
+        renderIndicator();
+    };
+
+    /**
+     * 移除指定 id 的指示器内容条目并重新渲染（条目不存在时无操作）
+     * @param {string} id
+     */
+    const removeIndicatorContent = id => {
+        if (indicatorEntries.delete(id)) renderIndicator();
+    };
+
+    // #endregion
+
+    /**
+     * 更新指示器坐标并重新渲染（内容部分由内容注册表按优先级仲裁）
+     * @param {number|null|string} _x - 鼠标 X 坐标
+     * @param {number|null|string} _y - 鼠标 Y 坐标
+     */
+    const updateIndicator = (_x = null, _y = null) => {
+        if (_x !== null && _x !== undefined && _x !== "") mousePos.x = +_x;
+        if (_y !== null && _y !== undefined && _y !== "") mousePos.y = +_y;
+        renderIndicator();
     };
     const showIndicator = () => {
         indicator.style.setProperty("opacity", "0.8", "important");
@@ -390,11 +474,10 @@ window.__autoGamer.mainFn = () => {
             e.stopPropagation();
         }
         if (e.key === "h" && e.altKey) {
-            updateIndicator(
-                null,
-                null,
-                "",
-                `<br>
+            setIndicatorContent({
+                id: "help",
+                priority: INDICATOR_PRIORITY.help,
+                html: `<br>
 [提示] 遇到快捷键冲突，可将 Alt 替换为 Shift + Alt 或 Ctrl + Alt<br>
 Alt + h       显示帮助<br>
 Alt + b       隐藏/显示悬浮球<br>
@@ -403,7 +486,7 @@ Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束�
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
 Alt + m       手动触发干预/结束本次干预<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
-            );
+            });
         }
         if (e.key === "b" && e.altKey) {
             toggleBallVisible();
@@ -429,12 +512,14 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             // 非干预态下：触发后端 manualPauseHandler，由后端创建 manualPausePromise
             // 阻塞 doOpsArray / sceneChangeDetector（阻塞粒度为 op 边界）；
             // 干预态下走 requestManualIntervention 内部 capture 阶段的 onKeyDown
-            updateIndicator(
-                null,
-                null,
-                " [手动暂停触发中]",
-                `<br><span style="color: #66ccff;">已请求暂停，等待后端响应...</span>`,
-            );
+            // ttl 兜底：若后端未启用 actionPause 等原因导致无响应，条目自动过期回落
+            setIndicatorContent({
+                id: "manualPause",
+                priority: INDICATOR_PRIORITY.manualPause,
+                content: " [手动暂停触发中]",
+                html: `<br><span style="color: #66ccff;">已请求暂停，等待后端响应...</span>`,
+                ttl: 10000,
+            });
             showIndicator();
             try {
                 window.__autoGamer?.manualPauseTrigger?.();
@@ -463,7 +548,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             indicator.style.setProperty("color", "#fff", "important");
         }
         if (e.key === "h" || !e.altKey) {
-            updateIndicator(null, null, "", " ");
+            removeIndicatorContent("help");
             e.preventDefault();
         }
     });
@@ -606,7 +691,12 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
 
     window.addEventListener("message", e => {
         if (e.data?.type === "auto-gamer-log" && e.data.content) {
-            updateIndicator(null, null, ` [log: ${e.data.content}]`, "");
+            setIndicatorContent({
+                id: "log",
+                priority: INDICATOR_PRIORITY.log,
+                content: ` [log: ${e.data.content}]`,
+                ttl: 5000,
+            });
         }
     });
 
@@ -713,115 +803,121 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * @param {number} [timeout=15000] 超时毫秒
      * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false
      */
-    window.__autoGamer.requestManualIntervention = (
-        msg = "",
-        timeout = 15000,
-    ) => {
-        return new Promise(resolve => {
-            let resolved = false;
-            /** @type {number | undefined} */
-            let interval = undefined;
-            let touched = false;
-            let remaining = timeout;
+    const requestManualIntervention =
+        (window.__autoGamer.requestManualIntervention = (
+            msg = "",
+            timeout = 15000,
+        ) => {
+            return new Promise(resolve => {
+                let resolved = false;
+                /** @type {number | undefined} */
+                let interval = undefined;
+                let touched = false;
+                let remaining = timeout;
 
-            const cleanup = () => {
-                if (interval !== undefined) {
-                    window.clearInterval(interval);
-                    interval = undefined;
-                }
-                window.removeEventListener(
+                const cleanup = () => {
+                    if (interval !== undefined) {
+                        window.clearInterval(interval);
+                        interval = undefined;
+                    }
+                    window.removeEventListener(
+                        "touchstart",
+                        onTouchStartOrMouseDown,
+                        true,
+                    );
+                    window.removeEventListener("keydown", onKeyDown, true);
+                    miActive = false;
+                    removeIndicatorContent("intervention");
+                    showIndicator();
+                };
+
+                const finish = /** @param {boolean} value */ value => {
+                    if (resolved) return;
+                    resolved = true;
+                    cleanup();
+                    resolve(value);
+                };
+
+                const renderMiHtml = (/** @type {string} */ extraMsg) =>
+                    `<br>${msg}<br><span style="color: red;">${extraMsg}</span><br>如不需要人工干预功能，请编辑脚本配置`;
+
+                const onTouchStartOrMouseDown = () => {
+                    if (resolved || touched) return;
+                    touched = true;
+                    showIndicator();
+                };
+
+                const onKeyDown = /** @param {KeyboardEvent} e */ e => {
+                    if (resolved) return;
+                    if (e.key === "m" && e.altKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        finish(true);
+                    }
+                };
+
+                window.addEventListener(
+                    "mousedown",
+                    onTouchStartOrMouseDown,
+                    true,
+                );
+                window.addEventListener(
                     "touchstart",
                     onTouchStartOrMouseDown,
                     true,
                 );
-                window.removeEventListener("keydown", onKeyDown, true);
-                miActive = false;
-                // 传 " " 以覆盖并清空旧的 extraHtml（updateIndicator 仅在 extraHtml truthy 时覆盖）
-                updateIndicator(null, null, "", " ");
+                window.addEventListener("keydown", onKeyDown, true);
+
+                miActive = true;
+                setIndicatorContent({
+                    id: "intervention",
+                    priority: INDICATOR_PRIORITY.intervention,
+                    content: " [人工干预中]",
+                    html: renderMiHtml(
+                        `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
+                            remaining / 1000,
+                        )}s，执行操作以停止计时)`,
+                    ),
+                });
+                // 后端已响应手动暂停请求，移除"等待后端响应"提示条目
+                removeIndicatorContent("manualPause");
                 showIndicator();
-            };
 
-            const finish = /** @param {boolean} value */ value => {
-                if (resolved) return;
-                resolved = true;
-                cleanup();
-                resolve(value);
-            };
+                interval = window.setInterval(() => {
+                    if (remaining <= 0) {
+                        finish(false);
+                        return;
+                    }
 
-            const renderMiHtml = (/** @type {string} */ extraMsg) =>
-                `<br>${msg}<br><span style="color: red;">${extraMsg}</span><br>如不需要人工干预功能，请编辑脚本配置`;
+                    playWarningSound();
 
-            const onTouchStartOrMouseDown = () => {
-                if (resolved || touched) return;
-                touched = true;
-                showIndicator();
-            };
-
-            const onKeyDown = /** @param {KeyboardEvent} e */ e => {
-                if (resolved) return;
-                if (e.key === "m" && e.altKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    finish(true);
-                }
-            };
-
-            window.addEventListener("mousedown", onTouchStartOrMouseDown, true);
-            window.addEventListener(
-                "touchstart",
-                onTouchStartOrMouseDown,
-                true,
-            );
-            window.addEventListener("keydown", onKeyDown, true);
-
-            miActive = true;
-            updateIndicator(
-                null,
-                null,
-                " [人工干预中]",
-                renderMiHtml(
-                    `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
-                        remaining / 1000,
-                    )}s，执行操作以停止计时)`,
-                ),
-            );
-            showIndicator();
-
-            interval = window.setInterval(() => {
-                if (remaining <= 0) {
-                    finish(false);
-                    return;
-                }
-
-                playWarningSound();
-
-                if (touched) {
-                    updateIndicator(
-                        null,
-                        null,
-                        " [人工干预中]",
-                        renderMiHtml(
-                            `Alt+鼠标左键进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
-                        ),
-                    );
-                    showIndicator();
-                } else {
-                    remaining -= 1000;
-                    updateIndicator(
-                        null,
-                        null,
-                        " [人工干预中]",
-                        renderMiHtml(
-                            `(剩余 ${Math.ceil(
-                                remaining / 1000,
-                            )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) Alt+鼠标左键进行操作，完成后按 Alt+M 继续`,
-                        ),
-                    );
-                    showIndicator();
-                }
-            }, 1000);
+                    if (touched) {
+                        setIndicatorContent({
+                            id: "intervention",
+                            priority: INDICATOR_PRIORITY.intervention,
+                            content: " [人工干预中]",
+                            html: renderMiHtml(
+                                `Alt+鼠标左键进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
+                            ),
+                        });
+                        showIndicator();
+                    } else {
+                        remaining -= 1000;
+                        setIndicatorContent({
+                            id: "intervention",
+                            priority: INDICATOR_PRIORITY.intervention,
+                            content: " [人工干预中]",
+                            html: renderMiHtml(
+                                `(剩余 ${Math.ceil(
+                                    remaining / 1000,
+                                )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) Alt+鼠标左键进行操作，完成后按 Alt+M 继续`,
+                            ),
+                        });
+                        showIndicator();
+                    }
+                }, 1000);
+            });
         });
-    };
 
     // #endregion
 
