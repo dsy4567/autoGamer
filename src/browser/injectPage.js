@@ -893,8 +893,6 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                         return;
                     }
 
-                    playWarningSound();
-
                     if (touched) {
                         setIndicatorContent({
                             id: "intervention",
@@ -918,6 +916,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                             ),
                         });
                         showIndicator();
+                        playWarningSound();
                     }
                 }, 1000);
             });
