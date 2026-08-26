@@ -743,42 +743,46 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * 播放警告音
      */
     const playWarningSound = () => {
-        if (!window.__autoGamer) return;
-        // 创建或复用 AudioContext（兼容写法）
+        try {
+            if (!window.__autoGamer) return;
+            // 创建或复用 AudioContext（兼容写法）
 
-        if (!window.__autoGamer.warningAudioCtx) {
-            window.__autoGamer.warningAudioCtx = new window.AudioContext();
-        }
+            if (!window.__autoGamer.warningAudioCtx) {
+                window.__autoGamer.warningAudioCtx = new window.AudioContext();
+            }
 
-        const ctx = window.__autoGamer.warningAudioCtx;
+            const ctx = window.__autoGamer.warningAudioCtx;
 
-        // 如果浏览器自动暂停了音频上下文，恢复它
-        if (ctx.state === "suspended") {
-            ctx.resume();
-        }
+            // 如果浏览器自动暂停了音频上下文，恢复它
+            if (ctx.state === "suspended") {
+                ctx.resume();
+            }
 
-        const now = ctx.currentTime;
+            const now = ctx.currentTime;
 
-        // 播放三声急促警告音
-        for (let i = 0; i < 3; i++) {
-            const startTime = now + i * 0.15; // 每声间隔 0.15 秒
+            // 播放三声急促警告音
+            for (let i = 0; i < 3; i++) {
+                const startTime = now + i * 0.15; // 每声间隔 0.15 秒
 
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
 
-            // 方波 + 1200Hz 高频，听起来很有紧迫感
-            osc.type = "square";
-            osc.frequency.setValueAtTime(1200, startTime);
+                // 方波 + 1200Hz 高频，听起来很有紧迫感
+                osc.type = "square";
+                osc.frequency.setValueAtTime(1200, startTime);
 
-            // 音量设置并快速淡出，避免爆音
-            gain.gain.setValueAtTime(0.3, startTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+                // 音量设置并快速淡出，避免爆音
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
 
-            osc.connect(gain);
-            gain.connect(ctx.destination);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
 
-            osc.start(startTime);
-            osc.stop(startTime + 0.08);
+                osc.start(startTime);
+                osc.stop(startTime + 0.08);
+            }
+        } catch (error) {
+            console.error("播放警告音时出错:", error);
         }
     };
 
