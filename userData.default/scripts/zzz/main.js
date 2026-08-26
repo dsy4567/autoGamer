@@ -634,14 +634,6 @@ module.exports = async function (ctx) {
             return log("WARN: 自定义战斗操作为空，无法刷本");
         if (needGoHIA) await goHIA();
 
-        await action("等待人工干预", [
-            [
-                "mi",
-                `请及时完成人工干预（例如 补充足够体力，预计战斗次数${scriptConfig.dungeonRunCount}），随后回到主界面，靠近柏莎 NPC并结束干预`,
-                scriptConfig.manualInterventionDelay,
-            ],
-        ]);
-
         await action("与柏莎-材料本交互", [
             ["tt", 500, 391],
             ["sleep", 3000],
