@@ -349,7 +349,12 @@ window.__autoGamer.mainFn = () => {
         indicator.textContent = `${
             altPressed ? " [Alt模式]" : " [Alt+H获取帮助]"
         }${clipboardEnabled ? " [剪贴板开]" : ""}${top?.content ?? ""}`;
-        indicator.innerHTML += `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${top?.html ?? ""}`;
+        // insertAdjacentHTML 代替 innerHTML +=：避免每次重渲染读取并序列化已有子节点
+        // （结束确认阶段的 html 含大体积 base64 截图 img，鼠标移动会高频触发重渲染）
+        indicator.insertAdjacentHTML(
+            "beforeend",
+            `<br><span>X: ${mousePos.x}, Y: ${mousePos.y}</span><br>${top?.html ?? ""}`,
+        );
     };
 
     /**
@@ -489,7 +494,7 @@ Alt + o       隐藏/显示遮罩<br>
 Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
 Alt + p       手动截图：进入选区模式（拖拽框选，可重复框选），选完后再按一次确认；连按两次全屏截图；ESC 取消<br>
-Alt + m       手动触发干预/结束本次干预<br>
+Alt + m       手动触发干预/结束本次干预（结束时需按两次：第一次展示干预开始前的截图并确认，第二次结束，ESC 取消确认）<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
             });
         }
@@ -1141,16 +1146,20 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * 请求人工干预
      *
      * 行为：
-     *  - 立即通过指示器显示 msg 与操作说明，并启动倒计时
+     *  - 立即通过指示器显示 msg 与操作说明，并启动倒计时；
+     *    同时通过 manualScreenshot 发起一张全屏截图（自动保存到日志目录），
+     *    作为"干预开始前"的场景基准，供结束确认阶段对比
      *  - 倒计时期间每秒更新剩余时间，并调用 playWarningSound()
      *  - 监听到 touchstart 后，取消倒计时，切换提示为"按 Alt+M 继续"
-     *  - 倒计时结束 / 用户按下 Alt+M -> 兑现 promise，并清理监听
+     *  - 第一次 Alt+M：冻结倒计时，展示干预开始前的截图，
+     *    询问用户是否已将游戏场景恢复原状，此时可按 ESC 取消（回到操作阶段）
+     *  - 第二次 Alt+M / 倒计时结束 -> 兑现 promise，并清理监听
      *
      * Node.js 端通过 page.evaluate 调用并 await 返回的 Promise
      *
      * @param {string} [msg=""] 干预说明
      * @param {number} [timeout=15000] 超时毫秒
-     * @returns {Promise<boolean>} 用户按 Alt+M 手动结束时返回 true，超时返回 false
+     * @returns {Promise<boolean>} 用户第二次按 Alt+M 确认结束时返回 true，超时返回 false
      */
     const requestManualIntervention =
         (window.__autoGamer.requestManualIntervention = (
@@ -1163,12 +1172,36 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 let interval = undefined;
                 let touched = false;
                 let remaining = timeout;
+                /** 结束确认阶段：第一次 Alt+M 后为 true，第二次 Alt+M 结束干预、ESC 取消确认 */
+                let confirming = false;
+                /** 干预开始前截图的 base64，null 表示尚未就绪或获取失败 */
+                let preBase64 = null;
+
+                // 干预开始即发起截图（此时用户尚未操作），等待第一次 Alt+M 时再展示；
+                // manualScreenshot 会自动保存到日志目录，且截图期间隐藏注入的 UI 元素
+                /** @type {Promise<string | null>} */
+                const preScreenshotPromise = (async () => {
+                    try {
+                        return (
+                            (await window.__autoGamer?.manualScreenshot?.()) ??
+                            null
+                        );
+                    } catch (err) {
+                        console.error("[autoGamer] 干预开始前截图失败:", err);
+                        return null;
+                    }
+                })();
 
                 const cleanup = () => {
                     if (interval !== undefined) {
                         window.clearInterval(interval);
                         interval = undefined;
                     }
+                    window.removeEventListener(
+                        "mousedown",
+                        onTouchStartOrMouseDown,
+                        true,
+                    );
                     window.removeEventListener(
                         "touchstart",
                         onTouchStartOrMouseDown,
@@ -1190,6 +1223,69 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 const renderMiHtml = (/** @type {string} */ extraMsg) =>
                     `<br>${msg}<br><span style="color: red;">${extraMsg}</span><br>如不需要人工干预功能，请编辑脚本配置`;
 
+                /**
+                 * 渲染操作阶段提示（倒计时进行中 / 已停止计时两种状态）
+                 */
+                const renderOperating = () => {
+                    setIndicatorContent({
+                        id: "intervention",
+                        priority: INDICATOR_PRIORITY.intervention,
+                        content: " [人工干预中]",
+                        html: renderMiHtml(
+                            touched
+                                ? `<span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span>
+                                (已停止计时，请尽快操作)`
+                                : `(剩余 ${Math.ceil(
+                                      remaining / 1000,
+                                  )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>)
+                                  <span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续`,
+                        ),
+                    });
+                    showIndicator();
+                };
+
+                /**
+                 * 渲染结束确认阶段提示：展示干预开始前的截图，询问是否已恢复原状
+                 * @param {string} imgHtml 干预开始前截图的 img 标签或占位/失败提示
+                 */
+                const renderConfirm = (/** @type {string} */ imgHtml) => {
+                    setIndicatorContent({
+                        id: "intervention",
+                        priority: INDICATOR_PRIORITY.intervention,
+                        content: " [人工干预中]",
+                        html: `<br>${msg}<br><span style="color: red;">是否已将游戏场景恢复原状？</span>
+                        <br>已恢复：<span style="color: #39c5bb;">再按一次 Alt+M 结束干预</span>；未恢复：<span style="color: #39c5bb;">按 ESC 返回继续操作</span>
+                        <br>↓ 干预开始前的截图${imgHtml}`,
+                    });
+                    showIndicator();
+                };
+
+                /**
+                 * 第一次 Alt+M：进入结束确认阶段，等待干预开始前的截图就绪后展示
+                 */
+                const enterConfirm = async () => {
+                    confirming = true;
+                    renderConfirm(
+                        `<br><span style="color: #66ccff;">（截图获取中...）</span>`,
+                    );
+                    preBase64 = await preScreenshotPromise;
+                    // 等待期间可能已结束干预或已按 ESC 取消确认
+                    if (resolved || !confirming) return;
+                    renderConfirm(
+                        preBase64
+                            ? `<br><img src="data:image/png;base64,${preBase64}" style="display: block; max-width: 40vw; max-height: 40vh; border: 1px solid rgba(255,255,255,0.8);">`
+                            : `<br><span style="color: #66ccff;">（截图获取失败，无法对比）</span>`,
+                    );
+                };
+
+                /**
+                 * ESC 取消结束确认：回到操作阶段，倒计时从冻结值继续
+                 */
+                const exitConfirm = () => {
+                    confirming = false;
+                    renderOperating();
+                };
+
                 const onTouchStartOrMouseDown = () => {
                     if (resolved || touched) return;
                     touched = true;
@@ -1197,11 +1293,22 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 };
 
                 const onKeyDown = /** @param {KeyboardEvent} e */ e => {
-                    if (resolved) return;
+                    // 忽略按住不放产生的重复按键，保证"第二次 Alt+M"是独立的按键
+                    if (resolved || e.repeat) return;
                     if (e.key === "m" && e.altKey) {
                         e.preventDefault();
                         e.stopPropagation();
-                        finish(true);
+                        if (confirming) {
+                            // 第二次 Alt+M：确认已恢复原状，结束干预
+                            finish(true);
+                        } else {
+                            // 第一次 Alt+M：展示干预开始前的截图，进入结束确认阶段
+                            enterConfirm();
+                        }
+                    } else if (e.key === "Escape" && confirming) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        exitConfirm();
                     }
                 };
 
@@ -1233,34 +1340,19 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                 showIndicator();
 
                 interval = window.setInterval(() => {
-                    if (remaining <= 0) {
+                    if (remaining <= 0 && !confirming) {
                         finish(false);
                         return;
                     }
 
+                    // 结束确认阶段冻结倒计时递减与提示刷新，等待第二次 Alt+M / ESC
+                    if (confirming) return;
+
                     if (touched) {
-                        setIndicatorContent({
-                            id: "intervention",
-                            priority: INDICATOR_PRIORITY.intervention,
-                            content: " [人工干预中]",
-                            html: renderMiHtml(
-                                `<span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
-                            ),
-                        });
-                        showIndicator();
+                        renderOperating();
                     } else {
                         remaining -= 1000;
-                        setIndicatorContent({
-                            id: "intervention",
-                            priority: INDICATOR_PRIORITY.intervention,
-                            content: " [人工干预中]",
-                            html: renderMiHtml(
-                                `(剩余 ${Math.ceil(
-                                    remaining / 1000,
-                                )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) <span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续`,
-                            ),
-                        });
-                        showIndicator();
+                        renderOperating();
                         playWarningSound();
                     }
                 }, 1000);

@@ -203,10 +203,11 @@ declare global {
             /** 延时等待 */
             sleep(ms: number): Promise<void>;
             /**
-             * 请求人工干预 - 在页面显示提示，等待用户触摸后按 Alt+M 继续，或超时自动继续
+             * 请求人工干预 - 在页面显示提示，等待用户触摸后按两次 Alt+M 确认结束，或超时自动继续
+             * （第一次 Alt+M 展示干预开始前的截图并询问是否已恢复原状，此时可按 ESC 取消）
              *
              * 行为约定：
-             * - 成功（用户按 Alt+M 结束）：调用 onFinish(true)，返回 true
+             * - 成功（用户第二次按 Alt+M 确认结束）：调用 onFinish(true)，返回 true
              * - 超时：调用 onFinish(false)，返回 false
              * - 调用出错 + 提供 onError：调用 onError(err)，**不调用 onFinish**，返回 false（不抛错）
              * - 调用出错 + 未提供 onError：抛出原始错误
@@ -229,7 +230,7 @@ declare global {
              *
              * 启用后，在非干预态按下 Alt+M 会触发后端调用 mi，
              * 并立即创建 manualPausePromise 阻塞 doOpsArray / sceneChangeDetector，
-             * 直到 mi 返回（用户按 Alt+M 结束干预或超时）才解除阻塞。
+             * 直到 mi 返回（用户第二次按 Alt+M 确认结束干预或超时）才解除阻塞。
              *
              * 阻塞粒度为 op 边界：当前正在执行中的 op 不会被中断，
              * 暂停会在当前 op 完成后、下一个 op 开始前生效。
