@@ -874,7 +874,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                     priority: INDICATOR_PRIORITY.intervention,
                     content: " [人工干预中]",
                     html: renderMiHtml(
-                        `Alt+鼠标左键进行操作，完成后按 Alt+M 继续 (剩余 ${Math.ceil(
+                        `<span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (剩余 ${Math.ceil(
                             remaining / 1000,
                         )}s，执行操作以停止计时)`,
                     ),
@@ -897,7 +897,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                             priority: INDICATOR_PRIORITY.intervention,
                             content: " [人工干预中]",
                             html: renderMiHtml(
-                                `Alt+鼠标左键进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
+                                `<span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续</span> (已停止计时，请尽快操作)`,
                             ),
                         });
                         showIndicator();
@@ -910,7 +910,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
                             html: renderMiHtml(
                                 `(剩余 ${Math.ceil(
                                     remaining / 1000,
-                                )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) Alt+鼠标左键进行操作，完成后按 Alt+M 继续`,
+                                )}s，<span style="color: #39c5bb;">执行操作以停止计时</span>) <span style="color: #39c5bb;">Alt+鼠标左键</span>进行操作，完成后<span style="color: #39c5bb;">按 Alt+M 继续`,
                             ),
                         });
                         showIndicator();
