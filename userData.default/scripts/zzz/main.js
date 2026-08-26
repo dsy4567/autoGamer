@@ -125,6 +125,34 @@ module.exports = async function (ctx) {
         ),
     };
 
+    /** 取消追踪任务 */
+    async function cancelTrackingTask() {
+        await action("打开任务列表", [
+            ["tt", 562, 359],
+            ["sleep", 3000],
+        ]);
+
+        await action("停止追踪", [
+            [
+                "cs",
+                "停止追踪.png",
+                {
+                    clip: { x: 81, y: 347, width: 114, height: 39 },
+                    threshold: 0.99,
+                },
+                [["tt", 98, 364]],
+            ],
+        ]);
+
+        await action("关闭任务列表", [
+            ["sleep", 1000],
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
+            tapBackBtn.middleTop,
+            ["sleep", 3000],
+        ]);
+    }
+
     /** 调整时间至凌晨 */
     async function adjustTimeToNight() {
         await action("调整时间至凌晨-前置检查及最终切换", [
@@ -848,6 +876,7 @@ module.exports = async function (ctx) {
     async function main() {
         await enterMain();
         await adjustTimeToNight();
+        await cancelTrackingTask();
         await goSixthStreet();
         await goCoffeeShop();
         await goMagazineShop();
