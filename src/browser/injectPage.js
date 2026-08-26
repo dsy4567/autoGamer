@@ -11,8 +11,11 @@
 
 "use strict";
 
+// ====================VSCode 按 F12 跳转到目录====================
+let __press_f12_to_jump_to_menu__ = "";
+// ====================VSCode 按 F12 跳转到目录====================
+
 window.__autoGamer = window.__autoGamer || {};
-if (!window.__autoGamer) throw 0;
 
 window.__autoGamer.mainFn = () => {
     if (
@@ -861,6 +864,26 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         }
     });
 
+    // #endregion
+
+    // #region 目录（VSCode 按 F12 跳转到对应代码块）
+    if ("bypass-no-constant-condition".includes("QwQ")) {
+        __press_f12_to_jump_to_menu__;
+        overlay; // 创建全屏遮罩元素
+        // Page Visibility API 劫持
+        indicator; // 创建鼠标坐标指示器元素
+        crosshairCommonStyle; // 十字交叉线（触摸点指示）
+        altPressed; // 鼠标坐标指示器更新逻辑
+        indicatorEntries; // 指示器内容注册表（优先级仲裁）
+        ballVisible; // 悬浮球显示/隐藏
+        mouseLeftPressed; // Alt+鼠标事件转发为触摸事件、indicator 快捷键、其他鼠标键盘事件处理
+        // 消息监听
+        // 标题与图标修改
+        selectors; // 隐藏特定元素
+        playWarningSound; // 警告音播放
+        requestManualIntervention; // 人工干预功能
+        configWidth; // 缩放相关
+    }
     // #endregion
 };
 
