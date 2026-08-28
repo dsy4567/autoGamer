@@ -867,8 +867,8 @@ module.exports = async function (ctx) {
 
     async function main() {
         await enterMain();
-        await adjustTimeToNight();
         await cancelTrackingTask();
+        await adjustTimeToNight();
         await goSixthStreet();
         await goCoffeeShop();
         await goMagazineShop();
