@@ -1638,13 +1638,18 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         } else {
             const userDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
                 .userDataDir;
-            const scriptDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
-                .scriptDataDir;
             const scriptId = /** @type {AutoGamer.ScriptCtx} */ (ctx).scriptId;
             // 脚本目录/resources/<pngPath>
-            const scriptResourcePath = scriptDataDir
-                ? path.join(scriptDataDir, "resources", pngPath)
-                : null;
+            const scriptResourcePath =
+                userDataDir && scriptId
+                    ? path.join(
+                          userDataDir,
+                          "scripts",
+                          scriptId,
+                          "resources",
+                          pngPath,
+                      )
+                    : null;
             // 项目根目录/<pngPath>
             const projectRootPath = path.join(
                 /** @type {string} */ (require.main?.path ?? process.cwd()),
