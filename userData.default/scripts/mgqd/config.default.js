@@ -20,9 +20,9 @@ const path = require("path");
  * @param {AutoGamer.ScriptConfigCtx} ctx
  */
 module.exports = function (ctx) {
-    const { loadUserConfig, dataDir, scriptId } = ctx;
+    const { loadUserConfig, userDataDir, scriptId } = ctx;
     const userConfig = loadUserConfig(
-        path.join(dataDir, "scriptData", scriptId, "config.js"),
+        path.join(userDataDir, "scriptData", scriptId, "config.js"),
         ctx,
     );
 

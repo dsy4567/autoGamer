@@ -143,12 +143,12 @@ function resolveExecPath(config) {
  * 尝试 `flatpak override` 添加读写权限（先 --user 后 --system），并复查结果
  *
  * @param {string} execPath 可执行文件路径（flatpak 导出脚本，文件名即应用 id）
- * @param {string} userDataDir Chrome 用户数据目录
+ * @param {string} chromeDataDir Chrome 用户数据目录
  */
-function prepareFlatpakAccess(execPath, userDataDir) {
+function prepareFlatpakAccess(execPath, chromeDataDir) {
     const pkgName = path.basename(execPath);
     // flatpak info 对不存在的路径可能异常，先确保目录存在
-    fs.mkdirSync(userDataDir, { recursive: true });
+    fs.mkdirSync(chromeDataDir, { recursive: true });
 
     /**
      * 检查 flatpak 应用对目录的访问级别是否为 read-write
@@ -157,7 +157,7 @@ function prepareFlatpakAccess(execPath, userDataDir) {
     const checkAccess = () => {
         try {
             const out = execSync(
-                `flatpak info --file-access="${userDataDir}" ${pkgName}`,
+                `flatpak info --file-access="${chromeDataDir}" ${pkgName}`,
                 { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
             );
             return out.trim() === "read-write";
@@ -169,14 +169,16 @@ function prepareFlatpakAccess(execPath, userDataDir) {
     };
 
     if (checkAccess()) {
-        log(`flatpak 应用 ${pkgName} 已有 ${userDataDir} 读写权限`);
+        log(`flatpak 应用 ${pkgName} 已有 ${chromeDataDir} 读写权限`);
         return;
     }
 
-    log(`flatpak 应用 ${pkgName} 缺少 ${userDataDir} 读写权限，尝试添加...`);
+    log(
+        `flatpak 应用 ${pkgName} 缺少 ${chromeDataDir} 读写权限，尝试添加...`,
+    );
     try {
         execSync(
-            `flatpak override --user --filesystem="${userDataDir}":rw ${pkgName}`,
+            `flatpak override --user --filesystem="${chromeDataDir}":rw ${pkgName}`,
             { stdio: ["pipe", "pipe", "pipe"] },
         );
     } catch {
@@ -184,13 +186,13 @@ function prepareFlatpakAccess(execPath, userDataDir) {
     }
     if (checkAccess()) {
         log(
-            `已为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限（--user）`,
+            `已为 flatpak 应用 ${pkgName} 添加 ${chromeDataDir} 读写权限（--user）`,
         );
         return;
     }
 
     throw new Error(
-        `无法为 flatpak 应用 ${pkgName} 添加 ${userDataDir} 读写权限，请手动执行: flatpak override --user --filesystem="${userDataDir}":rw ${pkgName}`,
+        `无法为 flatpak 应用 ${pkgName} 添加 ${chromeDataDir} 读写权限，请手动执行: flatpak override --user --filesystem="${chromeDataDir}":rw ${pkgName}`,
     );
 }
 
@@ -210,19 +212,19 @@ module.exports = async function (config) {
         _launchedBrowser = null;
         _launchedInfo = null;
 
-        const userDataDir =
+        const chromeDataDir =
             config.dirs?.chromeDataDir ??
-            path.join(config.dataDir, "chromeData");
+            path.join(config.userDataDir, "chromeData");
 
         const { execPath, isFlatpak } = resolveExecPath(config);
         if (isFlatpak) {
-            prepareFlatpakAccess(execPath, userDataDir);
+            prepareFlatpakAccess(execPath, chromeDataDir);
         }
 
         // 移除 Chrome Preferences 中的缩放偏好，避免页面缩放影响自动化操作
         {
             const preferencesPath = path.join(
-                userDataDir,
+                chromeDataDir,
                 "Default",
                 "Preferences",
             );
@@ -267,7 +269,7 @@ module.exports = async function (config) {
             headless: false,
             defaultViewport: config.viewport,
             executablePath: execPath,
-            userDataDir,
+            userDataDir: chromeDataDir,
             args,
         });
         // 缓存已启动的实例，监听 disconnected 事件自动清理失效缓存

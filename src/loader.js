@@ -82,11 +82,11 @@ function _getInstanceInfo() {
     return _currentInstance;
 }
 
-/** 清理 require.cache 中 dataDir/scripts 下的文件 */
+/** 清理 require.cache 中 userDataDir/scripts 下的文件 */
 function _clearDataDirRequireCache() {
     const prefixs = [
-        path.normalize(`${config.dataDir}/scripts`),
-        path.normalize(`${config.dataDir}/scriptData`),
+        path.normalize(`${config.userDataDir}/scripts`),
+        path.normalize(`${config.userDataDir}/scriptData`),
     ];
     for (const key of Object.keys(require.cache)) {
         if (prefixs.some(prefix => path.normalize(key).startsWith(prefix))) {
@@ -225,30 +225,30 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     // 源数据目录（项目内 userData.default/），用于 init/自动初始化时复制文件
     const sourceDir = path.resolve(__dirname, "../userData.default");
-    const dataDir = config.dataDir;
+    const userDataDir = config.userDataDir;
 
     // init 命令：初始化数据目录后退出
     if (isInit) {
         const initScriptId = positionals[1] ?? null;
-        runInit(sourceDir, dataDir, initScriptId);
+        runInit(sourceDir, userDataDir, initScriptId);
         process.exit(0);
     }
 
     // 非开发模式（贡献者）自动初始化：首次运行时创建数据目录并复制内置文件
     if (config.isDev !== 1) {
-        ensureDataDir(sourceDir, dataDir, scriptId);
+        ensureDataDir(sourceDir, userDataDir, scriptId);
     }
 
     // 非开发模式且运行脚本时：检查源文件元数据是否仍与 init 时一致
     if (config.isDev !== 1 && scriptId) {
-        checkSourceMetadata(sourceDir, dataDir, scriptId);
+        checkSourceMetadata(sourceDir, userDataDir, scriptId);
     }
 
     // 推导脚本名，用于日志目录
     const startTimeStr = formatLocalTimeWithTz();
     const logDir = config.isDev
-        ? path.join(dataDir, "logs", "devTemp")
-        : path.join(dataDir, "logs", scriptId || "_unknown", startTimeStr);
+        ? path.join(userDataDir, "logs", "devTemp")
+        : path.join(userDataDir, "logs", scriptId || "_unknown", startTimeStr);
     fs.mkdirSync(logDir, { recursive: true });
     if (!config.isDev) {
         const logFilePath = path.join(logDir, "log.txt");
@@ -264,7 +264,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
 
     // 非开发模式：检查 logs/ 下所有脚本子目录的文件夹总数，超过阈值则提醒清理
     if (config.isDev !== 1) {
-        const logsDir = path.join(dataDir, "logs");
+        const logsDir = path.join(userDataDir, "logs");
         if (fs.existsSync(logsDir)) {
             let totalFolders = 0;
             for (const scriptDir of fs.readdirSync(logsDir)) {
@@ -378,7 +378,12 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
             return await _closeBrowserAndExit(1);
         }
 
-        const scriptPath = path.join(dataDir, "scripts", scriptId, "main.js");
+        const scriptPath = path.join(
+            userDataDir,
+            "scripts",
+            scriptId,
+            "main.js",
+        );
         if (!fs.existsSync(scriptPath)) {
             log("ERROR: 找不到脚本:", scriptPath);
             return await _closeBrowserAndExit(1);
@@ -414,7 +419,7 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
                     getGlobalConfig: () => config,
                     createUtils,
                     loadUserConfig,
-                    dataDir,
+                    userDataDir,
                     scriptId,
                     startAtChain,
                     endAtChain,

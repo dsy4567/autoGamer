@@ -1605,7 +1605,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      * pngPath 支持绝对路径和相对路径：
      * - 绝对路径：直接使用
      * - 相对路径：依次尝试 <脚本目录>/resources/<pngPath> 和 <项目根目录>/<pngPath>
-     *   （脚本目录需要 ctx 中包含 dataDir 和 scriptId）
+     *   （脚本目录需要 ctx 中包含 userDataDir 和 scriptId）
      *
      * @param {string} pngPath PNG 文件路径（绝对路径或相对路径）
      * @param {AutoGamer.CompareScreenshotOptions} [options] 配置选项
@@ -1637,7 +1637,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
             resolvedPath = pngPath;
         } else {
             const scriptDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
-                .dataDir;
+                .userDataDir;
             const scriptId = /** @type {AutoGamer.ScriptCtx} */ (ctx).scriptId;
             // 脚本目录/resources/<pngPath>
             const scriptResourcePath =

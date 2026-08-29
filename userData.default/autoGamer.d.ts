@@ -263,7 +263,7 @@ declare global {
              * pngPath 支持绝对路径和相对路径：
              * - 绝对路径：直接使用
              * - 相对路径：依次尝试 <脚本目录>/resources/<pngPath> 和 <项目根目录>/<pngPath>
-             *   （脚本目录需要 ctx 中包含 dataDir 和 scriptId）
+             *   （脚本目录需要 ctx 中包含 userDataDir 和 scriptId）
              *
              * @param pngPath PNG 文件路径（绝对路径或相对路径）
              * @param options 配置选项
@@ -530,7 +530,7 @@ declare global {
                 ctx: ScriptConfigCtx,
             ) => {};
             /** 数据目录绝对路径 */
-            dataDir: string;
+            userDataDir: string;
             /** 当前脚本 id */
             scriptId: string;
             /** 启用当前实例的热重载（非开发模式时静默） */
@@ -539,7 +539,7 @@ declare global {
 
         interface LoadUserConfigCtx {
             /** 数据目录绝对路径 */
-            dataDir: string;
+            userDataDir: string;
             /** 当前脚本 id */
             scriptId: string;
         }
@@ -593,7 +593,7 @@ declare global {
                 | string
                 | null;
             /** 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/ */
-            dataDir: string;
+            userDataDir: string;
             /** Puppeteer 启动参数 */
             puppeteerArgs: string[];
             /** 移动端 User-Agent */

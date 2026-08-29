@@ -96,11 +96,11 @@ function getSourceMetadata(sourceDir, scriptId) {
 
 /**
  * 读取已存储的源文件元数据
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @returns {AutoGamer.SourceMetadata | null}
  */
-function _readStoredSourceMetadata(dataDir) {
-    const metadataPath = path.join(dataDir, "sourceMetadata.json");
+function _readStoredSourceMetadata(userDataDir) {
+    const metadataPath = path.join(userDataDir, "sourceMetadata.json");
     if (!fs.existsSync(metadataPath)) return null;
     try {
         const content = fs.readFileSync(metadataPath, "utf-8");
@@ -112,26 +112,26 @@ function _readStoredSourceMetadata(dataDir) {
 
 /**
  * 写入源文件元数据快照
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @param {AutoGamer.SourceMetadata} metadata
  */
-function writeSourceMetadata(dataDir, metadata) {
-    const metadataPath = path.join(dataDir, "sourceMetadata.json");
+function writeSourceMetadata(userDataDir, metadata) {
+    const metadataPath = path.join(userDataDir, "sourceMetadata.json");
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), "utf-8");
 }
 
 /**
  * 同步指定脚本相关的全部源文件到数据目录（用于元数据记录损坏时的全量同步）
  * @param {string} sourceDir 项目内 userData.default 源目录
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @param {string} scriptId 当前脚本 id
  */
-function _syncScriptFiles(sourceDir, dataDir, scriptId) {
+function _syncScriptFiles(sourceDir, userDataDir, scriptId) {
     const dirs = ["share", path.join("scripts", scriptId)];
     const files = ["README.md", "autoGamer.d.ts"];
     for (const item of [...dirs, ...files]) {
         const src = path.join(sourceDir, item);
-        const dest = path.join(dataDir, item);
+        const dest = path.join(userDataDir, item);
         if (!fs.existsSync(src)) continue;
         if (files.includes(item)) {
             copyForce(src, dest);
@@ -149,13 +149,13 @@ function _syncScriptFiles(sourceDir, dataDir, scriptId) {
  * - false：仅输出警告，提示用户手动执行 init <scriptId>
  *
  * @param {string} sourceDir 项目内 userData.default 源目录
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @param {string} scriptId 当前脚本 id
  * @returns {boolean}
  */
-function checkSourceMetadata(sourceDir, dataDir, scriptId) {
+function checkSourceMetadata(sourceDir, userDataDir, scriptId) {
     const current = getSourceMetadata(sourceDir, scriptId);
-    const stored = _readStoredSourceMetadata(dataDir);
+    const stored = _readStoredSourceMetadata(userDataDir);
     // 归一化配置：接受 true/1/"1"/"true" 等可转换值，避免 === 严格比较失败（见避坑指南 #3）
     const autoSync = Boolean(config.autoSyncSourceFiles);
 
@@ -164,13 +164,13 @@ function checkSourceMetadata(sourceDir, dataDir, scriptId) {
             log(
                 "WARNING: 源文件元数据记录不存在或已损坏，已自动同步源文件并重新生成记录",
             );
-            _syncScriptFiles(sourceDir, dataDir, scriptId);
+            _syncScriptFiles(sourceDir, userDataDir, scriptId);
         } else {
             log(
                 `WARNING: 源文件元数据记录不存在或已损坏，正在重新生成；如需同步文件请执行 init ${scriptId}`,
             );
         }
-        writeSourceMetadata(dataDir, current);
+        writeSourceMetadata(userDataDir, current);
         return true;
     }
 
@@ -192,13 +192,13 @@ function checkSourceMetadata(sourceDir, dataDir, scriptId) {
             for (const key of changedKeys) {
                 log(`WARNING: 源文件 ${key} 需要更新，已自动同步最新文件`);
                 const src = path.join(sourceDir, key);
-                const dest = path.join(dataDir, key);
+                const dest = path.join(userDataDir, key);
                 if (fs.existsSync(src)) {
                     fs.mkdirSync(path.dirname(dest), { recursive: true });
                     copyForce(src, dest);
                 }
             }
-            writeSourceMetadata(dataDir, current);
+            writeSourceMetadata(userDataDir, current);
         }
         return true;
     }
@@ -221,11 +221,11 @@ function checkSourceMetadata(sourceDir, dataDir, scriptId) {
 /**
  * 执行 init 命令：创建数据目录、各脚本的 logs/scriptData 子目录，并强制覆盖相关文件
  * @param {string} sourceDir 项目内 userData.default 源目录
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @param {string|null} [scriptId] 指定脚本 id（null 表示所有脚本）
  */
-function runInit(sourceDir, dataDir, scriptId = null) {
-    fs.mkdirSync(dataDir, { recursive: true });
+function runInit(sourceDir, userDataDir, scriptId = null) {
+    fs.mkdirSync(userDataDir, { recursive: true });
 
     // 扫描源 scripts 目录，为相关脚本创建 logs/<id>/、scriptData/<id>/
     const scriptsSrc = path.join(sourceDir, "scripts");
@@ -249,14 +249,14 @@ function runInit(sourceDir, dataDir, scriptId = null) {
     }
     for (const id of ids) {
         ["logs", "scriptData"].forEach(dir => {
-            fs.mkdirSync(path.join(dataDir, dir, id), {
+            fs.mkdirSync(path.join(userDataDir, dir, id), {
                 recursive: true,
             });
         });
     }
 
     // 强制覆盖（源=目标时跳过，避免递归）
-    if (path.resolve(sourceDir) !== path.resolve(dataDir)) {
+    if (path.resolve(sourceDir) !== path.resolve(userDataDir)) {
         const dirs = scriptId
             ? ["share", path.join("scripts", scriptId)]
             : ["share", "scripts"];
@@ -264,7 +264,7 @@ function runInit(sourceDir, dataDir, scriptId = null) {
         const items = [...files, ...dirs];
         for (const item of items) {
             const src = path.join(sourceDir, item);
-            const dest = path.join(dataDir, item);
+            const dest = path.join(userDataDir, item);
             if (!fs.existsSync(src)) continue;
             if (files.includes(item)) {
                 copyForce(src, dest);
@@ -276,22 +276,25 @@ function runInit(sourceDir, dataDir, scriptId = null) {
         // 非开发模式记录源文件元数据快照
         if (config.isDev !== 1) {
             const metadata = getSourceMetadata(sourceDir, scriptId);
-            writeSourceMetadata(dataDir, metadata);
+            writeSourceMetadata(userDataDir, metadata);
         }
 
-        log("初始化完成:", dataDir, scriptId || "");
+        log("初始化完成:", userDataDir, scriptId || "");
     } else {
-        log("开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:", dataDir);
+        log(
+            "开发模式：数据目录与源目录相同，跳过复制，仅创建子目录:",
+            userDataDir,
+        );
     }
 }
 
 /**
  * 非开发模式自动初始化：数据目录不存在时创建并复制内置文件
  * @param {string} sourceDir 项目内 userData.default 源目录
- * @param {string} dataDir 数据目录
+ * @param {string} userDataDir 数据目录
  * @param {string|null} scriptId 当前脚本 id（login 时为 null）
  */
-function ensureDataDir(sourceDir, dataDir, scriptId) {
+function ensureDataDir(sourceDir, userDataDir, scriptId) {
     if (config.isDev === 1) return;
 
     // 仅操作和特定脚本有关的目录和文件
@@ -304,12 +307,12 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
     const items = [...dirs, ...files];
 
     let initialized = false;
-    if (items.some(item => !fs.existsSync(path.join(dataDir, item)))) {
+    if (items.some(item => !fs.existsSync(path.join(userDataDir, item)))) {
         log("WARNING: 相关目录不存在，正在初始化");
-        fs.mkdirSync(dataDir, { recursive: true });
+        fs.mkdirSync(userDataDir, { recursive: true });
         for (const item of items) {
             const src = path.join(sourceDir, item);
-            const dest = path.join(dataDir, item);
+            const dest = path.join(userDataDir, item);
             if (!fs.existsSync(src)) continue;
             if (files.includes(item)) {
                 copyForce(src, dest);
@@ -318,13 +321,13 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
             }
         }
         initialized = true;
-        log("已初始化数据目录:", dataDir);
+        log("已初始化数据目录:", userDataDir);
     }
 
     // 为当前脚本创建 logs/<id>/、scriptData/<id>/
     if (scriptId) {
         ["logs", "scriptData"].forEach(dir => {
-            fs.mkdirSync(path.join(dataDir, dir, scriptId), {
+            fs.mkdirSync(path.join(userDataDir, dir, scriptId), {
                 recursive: true,
             });
         });
@@ -333,7 +336,7 @@ function ensureDataDir(sourceDir, dataDir, scriptId) {
     // 首次自动初始化时记录源文件元数据快照
     if (initialized && scriptId) {
         const metadata = getSourceMetadata(sourceDir, scriptId);
-        writeSourceMetadata(dataDir, metadata);
+        writeSourceMetadata(userDataDir, metadata);
     }
 }
 

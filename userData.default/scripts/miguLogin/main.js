@@ -34,7 +34,7 @@ module.exports = async function (ctx) {
         getGlobalConfig,
         createUtils,
         loadUserConfig,
-        dataDir,
+        userDataDir,
         scriptId,
         startAtChain,
         endAtChain,

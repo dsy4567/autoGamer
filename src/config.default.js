@@ -24,13 +24,13 @@ let isDev = process.argv.includes("--dev")
       : 0;
 
 // 数据目录：开发模式（贡献者）使用项目内 userData.default/，非开发模式使用 ~/.autoGamer/
-const dataDir =
+const userDataDir =
     isDev === 1
         ? path.resolve(__dirname, "../userData.default")
         : path.resolve(os.homedir(), ".autoGamer");
 
-const userConfig = loadUserConfig(path.join(dataDir, "globalConfig.js"), {
-    dataDir,
+const userConfig = loadUserConfig(path.join(userDataDir, "globalConfig.js"), {
+    userDataDir,
     scriptId: "_globalConfig",
 });
 
@@ -54,7 +54,7 @@ const defaultConfig = {
      */
     isDev,
     /** 数据目录（开发模式为项目内 userData.default/，非开发模式为 ~/.autoGamer/） */
-    dataDir,
+    userDataDir,
     /** Chrome 可执行文件路径配置
      *
      * null: 按操作系统自动寻找内置路径（Linux 下内置路径全部未命中时回退 flatpak 路径）
@@ -138,7 +138,7 @@ const defaultConfig = {
     /** 目录配置 */
     dirs: {
         /** Chrome 用户数据目录（浏览器自动创建） */
-        chromeDataDir: path.join(dataDir, "chromeData"),
+        chromeDataDir: path.join(userDataDir, "chromeData"),
     },
     /** 日志文件夹数量警告阈值，logs/ 下所有脚本子目录中文件夹总数超过此值时，退出时提醒清理 */
     logCleanupWarningThreshold: 50,
