@@ -50,7 +50,13 @@ module.exports = function (ctx) {
      */
     const defaultConfig = {
         /** 版本更新时间列表，ISO 8601 格式（如 "2026-07-29T06:00:00+08:00"），更新后24h内拒绝运行 */
-        updateDates: ["2026-07-29T06:00:00+08:00"],
+        updateDates: [
+            "2026-07-29T06:00:00+08:00",
+            "2026-09-09T06:00:00+08:00",
+            "2026-10-21T06:00:00+08:00",
+            "2026-12-02T06:00:00+08:00",
+            "2027-01-13T06:00:00+08:00",
+        ],
         /** 游戏启动 URL（咪咕快游平台） */
         gameUrl:
             "https://www.migufun.com/miguplay/middleGame/gameplay/400883911?gameName=%E7%BB%9D%E5%8C%BA%E9%9B%B6",
