@@ -1636,20 +1636,15 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
         if (path.isAbsolute(pngPath)) {
             resolvedPath = pngPath;
         } else {
-            const scriptDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
+            const userDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
                 .userDataDir;
+            const scriptDataDir = /** @type {AutoGamer.ScriptCtx} */ (ctx)
+                .scriptDataDir;
             const scriptId = /** @type {AutoGamer.ScriptCtx} */ (ctx).scriptId;
             // 脚本目录/resources/<pngPath>
-            const scriptResourcePath =
-                scriptDataDir && scriptId
-                    ? path.join(
-                          scriptDataDir,
-                          "scripts",
-                          scriptId,
-                          "resources",
-                          pngPath,
-                      )
-                    : null;
+            const scriptResourcePath = scriptDataDir
+                ? path.join(scriptDataDir, "resources", pngPath)
+                : null;
             // 项目根目录/<pngPath>
             const projectRootPath = path.join(
                 /** @type {string} */ (require.main?.path ?? process.cwd()),

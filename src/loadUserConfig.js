@@ -1,5 +1,5 @@
 /**
- * @fileoverview 加载用户自定义配置文件，不存在则自动创建空配置
+ * @fileoverview 加载用户自定义配置文件，不存在则自动创建空配置，由 config.default.js （全局/脚本级别）调用
  * @author dsy4567
  * @license
  * Copyright (c) 2025~2026 dsy4567

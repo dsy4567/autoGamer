@@ -27,7 +27,7 @@
    ```
 4. 配置参数：
    - 全局配置：编辑数据目录下的 `globalConfig.js`（首次运行自动创建）
-   - 脚本配置：编辑数据目录下的 `scriptData/<脚本id>/config.js`（首次运行自动创建）
+   - 脚本配置：编辑数据目录下的 `scriptData/<脚本id>/config.override.js`（首次运行自动创建）
 
 > 数据目录：开发模式为项目内 `userData.default/`，非开发模式为 `~/.autoGamer/`
 
@@ -57,7 +57,7 @@
   - `README.md`                      内置脚本说明
 - 数据目录（运行时生成，开发模式即 `userData.default/`，非开发模式即 `~/.autoGamer/`）：
   - `globalConfig.js`                用户全局配置
-  - `scriptData/<id>/config.js`      用户脚本配置
+  - `scriptData/<id>/config.override.js` 用户脚本配置
   - `logs/<id>/<timestamp>/`         日志
   - `chromeData/`                    浏览器用户数据
 

@@ -425,6 +425,11 @@ Copyright (c) 2025~2026 dsy4567, GPL-3.0-or-later License
                     endAtChain,
                     getInstanceInfo: _getInstanceInfo,
                     enableHotReload: () => instance.enableHotReload(),
+                    scriptDataDir: path.join(
+                        userDataDir,
+                        "scriptData",
+                        scriptId,
+                    ),
                 });
             } catch (e) {
                 log("ERROR: 脚本执行出错:", e);

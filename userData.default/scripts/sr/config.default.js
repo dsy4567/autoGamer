@@ -1,5 +1,5 @@
 // ⚠️ 此文件在执行 init 或首次自动初始化时可能会被强制覆盖，请勿直接修改。
-// 如需自定义配置，请编辑 <数据目录>/scriptData/sr/config.js
+// 如需自定义配置，请编辑 <数据目录>/scriptData/sr/config.override.js
 
 /**
  * @fileoverview 脚本 崩坏：星穹铁道 的默认配置及加载用户自定义配置
@@ -20,9 +20,9 @@ const path = require("path");
  * @param {AutoGamer.ScriptConfigCtx} ctx
  */
 module.exports = function (ctx) {
-    const { loadUserConfig, userDataDir, scriptId } = ctx;
+    const { loadUserConfig, scriptDataDir } = ctx;
     const userConfig = loadUserConfig(
-        path.join(userDataDir, "scriptData", scriptId, "config.js"),
+        path.join(scriptDataDir, "config.override.js"),
         ctx,
     );
 

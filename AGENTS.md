@@ -24,7 +24,7 @@ autoGamer 是一个基于 Puppeteer 的云游戏自动化工具，通过模拟�
 - `<dataDir>/scripts/<id>/main.js`          脚本入口
 - `<dataDir>/scripts/<id>/config.default.js` 脚本默认配置
 - `<dataDir>/scripts/<id>/resources/`       脚本资源文件（如图片）
-- `<dataDir>/scriptData/<id>/config.js` 脚本用户配置（覆盖 scripts/<id>/config.default.js，运行时生成）
+- `<dataDir>/scriptData/<id>/config.override.js` 脚本用户配置（覆盖 scripts/<id>/config.default.js，运行时生成）
 - `<dataDir>/logs/`            日志目录（按脚本 id 分子目录）
 - `<dataDir>/share/*.js`       共享函数
 - `<dataDir>/autoGamer.d.ts`   类型声明（供核心文件与 userData.default/ 下脚本消费）

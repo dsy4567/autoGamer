@@ -531,6 +531,8 @@ declare global {
             ) => {};
             /** 数据目录绝对路径 */
             userDataDir: string;
+            /** 当前脚本的数据目录（<数据目录>/scriptData/<id>），包含 override 配置等 */
+            scriptDataDir: string;
             /** 当前脚本 id */
             scriptId: string;
             /** 启用当前实例的热重载（非开发模式时静默） */
@@ -546,6 +548,8 @@ declare global {
 
         /** scripts/<id>/config.default.js 接收的 ctx */
         interface ScriptConfigCtx extends LoadUserConfigCtx {
+            /** 当前脚本的数据目录（<数据目录>/scriptData/<id>），包含 override 配置等 */
+            scriptDataDir: string;
             /** 加载用户自定义配置文件 */
             loadUserConfig: (
                 userConfigPath: string,
