@@ -24,8 +24,8 @@ window.__autoGamer.mainFn = () => {
     )
         return;
 
-    /** @type {{ alwaysHideOverlay?: boolean, viewport?: { width: number, height: number } }} */
     const autoGamerConfig = window.__autoGamer.config || {};
+    // 仅适用于黑色遮罩
     let alwaysHideOverlay = autoGamerConfig.alwaysHideOverlay || false;
 
     // #region 创建全屏遮罩元素
@@ -40,7 +40,7 @@ window.__autoGamer.mainFn = () => {
     overlay.style.setProperty("height", "100vh", "important");
     overlay.style.setProperty("background", "rgba(0,0,0,0.999)", "important");
     // 咪咕快游某个弹窗似乎使用了恰好低于此的 z-index，任何情况下这个遮罩必须在其他元素之上
-    // 为确保统一性，其他 auto-gamer 元素的 z-index 应该参考下方 indicator
+    // 为确保统一性，其他 auto-gamer 元素的 z-index 应该在10000左右（参考下方 indicator）
     overlay.style.setProperty("z-index", "1000001", "important");
     overlay.style.setProperty("pointer-events", "none", "important");
     if (alwaysHideOverlay) {
@@ -49,7 +49,7 @@ window.__autoGamer.mainFn = () => {
     document.documentElement.appendChild(overlay);
 
     // 鼠标移入遮罩时隐藏它
-    document.documentElement.addEventListener("mouseenter", function () {
+    document.documentElement.addEventListener("pointerenter", function () {
         overlay.style.setProperty("display", "none", "important");
     });
 
@@ -493,7 +493,7 @@ Alt + b       隐藏/显示悬浮球<br>
 Alt + o       隐藏/显示遮罩<br>
 Alt + x       开启/关闭触摸点十字线（默认开，首次触摸结束后显示）<br>
 Alt + c       开启/关闭复制代码到剪贴板（默认关）<br>
-Alt + p       手动截图：进入选区模式（拖拽框选，可重复框选），选完后再按一次确认；连按两次全屏截图；ESC 取消<br>
+Alt + p       手动截图：进入选区模式（拖拽框选，鼠标或触摸，可重复框选），选完后再按一次确认；连按两次全屏截图；ESC 取消<br>
 Alt + m       手动触发干预/结束本次干预（结束时需按两次：第一次展示干预开始前的截图并确认，第二次结束，ESC 取消确认）<br>
 Alt + 鼠标左键 模拟 tap/drag/hold`,
             });
@@ -748,6 +748,36 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     applyStyle(selectionEndLabel, selectionLabelStyle);
     document.documentElement.appendChild(selectionEndLabel);
 
+    // 选区截图模式专用遮罩：置顶、透明、鼠标事件不可穿透，
+    // 接管触摸/鼠标事件，阻止左滑返回上一页等浏览器手势
+    const screenshotSelectOverlay = document.createElement("div");
+    screenshotSelectOverlay.id = "auto-gamer-screenshot-select-overlay";
+    applyStyle(screenshotSelectOverlay, [
+        ["position", "fixed"],
+        ["top", "0"],
+        ["left", "0"],
+        ["width", "100vw"],
+        ["height", "100vh"],
+        ["background", "transparent"],
+        ["z-index", "10001"],
+        ["pointer-events", "auto"],
+        ["touch-action", "none"],
+        ["display", "none"],
+    ]);
+    document.documentElement.appendChild(screenshotSelectOverlay);
+
+    // 阻止浏览器默认触摸手势（左滑返回上一页、滚动、缩放等）
+    // pointer 事件先于 touch 事件派发，不影响选区拖拽逻辑
+    const blockTouchGesture = /** @param {TouchEvent} e */ e => {
+        e.preventDefault();
+    };
+    screenshotSelectOverlay.addEventListener("touchstart", blockTouchGesture, {
+        passive: false,
+    });
+    screenshotSelectOverlay.addEventListener("touchmove", blockTouchGesture, {
+        passive: false,
+    });
+
     /** 是否处于选区截图模式 */
     let screenshotSelectActive = false;
     /** 是否正在拖拽选区 */
@@ -869,6 +899,13 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         screenshotSelectActive = true;
         screenshotSelection = null;
         hideSelectionUI();
+        screenshotSelectOverlay.style.setProperty(
+            "display",
+            "block",
+            "important",
+        );
+        // 隐藏全屏遮罩，避免触摸操作时页面被遮挡（触摸无 mouseenter 不会自动隐藏）
+        // overlay.style.setProperty("display", "none", "important");
         document.documentElement.style.setProperty(
             "cursor",
             "crosshair",
@@ -878,7 +915,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             id: "screenshotSelect",
             priority: INDICATOR_PRIORITY.screenshotSelect,
             content: " [选区截图]",
-            html: `<br>拖拽鼠标框选区域（无需按住 Alt，可重复框选）<br>选完后按 <span style="color: #39c5bb;">Alt+P</span> 确认，<span style="color: #39c5bb;">ESC</span> 取消`,
+            html: `<br>拖拽框选区域（鼠标或触摸，无需按住 Alt，可重复框选）<br>选完后按 <span style="color: #39c5bb;">Alt+P</span> 确认，<span style="color: #39c5bb;">ESC</span> 取消`,
         });
     };
 
@@ -891,6 +928,17 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         screenshotDragStart = null;
         screenshotSelection = null;
         hideSelectionUI();
+        screenshotSelectOverlay.style.setProperty(
+            "display",
+            "none",
+            "important",
+        );
+        // 恢复全屏遮罩显示状态
+        // overlay.style.setProperty(
+        //     "display",
+        //     alwaysHideOverlay ? "none" : "block",
+        //     "important",
+        // );
         removeIndicatorContent("screenshotSelect");
         document.documentElement.style.removeProperty("cursor");
     };
@@ -975,8 +1023,12 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
         "pointerdown",
         e => {
             if (!screenshotSelectActive || screenshotDragging) return;
-            if (e.pointerType !== "mouse" || e.button !== 0) return;
-            if (e.altKey) return;
+            // 仅允许鼠标左键（无 Alt）与触摸屏操作选区
+            if (e.pointerType === "mouse") {
+                if (e.button !== 0 || e.altKey) return;
+            } else if (e.pointerType !== "touch") {
+                return;
+            }
             e.preventDefault();
             e.stopPropagation();
             screenshotDragging = true;
