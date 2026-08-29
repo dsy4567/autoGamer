@@ -49,13 +49,14 @@ window.__autoGamer.mainFn = () => {
     document.documentElement.appendChild(overlay);
 
     // 鼠标移入遮罩时隐藏它
-    document.documentElement.addEventListener("pointerenter", function () {
+    document.documentElement.addEventListener("pointerenter", e => {
+        if (alwaysHideOverlay || e.pointerType !== "mouse") return;
         overlay.style.setProperty("display", "none", "important");
     });
 
     // 鼠标离开遮罩时重新显示
-    document.documentElement.addEventListener("mouseleave", function () {
-        if (alwaysHideOverlay) return;
+    document.documentElement.addEventListener("pointerleave", e => {
+        if (alwaysHideOverlay || e.pointerType !== "mouse") return;
         overlay.style.setProperty("display", "block", "important");
     });
 
