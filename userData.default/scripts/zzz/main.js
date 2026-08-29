@@ -125,6 +125,39 @@ module.exports = async function (ctx) {
         ),
     };
 
+    /** 检查纪行按钮 */
+    async function checkJiXingBtn() {
+        await action("!检查纪行按钮", [
+            [
+                "fn",
+                () => {
+                    manualBtnXOffset = 0;
+                },
+            ],
+            [
+                "cs",
+                "纪行按钮.png",
+                {
+                    clip: { x: 515, y: 20, width: 20, height: 20 },
+                    threshold: 0.99,
+                    inverse: true,
+                },
+                [
+                    [
+                        "fn",
+                        async () => {
+                            manualBtnXOffset = 30;
+                            log(
+                                "WARNING: 纪行按钮未找到，可能处于版本末期/周年庆",
+                            );
+                        },
+                    ],
+                ],
+                [["fn", () => log("WARN: 纪行按钮未找到/没有要领取的奖励")]],
+            ],
+            ["sleep", 1000],
+        ]);
+    }
     /** 取消追踪任务 */
     async function cancelTrackingTask() {
         await action("打开任务列表", [
@@ -212,6 +245,7 @@ module.exports = async function (ctx) {
 
     /** 打开手册 */
     async function openManual() {
+        if (manualBtnXOffset === null) await checkJiXingBtn();
         if (manualBtnXOffset) {
             // 特殊处理周年庆/版本末期
             // 原理：手册页不适用 tapBackBtn.middleTop
@@ -267,7 +301,7 @@ module.exports = async function (ctx) {
                 manualOpened = true;
                 await action("打开手册-3", [
                     ["tt", 484 + manualBtnXOffset, 30], // 倒二按钮，(非周年庆+版本末期)为手册；大概率点不到的有：(周年庆+平时)||(周年庆+版本末期)为抽卡，(非周年庆+平时)为纪行
-                    ["sleep", 2000],
+                    ["sleep", 3000],
                     matchBackBtnMiddleTop,
                     ["sleep", 1500],
                 ]);
@@ -540,6 +574,14 @@ module.exports = async function (ctx) {
 
     /** 领取纪行奖励 */
     async function getJiXingReward() {
+        if (manualBtnXOffset === null) {
+            await checkJiXingBtn();
+            await openManual();
+            await action("关闭手册", [
+                ["tt", 599, 148],
+                ["sleep", 3000],
+            ]);
+        }
         if (jiXingBtnXOffset === null)
             return log("WARN: 纪行按钮未找到/没有要领取的奖励");
 
@@ -838,35 +880,11 @@ module.exports = async function (ctx) {
         ]);
 
         await action("关闭弹窗后等待", [["sleep", 3000]]);
-
-        await action("!检查纪行按钮", [
-            [
-                "cs",
-                "纪行按钮.png",
-                {
-                    clip: { x: 515, y: 20, width: 20, height: 20 },
-                    threshold: 0.99,
-                    inverse: true,
-                },
-                [
-                    [
-                        "fn",
-                        async () => {
-                            manualBtnXOffset = 30;
-                            log(
-                                "WARNING: 纪行按钮未找到，可能处于版本末期/周年庆",
-                            );
-                        },
-                    ],
-                ],
-                [["fn", () => log("WARN: 纪行按钮未找到/没有要领取的奖励")]],
-            ],
-            ["sleep", 1000],
-        ]);
     }
 
     async function main() {
         await enterMain();
+        await checkJiXingBtn();
         await cancelTrackingTask();
         await adjustTimeToNight();
         await goSixthStreet();
