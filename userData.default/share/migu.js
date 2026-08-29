@@ -69,22 +69,22 @@ async function actionsInCloudGameBallAndExit(ctx) {
         await page.evaluate("window?.__autoGamer?.toggleBallVisible?.(true)");
         await page.click("#app > div > div.pagebox > div:nth-child(4) > div");
         await sleep(3000);
-        try {
-            // 点击福利标签
-            await page.click(
-                "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
-            );
-            await sleep(3000);
-            // 先将签到按钮滚动到可视区域
-            await page.evaluate(
-                'document.querySelector(".notSignInBtn").scrollIntoView()',
-            );
-            await sleep(1000);
-            // 点击签到按钮
-            tt(488, 424);
-        } catch (e) {
-            log("今日已签到");
-        }
+        // try {
+        //     // 点击福利标签
+        //     await page.click(
+        //         "#app > div > div.pagebox > div.dialogBox.setingDialogBoxPanel.gameDirectX > div > div > div.leftbar > ul > li.item.welfare",
+        //     );
+        //     await sleep(3000);
+        //     // 先将签到按钮滚动到可视区域
+        //     await page.evaluate(
+        //         'document.querySelector(".notSignInBtn").scrollIntoView()',
+        //     );
+        //     await sleep(1000);
+        //     // 点击签到按钮
+        //     tt(488, 424);
+        // } catch (e) {
+        //     log("今日已签到");
+        // }
         await sleep(3000);
         if (config.isDev) await screenshot("签到完成");
         await sleep(7000);
