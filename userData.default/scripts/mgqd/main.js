@@ -56,14 +56,14 @@ module.exports = async function (ctx) {
         mi,
         setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
-    const config = getGlobalConfig();
+    const globalConfig = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
     async function main() {
         log("等待页面加载");
         await page.goto(
             "https://www.migufun.com/middleh5/newSignInPage",
-            config.pageloadOptions,
+            globalConfig.pageloadOptions,
         );
 
         await action("签到完成", [["sleep", 5000]]);
@@ -71,7 +71,7 @@ module.exports = async function (ctx) {
 
         await page.goto(
             "https://www.migufun.com/middleh5/cloudBeanZone",
-            config.pageloadOptions,
+            globalConfig.pageloadOptions,
         );
 
         await sleep(5000);
@@ -101,11 +101,11 @@ module.exports = async function (ctx) {
     log("咪咕自动签到+领云豆");
 
     // 根据配置决定是否启动自动定时截图
-    if (config.screenshots?.autoScreenshotEnabled !== false) {
+    if (globalConfig.screenshots?.autoScreenshotEnabled !== false) {
         startAutoScreenshot();
     }
 
-    if (config.isDev) {
+    if (globalConfig.isDev) {
         log("WARNING: 目前处于开发模式，请手动执行 main 函数");
     } else {
         setTaskTimeout(scriptConfig.taskTimeoutMs);

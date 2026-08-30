@@ -58,7 +58,7 @@ module.exports = async function (ctx) {
         mi,
         setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
-    const config = getGlobalConfig();
+    const globalConfig = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
     // 启用热重载功能，仅开发模式下生效，启用后只建议在脚本使用 action() 函数（而非 tt、drag 等函数）

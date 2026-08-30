@@ -59,7 +59,7 @@ module.exports = async function (ctx) {
         mi,
         setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
-    const config = getGlobalConfig();
+    const globalConfig = getGlobalConfig();
     const scriptConfig = require("./config.default.js")(ctx);
 
     const isLogout = process.argv.includes("logout");
@@ -67,7 +67,7 @@ module.exports = async function (ctx) {
     if (isLogout) {
         // logout 模式：打开页面等待用户退出登录
         log("打开页面以清空登录状态");
-        await page.goto(logoutUrl, config.pageloadOptions);
+        await page.goto(logoutUrl, globalConfig.pageloadOptions);
         log(">>>>>>>>>>请在浏览器中完成退出登录操作，完成后关闭页面<<<<<<<<<<");
         await startRepl();
     } else {
@@ -82,7 +82,7 @@ module.exports = async function (ctx) {
 
         // login 模式：打开页面等待用户登录
         log(`打开登录页面: ${loginUrl}`);
-        await page.goto(loginUrl, config.pageloadOptions);
+        await page.goto(loginUrl, globalConfig.pageloadOptions);
         setTimeout(() => {
             logRaw(
                 ">>>>>>>>>>请在浏览器中完成登录操作，完成后关闭页面<<<<<<<<<<",
