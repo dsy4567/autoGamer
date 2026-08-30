@@ -787,10 +787,6 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
     let screenshotDragStart = null;
     /** @type {{x: number, y: number, width: number, height: number} | null} 已完成的选区（视口坐标） */
     let screenshotSelection = null;
-    /** 上一次 Alt+P 按下时间戳，用于连按两次判定 */
-    let lastAltPTime = 0;
-    /** Alt+P 连按两次判定窗口（毫秒） */
-    const ALT_P_DOUBLE_PRESS_MS = 500;
 
     /**
      * 将坐标标签定位到指定坐标右下 4px 处，越界时紧贴视口边缘
@@ -978,9 +974,7 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
      * - 激活但无选区且间隔 >= 500ms：刷新时间戳，继续保持选区模式
      */
     const handleAltP = () => {
-        const now = Date.now();
         if (!screenshotSelectActive) {
-            lastAltPTime = now;
             enterScreenshotSelect();
             return;
         }
@@ -989,13 +983,9 @@ Alt + 鼠标左键 模拟 tap/drag/hold`,
             confirmScreenshotSelection();
             return;
         }
-        if (now - lastAltPTime < ALT_P_DOUBLE_PRESS_MS) {
-            lastAltPTime = 0;
-            exitScreenshotSelect();
-            takeManualScreenshot(null);
-            return;
-        }
-        lastAltPTime = now;
+        exitScreenshotSelect();
+        takeManualScreenshot(null);
+        return;
     };
 
     // 选区模式专用按键监听（capture 阶段拦截，避免 ESC / Alt+P 传给游戏）
