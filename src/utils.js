@@ -191,6 +191,41 @@ function calculateSimilarity(buf1, buf2, blockSize = 16) {
 }
 
 /**
+ * 裁剪 PNG buffer 中的指定矩形区域（页面坐标，含滚动偏移换算）
+ *
+ * 用于 screenshot() 的 clip 实现：Chrome 的 Page.captureScreenshot
+ * 在部分 clip 尺寸/位置下会截出全黑图像（触发规律不明，可能与遮罩
+ * 显示历史有关），因此统一全视口截图后在 Node 端手动裁剪
+ *
+ * clip 超出截图范围的部分会被裁掉（与浏览器 clip∩视口 语义一致）
+ *
+ * @param {Buffer} buf 完整视口的 PNG 数据
+ * @param {{x: number, y: number, width: number, height: number}} clip 页面坐标裁剪区域
+ * @param {number} scrollX 截图原点对应的页面 x 坐标（滚动偏移）
+ * @param {number} scrollY 截图原点对应的页面 y 坐标（滚动偏移）
+ * @returns {Buffer} 裁剪后的 PNG 数据
+ * @throws {Error} clip 与截图区域无交集时抛出
+ */
+function cropPngBuffer(buf, clip, scrollX, scrollY) {
+    const src = PNG.sync.read(buf);
+    // 求 clip 与截图区域（页面坐标 [scrollX, scrollX+src.width] × [scrollY, scrollY+src.height]）的交集
+    const x0 = Math.max(clip.x, scrollX);
+    const y0 = Math.max(clip.y, scrollY);
+    const x1 = Math.min(clip.x + clip.width, scrollX + src.width);
+    const y1 = Math.min(clip.y + clip.height, scrollY + src.height);
+    const sx = Math.round(x0 - scrollX);
+    const sy = Math.round(y0 - scrollY);
+    const w = Math.round(x1 - x0);
+    const h = Math.round(y1 - y0);
+    if (w <= 0 || h <= 0) {
+        throw new Error("clip 区域与当前视口无交集");
+    }
+    const out = new PNG({ width: w, height: h });
+    PNG.bitblt(src, out, sx, sy, w, h, 0, 0);
+    return PNG.sync.write(out);
+}
+
+/**
  * @param {AutoGamer.UtilsCtx | AutoGamer.ScriptCtx} ctx
  * @param {AutoGamer.EvalFn} [_eval=eval] 用于 REPL 中执行代码的 eval 函数
  */
@@ -1290,6 +1325,8 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      *
      * 截图范围说明：
      * - 会截取：当前视口（viewport）内可见的页面内容；若 options.clip 提供，则截取 clip 指定的矩形区域
+     *   （clip 超出视口的部分会被裁掉；实现方式为全视口截图后在 Node 端裁剪，
+     *   规避 Chrome 对部分 clip 尺寸/位置截出全黑图像的 bug）
      *
      * - 不会截取：视口外的内容（fullPage=false、captureBeyondViewport=false）；
      *   本工具注入的 UI 元素（overlay / 鼠标指示器 / 十字准星）默认在截图期间隐藏、
@@ -1313,7 +1350,7 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
      * @param {string} [label="无描述"] 截图标签/日志内容
      * @param {AutoGamer.ScreenshotOptions} [options={}] 选项
      * @returns {Promise<string | Buffer>} returnBuffer 为 true 时返回 Buffer，returnBase64 为 true 时返回 base64 字符串，否则返回文件路径
-     * @throws {Error} 以下情况抛出：options.clip 属性不完整；截图超时；puppeteer 截图失败
+     * @throws {Error} 以下情况抛出：options.clip 属性不完整；clip 与视口无交集；截图超时；puppeteer 截图失败
      */
     const screenshot = async (label = "无描述", options = {}) => {
         const returnBuffer = Boolean(options.returnBuffer) === true;
@@ -1425,9 +1462,11 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                     };
                 }, show));
 
+                // 始终按全视口截图，clip 区域在 Node 端用 pngjs 裁剪（见 cropPngBuffer 注释）：
+                // 直接向 Chrome 传 clip 在部分尺寸/位置下会截出全黑图像
                 const screenshotOptions = {
                     fullPage: false,
-                    clip: clip || {
+                    clip: {
                         x: scrollX,
                         y: scrollY,
                         width: config.viewport?.width ?? 640,
@@ -1452,49 +1491,31 @@ catch(e){console.error(e);return '（代码出错）'}})()`,
                     : `${timeStr}.png`;
                 const filePath = path.join(logDir, filename);
 
+                const rawBuf = Buffer.from(
+                    /** @type {Buffer} */ (
+                        await Promise.race([
+                            page.screenshot(screenshotOptions),
+                            raceTimeout,
+                        ])
+                    ),
+                );
+                // clip 场景在 Node 端裁剪（规避 Chrome clip 截图全黑 bug）
+                const buf = clip
+                    ? cropPngBuffer(rawBuf, clip, scrollX, scrollY)
+                    : rawBuf;
+
+                if (saveFile) {
+                    fs.writeFileSync(filePath, buf);
+                    logRaw("截图已保存:", filePath);
+                }
                 if (returnBuffer) {
-                    const buffer = await Promise.race([
-                        page.screenshot(screenshotOptions),
-                        raceTimeout,
-                    ]);
-                    const buf = Buffer.from(/** @type {Buffer} */ (buffer));
-                    if (saveFile) {
-                        fs.writeFileSync(filePath, buf);
-                        logRaw("截图已保存:", filename);
-                    }
                     logRaw("截图已获取(buffer)");
                     return buf;
                 }
-
                 if (returnBase64) {
-                    // 注意：puppeteer 的 encoding: "base64" 只返回字符串不落盘，
-                    // 这里取回 base64 后按需解码保存
-                    const base64 = await Promise.race([
-                        page.screenshot({
-                            ...screenshotOptions,
-                            encoding: "base64",
-                        }),
-                        raceTimeout,
-                    ]);
-                    if (saveFile) {
-                        fs.writeFileSync(
-                            filePath,
-                            Buffer.from(
-                                /** @type {string} */ (base64),
-                                "base64",
-                            ),
-                        );
-                        logRaw("截图已保存:", filename);
-                    }
                     logRaw("截图已获取(base64)");
-                    return /** @type {string} */ (base64) || "";
+                    return buf.toString("base64");
                 }
-
-                await Promise.race([
-                    page.screenshot({ ...screenshotOptions, path: filePath }),
-                    raceTimeout,
-                ]);
-                logRaw("截图已保存:", filename);
                 return filePath;
             } catch (e) {
                 logRaw("截图失败:", /** @type {any} */ (e).message || e);

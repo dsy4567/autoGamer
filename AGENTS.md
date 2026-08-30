@@ -241,4 +241,21 @@ function createUtils(ctx) {
 - 在 `createUtils` 中传给页面的回调函数注释里说明"必须动态查找 state"的原因
 - 提交前用 grep 确认 `loader.js` 的 createUtils ctx 包含 `getInstanceInfo`
 
+***
+
+### 6. 带 clip 的截图必须走"全视口截图 + Node 端裁剪"
+
+**场景**：`screenshot()` / `compareScreenshot()` 把用户提供的 `clip` 直接透传给 `page.screenshot({clip})`。
+
+**现象**：`alwaysHideOverlay: false`（全屏遮罩曾显示过）时，部分 clip 尺寸/位置截出的 PNG 全黑（实测 36x48、295x371、444x428、521x383 全黑；640x480、604x454、424x464 正常），且不抛错、尺寸正确，极难排查。`alwaysHideOverlay: true` 时同一尺寸又正常。静态测试页面无法复现，真实云游戏（视频流）页面必现。
+
+**根本原因**：Chrome `Page.captureScreenshot` 的合成器 bug：小尺寸 clip 配合遮罩显示历史/视频流页面时会取到全黑帧。触发规律不明（与奇偶性、整除性均无关），puppeteer 也不做任何规避。
+
+**正确做法**：`screenshot()` 内部统一按全视口（`config.viewport`）截图，再用 pngjs 在 Node 端裁剪 clip 区域（模块作用域的 `cropPngBuffer()`）。clip 与视口求交集：越界部分裁掉（与浏览器 clip∩视口 语义一致），无交集抛错。
+
+**预防措施**：
+
+- 不要绕过 `screenshot()` 直接调用 `page.screenshot({clip})`
+- 新增需要区域截图的功能时复用 `cropPngBuffer()`
+
 
