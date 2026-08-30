@@ -46,6 +46,7 @@ module.exports = function (ctx) {
      *   customTemplateIndex: 0 | 1 | 2 | 3 | 4,
      *   dungeonRunCount: number,
      *   customFightActions: any[],
+     *   onEnterMainFail: () => void,
      * }}
      */
     const defaultConfig = {
@@ -122,6 +123,8 @@ module.exports = function (ctx) {
             ["tt", 558, 354], // 切人
             ["sleep", 100],
         ],
+        /** 启动失败回调 */
+        onEnterMainFail: () => {},
     };
 
     return { ...defaultConfig, ...userConfig };

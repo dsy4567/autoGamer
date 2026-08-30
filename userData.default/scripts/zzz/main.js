@@ -57,7 +57,7 @@ module.exports = async function (ctx) {
         mi,
         setBeforeUnload,
     } = createUtils(ctx, code => eval(code));
-    const config = getGlobalConfig();
+    const globalConfig = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
     enableHotReload();
@@ -124,6 +124,39 @@ module.exports = async function (ctx) {
             ],
         ),
     };
+
+    /** 检查是否已启动 */
+    async function checkEnterMainFailed() {
+        const onFail = scriptConfig.onEnterMainFail;
+        let failed = false;
+        await action("检查是否已启动", [
+            tapBackBtn.middleTop,
+            ["sleep", 1000],
+            tapBackBtn.middleTop,
+            ["sleep", 1000],
+
+            // 打开小地图
+            ["tt", 539, 118],
+            ["sleep", 3000],
+
+            matchBackBtn.middleTop([["fn", () => (failed = true)]], [], true),
+
+            tapBackBtn.middleTop,
+            ["sleep", 1000],
+            tapBackBtn.middleTop,
+            ["sleep", 1000],
+        ]);
+        if (failed) {
+            try {
+                (typeof onFail === "function" ? onFail : () => {})();
+            } catch (e) {
+                log("ERROR: onFail 失败:", e);
+            }
+
+            log("ERROR: 游戏似乎未进入主界面，正在退出");
+        }
+        return failed;
+    }
 
     /** 检查纪行按钮 */
     async function checkJiXingBtn() {
@@ -408,7 +441,7 @@ module.exports = async function (ctx) {
             // 跳过
             ["tt", 538, 105],
             ["sleep", 3000],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         // TODO: 体力达到上限后无法摄取咖啡，在readme提醒
@@ -481,7 +514,7 @@ module.exports = async function (ctx) {
         await action("点击确认", [
             ["tt", 323, 318],
             ["sleep", 500],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         await action("关闭刮刮卡、报刊亭页面", [
@@ -566,7 +599,7 @@ module.exports = async function (ctx) {
             ["tt", 379, 279],
             ["sleep", 2000],
             // 开业大吉
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
             ["tt", 318, 276],
             ["sleep", 3000],
         ]);
@@ -610,7 +643,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 400, 395],
             ["sleep", 1000],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         await action("关闭纪行奖励页面", [
@@ -633,7 +666,7 @@ module.exports = async function (ctx) {
             ["sleep", 500],
             ["tt", 303, 472],
             ["sleep", 500],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         await action("关闭手册", [
@@ -814,7 +847,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             tapBackBtn.middleTop,
             ["sleep", 1000],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
     }
 
@@ -884,6 +917,7 @@ module.exports = async function (ctx) {
 
     async function main() {
         await enterMain();
+        if (await checkEnterMainFailed()) return;
         await checkJiXingBtn();
         await cancelTrackingTask();
         await adjustTimeToNight();
