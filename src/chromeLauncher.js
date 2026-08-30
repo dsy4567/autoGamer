@@ -173,9 +173,7 @@ function prepareFlatpakAccess(execPath, chromeDataDir) {
         return;
     }
 
-    log(
-        `flatpak 应用 ${pkgName} 缺少 ${chromeDataDir} 读写权限，尝试添加...`,
-    );
+    log(`flatpak 应用 ${pkgName} 缺少 ${chromeDataDir} 读写权限，尝试添加...`);
     try {
         execSync(
             `flatpak override --user --filesystem="${chromeDataDir}":rw ${pkgName}`,
@@ -255,6 +253,66 @@ module.exports = async function (config) {
                 } catch (e) {
                     log(
                         `WARNING: 处理 Preferences 文件失败: ${/** @type {any} */ (e)?.message || e}`,
+                    );
+                }
+            }
+        }
+
+        // 清空上次打开的标签页，避免启动时恢复上次会话
+        {
+            const profileDir = path.join(chromeDataDir, "Default");
+            // 旧版会话文件（直接位于 profile 目录下）
+            const legacySessionFiles = [
+                "Current Session",
+                "Current Tabs",
+                "Last Session",
+                "Last Tabs",
+            ];
+            /** @type {string[]} */
+            const removed = [];
+            for (const name of legacySessionFiles) {
+                const p = path.join(profileDir, name);
+                if (fs.existsSync(p)) {
+                    fs.rmSync(p, { force: true });
+                    removed.push(name);
+                }
+            }
+            // 新版会话数据（Sessions/ 目录，Chrome 启动后会自动重建）
+            const sessionsDir = path.join(profileDir, "Sessions");
+            if (fs.existsSync(sessionsDir)) {
+                fs.rmSync(sessionsDir, { recursive: true, force: true });
+                removed.push("Sessions/");
+            }
+            if (removed.length > 0) {
+                log(`已删除上次会话数据: ${removed.join(", ")}`);
+            }
+
+            // 将 session.exit_type 重置为 "Normal"，
+            // 避免 Chrome 判定上次异常退出而弹出"恢复页面"提示
+            const preferencesPath = path.join(profileDir, "Preferences");
+            if (fs.existsSync(preferencesPath)) {
+                try {
+                    const prefs = JSON.parse(
+                        fs.readFileSync(preferencesPath, "utf-8"),
+                    );
+                    if (
+                        prefs.session &&
+                        prefs.session.exit_type !== undefined &&
+                        prefs.session.exit_type !== "Normal"
+                    ) {
+                        prefs.session.exit_type = "Normal";
+                        fs.writeFileSync(
+                            preferencesPath,
+                            JSON.stringify(prefs),
+                            "utf-8",
+                        );
+                        log(
+                            '已将 Preferences 的 session.exit_type 重置为 "Normal"',
+                        );
+                    }
+                } catch (e) {
+                    log(
+                        `WARNING: 重置 session.exit_type 失败: ${/** @type {any} */ (e)?.message || e}`,
                     );
                 }
             }
