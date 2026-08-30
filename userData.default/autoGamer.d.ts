@@ -547,7 +547,7 @@ declare global {
         }
 
         /** scripts/<id>/config.default.js 接收的 ctx */
-        interface ScriptConfigCtx extends LoadUserConfigCtx {
+        interface ScriptConfigCtx extends LoadUserConfigCtx, ScriptCtx {
             /** 当前脚本的数据目录（<数据目录>/scriptData/<id>），包含 override 配置等 */
             scriptDataDir: string;
             /** 加载用户自定义配置文件 */
