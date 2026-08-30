@@ -57,7 +57,7 @@ module.exports = async function (ctx) {
         mi,
         setBeforeUnload,
     } = createUtils(ctx, (/** @type {string} */ code) => eval(code));
-    const config = getGlobalConfig();
+    const globalConfig = getGlobalConfig();
     const scriptConfig = loadScriptConfig(ctx);
 
     enableHotReload();
@@ -67,6 +67,49 @@ module.exports = async function (ctx) {
         top: ["tt", 633, 26],
     };
 
+    /** 检查是否已启动 */
+    async function checkEnterMainFailed() {
+        const onFail = scriptConfig.onEnterMainFail;
+        let failed = false;
+        await action("检查是否已启动", [
+            tapBackBtn.top,
+            ["sleep", 1000],
+            tapBackBtn.top,
+            ["sleep", 1000],
+
+            // 打开小地图
+            ["tt", 55, 67],
+            ["sleep", 3000],
+
+            [
+                "cs",
+                "小地图界面.png",
+                {
+                    threshold: 0.98,
+                    clip: { x: 0, y: 0, width: 36, height: 48 },
+                    recheckInterval: 3000,
+                    recheckCount: 3,
+                    inverse: true,
+                },
+                [["fn", () => (failed = true)]],
+            ],
+
+            tapBackBtn.top,
+            ["sleep", 1000],
+            tapBackBtn.top,
+            ["sleep", 1000],
+        ]);
+        if (failed) {
+            try {
+                (typeof onFail === "function" ? onFail : () => {})();
+            } catch (e) {
+                log("ERROR: onFail 失败:", e);
+            }
+
+            log("ERROR: 游戏似乎未进入主界面，正在退出");
+        }
+        return failed;
+    }
     /** 领取简单奖励 */
     async function receiveSimpleRewards() {
         log("-----领取简单奖励-----");
@@ -107,7 +150,7 @@ module.exports = async function (ctx) {
             ["sleep", 1000],
             ["tt", 196, 155],
             ["sleep", 500],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         await action("关闭每日实训页面", [tapBackBtn.top, ["sleep", 3000]]);
@@ -230,7 +273,7 @@ module.exports = async function (ctx) {
                 }
             }
 
-            action("检查点", [["fn", config.checkpoint]], {
+            action("检查点", [["fn", globalConfig.checkpoint]], {
                 screenshot: false,
             });
 
@@ -267,7 +310,7 @@ module.exports = async function (ctx) {
                     ["sleep", 500],
                     ["tt", 377, 154],
                     ["sleep", 500],
-                    ["fn", config.checkpoint],
+                    ["fn", globalConfig.checkpoint],
                 ]);
 
                 await action("关闭每日实训", [tapBackBtn.top, ["sleep", 3000]]);
@@ -302,7 +345,7 @@ module.exports = async function (ctx) {
             ["sleep", 500],
             ["tt", 433, 396],
             ["sleep", 500],
-            ["fn", config.checkpoint],
+            ["fn", globalConfig.checkpoint],
         ]);
 
         await action("关闭纪行页面", [tapBackBtn.top, ["sleep", 3000]]);
@@ -359,6 +402,7 @@ module.exports = async function (ctx) {
     /** 主函数 */
     async function main() {
         await enterMain();
+        if (await checkEnterMainFailed()) return;
         await receiveSimpleRewards();
         await dungeonFight();
         await getJiXingReward();

@@ -38,6 +38,7 @@ module.exports = function (ctx) {
      *     afterStartGame: number,
      *   },
      *   dungeonRunCount: number,
+     *   onEnterMainFail: () => void,
      * }}
      */
     const defaultConfig = {
@@ -70,6 +71,8 @@ module.exports = function (ctx) {
         dungeonRunCount: 1,
         /** 副本类型: 1=经验书, 2=武器矿, 3=钞票, 4=培养目标首个副本 */
         dungeonType: 1,
+        /** 检查是否已启动失败回调 */
+        onEnterMainFail: () => {},
     };
 
     return { ...defaultConfig, ...userConfig };
