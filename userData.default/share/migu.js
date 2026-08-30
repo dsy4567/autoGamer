@@ -64,6 +64,10 @@ async function actionsInCloudGameBallAndExit(ctx) {
     const config = getGlobalConfig();
 
     log("开始签到");
+    setTimeout(() => {
+        log("签到超时，退出进程");
+        process.exit(1);
+    }, 30000);
     try {
         // 点击悬浮球元素
         await page.evaluate("window?.__autoGamer?.toggleBallVisible?.(true)");
